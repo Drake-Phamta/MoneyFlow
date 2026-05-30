@@ -1,11 +1,11 @@
+// Format number string with dot separators (Vietnamese convention: 1.000.000)
 export function formatNumberInput(value) {
-  if (value == null || value === '') return '';
-  const num = typeof value === 'string' ? parseInt(value.replace(/\./g, ''), 10) : value;
-  if (isNaN(num)) return '';
-  return num.toLocaleString('vi-VN');
+  const nums = String(value).replace(/\D/g, '');
+  if (!nums) return '';
+  return nums.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
+// Parse formatted string back to number: "1.000.000" → 1000000
 export function parseNumberInput(value) {
-  if (!value) return 0;
-  return parseInt(String(value).replace(/\./g, ''), 10) || 0;
+  return parseFloat(String(value).replace(/\./g, '')) || 0;
 }

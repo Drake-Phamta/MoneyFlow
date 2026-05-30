@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import Dashboard from './components/Dashboard';
 import CashFlowPage from './components/CashFlowPage';
@@ -15,6 +15,7 @@ export default function App() {
         <Route path="/investments" element={<InvestmentsPage />} />
         <Route path="/scenarios" element={<Scenarios />} />
         <Route path="/settings" element={<Settings />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Layout>
   );

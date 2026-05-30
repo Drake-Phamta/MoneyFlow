@@ -1,56 +1,60 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatVND } from '../../utils/formatters';
-import { AppIcon } from '../../utils/iconMap';
+import { ChartDonut } from '../../utils/iconMap';
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
+export default function AllocationPie({ data = [] }) {
+  const filtered = data.filter(d => d.value > 0);
 
-export default function AllocationPie({ allocations }) {
-  if (!allocations || allocations.length === 0) {
+  if (filtered.length === 0) {
     return (
-      <div className="card flex items-center justify-center">
-        <p className="text-gray-400 text-sm">Chưa có dữ liệu phân bổ</p>
+      <div className="flex flex-col items-center justify-center h-[200px] text-slate-400">
+        <ChartDonut size={40} weight="light" />
+        <p className="text-sm mt-2">Chưa có dữ liệu</p>
+        <p className="text-xs text-slate-300">Nhập liệu tháng đầu tiên</p>
       </div>
     );
   }
 
-  // Group by category
-  const grouped = {};
-  for (const a of allocations) {
-    const key = a.category_name;
-    if (!grouped[key]) grouped[key] = { name: key, icon: a.icon, color: a.color, planned: 0, actual: 0 };
-    grouped[key].planned += a.planned_amount || 0;
-    grouped[key].actual += a.actual_amount || 0;
-  }
-  const pieData = Object.values(grouped).map((g, i) => ({
-    ...g,
-    Icon: null, // Will be resolved from iconMap
-    value: g.actual || g.planned,
-    fill: g.color || COLORS[i % COLORS.length],
-  }));
+  const total = filtered.reduce((s, d) => s + d.value, 0);
 
   return (
-    <div className="card">
-      <h3 className="font-semibold mb-3">Phân bổ danh mục</h3>
-      <div className="flex items-center gap-4">
-        <div className="w-40 h-40">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={pieData} cx="50%" cy="50%" innerRadius={40} outerRadius={70} dataKey="value" paddingAngle={2}>
-                {pieData.map((d, i) => <Cell key={i} fill={d.fill} />)}
-              </Pie>
-              <Tooltip formatter={(v) => formatVND(v)} />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex-1 space-y-2">
-          {pieData.map((d, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm">
-              <div className="w-3 h-3 rounded-full shrink-0" style={{ background: d.fill }} />
-              <span className="text-gray-700">{d.name}</span>
-              <span className="ml-auto font-medium">{formatVND(d.value)}</span>
+    <div>
+      <ResponsiveContainer width="100%" height={180}>
+        <PieChart>
+          <Pie
+            data={filtered}
+            cx="50%"
+            cy="50%"
+            innerRadius={45}
+            outerRadius={70}
+            paddingAngle={3}
+            dataKey="value"
+          >
+            {filtered.map((d, i) => (
+              <Cell key={i} fill={d.color || '#94a3b8'} />
+            ))}
+          </Pie>
+          <Tooltip
+            formatter={(value) => formatVND(value)}
+            contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '12px' }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+      <div className="space-y-2 mt-2">
+        {filtered.map((d) => (
+          <div key={d.name} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
+              <span className="text-xs text-slate-600 flex items-center gap-1">
+                {d.Icon ? <d.Icon size={14} weight="regular" /> : d.icon} {d.name}
+              </span>
             </div>
-          ))}
-        </div>
+            <div className="text-right">
+              <span className="text-xs font-semibold text-slate-800">{formatVND(d.value)}</span>
+              <span className="text-[10px] text-slate-400 ml-1">({((d.value / total) * 100).toFixed(0)}%)</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

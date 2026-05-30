@@ -7,15 +7,21 @@ export default defineConfig({
   root: __dirname,
   base: './',
   resolve: {
-    alias: { '@': path.resolve(__dirname, './src') },
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+    },
   },
   server: {
     port: 5173,
     fs: { strict: true },
-    fs: { strict: true },
     proxy: {
-      '/api': { target: 'http://localhost:3001', changeOrigin: true },
+      '/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+      },
     },
   },
-  build: { outDir: 'dist' },
+  build: {
+    outDir: 'dist',
+  },
 });

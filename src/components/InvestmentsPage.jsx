@@ -1,46 +1,63 @@
 import { useState } from 'react';
 import ExecutionLog from './ExecutionLog';
-import SavingsSection from './SavingsSection';
 import SniperPlaybook from './SniperPlaybook';
+import SavingsSection from './SavingsSection';
 import AllocationGoals from './dashboard/AllocationGoals';
-import { ChartBar, PiggyBank, Crosshair, PieSlice } from '@phosphor-icons/react';
+import { ChartLineUp, Bank, CrosshairSimple, ListChecks } from '@phosphor-icons/react';
 
 const TABS = [
-  { id: 'portfolio', label: 'Danh mục', icon: ChartBar },
-  { id: 'savings', label: 'Tiết kiệm', icon: PiggyBank },
-  { id: 'sniper', label: 'Bắn Tỉa', icon: Crosshair },
-  { id: 'allocation', label: 'Phân bổ', icon: PieSlice },
+  { id: 'portfolio', label: 'Danh mục', Icon: ChartLineUp },
+  { id: 'savings', label: 'Tiết kiệm', Icon: Bank },
+  { id: 'sniper', label: 'Bắn Tỉa', Icon: CrosshairSimple },
+  { id: 'allocation', label: 'Phân bổ', Icon: ListChecks },
 ];
 
+const TAB_DESCRIPTIONS = {
+  portfolio: 'Cổ phiếu, ETF, Vàng, Crypto — tài sản có giá thị trường',
+  savings: 'Sổ tiết kiệm ngân hàng, trái phiếu — theo dõi lãi suất & đáo hạn',
+  sniper: 'Chiến lược bắn tỉa — chờ dip mua, quản lý watchlist & alert',
+  allocation: 'So sánh phân bổ thực tế vs mục tiêu theo giai đoạn',
+};
+
 export default function InvestmentsPage() {
-  const [tab, setTab] = useState('portfolio');
+  const [activeTab, setActiveTab] = useState('portfolio');
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      <div className="page-header">
-        <h1 className="text-2xl font-bold">Đầu Tư</h1>
+    <div className="space-y-4 animate-fade-in">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="page-title">Đầu Tư</h1>
+          <p className="page-subtitle">Quản lý danh mục, tiết kiệm và cơ hội đầu tư</p>
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {TABS.map(t => (
+      {/* Tab bar */}
+      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
+        {TABS.map(tab => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-              tab === t.id ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
+              activeTab === tab.id
+                ? 'bg-white text-slate-800 shadow-sm'
+                : 'text-slate-500 hover:text-slate-700'
             }`}
           >
-            <t.icon size={16} /> {t.label}
+            <tab.Icon size={16} weight="regular" />
+            {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Tab Content */}
-      {tab === 'portfolio' && <ExecutionLog />}
-      {tab === 'savings' && <SavingsSection />}
-      {tab === 'sniper' && <SniperPlaybook />}
-      {tab === 'allocation' && <AllocationGoals />}
+      {/* Tab description */}
+      <p className="text-xs text-slate-400">{TAB_DESCRIPTIONS[activeTab]}</p>
+
+      {/* Tab content */}
+      {activeTab === 'portfolio' && <ExecutionLog embedded />}
+      {activeTab === 'savings' && <SavingsSection />}
+      {activeTab === 'sniper' && <SniperPlaybook embedded />}
+      {activeTab === 'allocation' && <AllocationGoals />}
     </div>
   );
 }

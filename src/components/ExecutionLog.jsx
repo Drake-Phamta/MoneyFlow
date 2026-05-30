@@ -1,127 +1,406 @@
 import { useState, useEffect } from 'react';
-import { apiClient } from '../utils/apiClient';
 import { formatVND, formatDate } from '../utils/formatters';
-import { Plus, ArrowUp, ArrowDown } from '@phosphor-icons/react';
-import FormattedInput from './FormattedInput';
+import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
+import { apiClient } from '../utils/apiClient';
+import AppIcon from '../utils/iconMap';
 
-export default function ExecutionLog() {
+export default function ExecutionLog({ embedded }) {
   const [transactions, setTransactions] = useState([]);
-  const [assets, setAssets] = useState([]);
+  const [assetTypes, setAssetTypes] = useState([]);
+  const [parentAssets, setParentAssets] = useState([]);
+  const [catalogItems, setCatalogItems] = useState([]);
+  const [selectedParent, setSelectedParent] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ asset_type_id: '', type: 'buy', quantity: 0, price: 0, fee: 0, date: new Date().toISOString().split('T')[0], notes: '' });
+  const [investmentAllocated, setInvestmentAllocated] = useState(0);
+  const [discrepancyConfirmed, setDiscrepancyConfirmed] = useState(null); // { amount, reason, date }
+  const [showDiscrepancyInput, setShowDiscrepancyInput] = useState(false);
+  const [discrepancyReason, setDiscrepancyReason] = useState('');
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    asset_type_id: '',
+    asset_name: '',
+    type: 'BUY',
+    quantity: '',
+    price: '',
+    note: '',
+  });
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [t, a, catalog, filled] = await Promise.all([
+          apiClient.transactions.get(),
+          apiClient.assets.get(),
+          apiClient.catalog.get(),
+          apiClient.monthly.filled().catch(() => []),
+        ]);
+        setTransactions(t);
+        setAssetTypes(a);
+        setCatalogItems(catalog);
 
-  async function loadData() {
-    const [t, a] = await Promise.all([apiClient.transactions.get(50), apiClient.assets.get()]);
-    setTransactions(t); setAssets(a);
+        // Calculate total allocated to investment categories
+        if (filled.length > 0) {
+          const allAllocs = await Promise.all(
+            filled.map(m => apiClient.allocations.get(m.id).catch(() => []))
+          );
+          let invested = 0;
+          for (const monthAllocs of allAllocs) {
+            for (const alloc of monthAllocs) {
+              const name = alloc.category_name || '';
+              if (!name.includes('Dự Phòng') && !name.includes('Tiết kiệm')) {
+                invested += alloc.actual_amount || alloc.planned_amount || 0;
+              }
+            }
+          }
+          setInvestmentAllocated(invested);
+
+          // Check for previously confirmed discrepancy
+          const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+          const saved = localStorage.getItem(`discrepancy_${monthKey}`);
+          if (saved) {
+            try { setDiscrepancyConfirmed(JSON.parse(saved)); } catch {}
+          }
+        }
+
+        // Parent assets = rows with ticker IS NULL (broad categories)
+        // Exclude savings & bond — those are managed in SavingsSection
+        const parents = a.filter(x => !x.ticker && !['savings', 'bond'].includes(x.asset_class));
+        setParentAssets(parents);
+        if (parents.length > 0) {
+          setSelectedParent(parents[0].id.toString());
+          // Auto-select first specific asset if available
+          const firstSpecific = catalog.find(c => c.asset_class === parents[0].asset_class);
+          if (firstSpecific) {
+            setForm(f => ({ ...f, asset_type_id: firstSpecific.id.toString() }));
+          } else {
+            setForm(f => ({ ...f, asset_type_id: parents[0].id.toString() }));
+          }
+        }
+      } catch (err) {
+        console.error('ExecutionLog load error:', err);
+      }
+    })();
+  }, []);
+
+  // Filter specific assets by selected parent's asset_class
+  const parentAsset = parentAssets.find(a => a.id === parseInt(selectedParent));
+  const specificAssets = parentAsset
+    ? catalogItems.filter(c => c.asset_class === parentAsset.asset_class)
+    : [];
+
+  const selectedAsset = assetTypes.find(a => a.id === parseInt(form.asset_type_id));
+  const totalAmount = (parseFloat(form.quantity) || 0) * (parseFloat(form.price) || 0);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.asset_type_id) return;
+
+    const qty = parseFloat(form.quantity) || 0;
+    const price = parseFloat(form.price) || 0;
+    const total = qty * price;
+
+    if (!form.quantity || !form.price) return;
+
+    try {
+      await apiClient.transactions.add({
+        date: form.date,
+        asset_type_id: parseInt(form.asset_type_id),
+        asset_name: selectedAsset?.ticker || form.asset_name || selectedAsset?.name || '',
+        type: form.type,
+        quantity: qty,
+        price: price,
+        total_amount: total,
+        note: form.note,
+      });
+      const firstSpecific = catalogItems.find(c => c.asset_class === parentAsset?.asset_class);
+      setForm({ date: new Date().toISOString().split('T')[0], asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '' });
+      setShowForm(false);
+      setTransactions(await apiClient.transactions.get());
+    } catch (err) {
+      console.error('Add transaction error:', err);
+      alert('Lỗi khi thêm giao dịch: ' + err.message);
+    }
   }
 
-  async function handleSave() {
-    if (!form.asset_type_id || !form.quantity || !form.price) return alert('Điền đủ thông tin');
-    const asset = assets.find(a => a.id === parseInt(form.asset_type_id));
-    await apiClient.transactions.add({
-      ...form,
-      asset_type_id: parseInt(form.asset_type_id),
-      total_amount: form.quantity * form.price + form.fee,
-      asset_name: asset?.name,
-    });
-    setForm({ asset_type_id: '', type: 'buy', quantity: 0, price: 0, fee: 0, date: new Date().toISOString().split('T')[0], notes: '' });
-    setShowForm(false);
-    loadData();
+  async function handleDelete(id) {
+    try {
+      await apiClient.transactions.delete(id);
+      setTransactions(await apiClient.transactions.get());
+    } catch (err) {
+      console.error('Delete transaction error:', err);
+      alert('Lỗi khi xóa: ' + err.message);
+    }
   }
 
-  const totalInvested = transactions.filter(t => t.type === 'buy').reduce((s, t) => s + t.total_amount, 0);
-  const buyCount = transactions.filter(t => t.type === 'buy').length;
-  const sellCount = transactions.filter(t => t.type === 'sell').length;
+  // Discrepancy handlers
+  async function handleConfirmDiscrepancy() {
+    try {
+      // Update allocation in database to match actual invested amount
+      await apiClient.allocations.adjust(discrepancy);
+      // Refresh allocated amount
+      setInvestmentAllocated(prev => prev + discrepancy);
+    } catch (err) {
+      console.error('Adjust allocation error:', err);
+    }
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const record = {
+      amount: discrepancy,
+      reason: discrepancyReason || 'Không có lý do cụ thể',
+      date: new Date().toISOString(),
+    };
+    localStorage.setItem(`discrepancy_${monthKey}`, JSON.stringify(record));
+    setDiscrepancyConfirmed(record);
+    setShowDiscrepancyInput(false);
+    setDiscrepancyReason('');
+  }
+
+  function handleRevokeConfirmation() {
+    const monthKey = new Date().toISOString().slice(0, 7);
+    localStorage.removeItem(`discrepancy_${monthKey}`);
+    setDiscrepancyConfirmed(null);
+  }
+
+  // Stats
+  const buyCount = transactions.filter(t => t.type === 'BUY').length;
+  const sellCount = transactions.filter(t => t.type === 'SELL').length;
+  const totalInvested = transactions.reduce((s, t) => s + (t.type === 'BUY' ? t.total_amount : -t.total_amount), 0);
+  const availableToInvest = Math.max(0, investmentAllocated - totalInvested);
+  const discrepancy = totalInvested - investmentAllocated; // positive = over-invested, negative = under-invested
+  const hasDiscrepancy = investmentAllocated > 0 && Math.abs(discrepancy) > 1000; // ignore tiny rounding
+  const isConfirmed = discrepancyConfirmed && Math.abs(discrepancyConfirmed.amount - discrepancy) < 1000;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Nhật ký giao dịch</h3>
-        <button onClick={() => setShowForm(!showForm)} className="btn-primary flex items-center gap-1">
-          <Plus size={16} /> Thêm giao dịch
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="kpi"><span className="text-xs text-gray-500">Tổng đầu tư</span><span className="font-semibold">{formatVND(totalInvested)}</span></div>
-        <div className="kpi"><span className="text-xs text-gray-500">Lần mua</span><span className="font-semibold text-emerald-600">{buyCount}</span></div>
-        <div className="kpi"><span className="text-xs text-gray-500">Lần bán</span><span className="font-semibold text-red-600">{sellCount}</span></div>
-      </div>
-
-      {/* Form */}
-      {showForm && (
-        <div className="card border-primary-200 bg-primary-50/30">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Tài sản</label>
-              <select value={form.asset_type_id} onChange={e => setForm({ ...form, asset_type_id: e.target.value })} className="input">
-                <option value="">Chọn tài sản</option>
-                {assets.map(a => <option key={a.id} value={a.id}>{a.icon} {a.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Loại</label>
-              <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
-                <option value="buy">Mua</option>
-                <option value="sell">Bán</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Số lượng</label>
-              <FormattedInput value={form.quantity} onChange={v => setForm({ ...form, quantity: v })} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Giá</label>
-              <FormattedInput value={form.price} onChange={v => setForm({ ...form, price: v })} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Phí</label>
-              <FormattedInput value={form.fee} onChange={v => setForm({ ...form, fee: v })} />
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 mb-1 block">Ngày</label>
-              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input" />
-            </div>
-            <div className="col-span-2">
-              <label className="text-xs text-gray-500 mb-1 block">Ghi chú</label>
-              <input type="text" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} className="input" placeholder="Ghi chú..." />
-            </div>
+    <div className="space-y-6 animate-fade-in">
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Giao Dịch</h1>
+            <p className="page-subtitle">Nhật ký mua/bán mọi loại tài sản</p>
           </div>
-          <div className="flex gap-2 mt-3">
-            <button onClick={handleSave} className="btn-success">Lưu</button>
-            <button onClick={() => setShowForm(false)} className="btn-ghost">Hủy</button>
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary">+ Thêm lệnh</button>
+        </div>
+      )}
+      {embedded && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-slate-500">{transactions.length} giao dịch · Tổng vốn: {formatVND(totalInvested)}</p>
+          <button onClick={() => setShowForm(!showForm)} className="btn-primary text-sm">+ Thêm lệnh</button>
+        </div>
+      )}
+
+      {/* Available to invest banner */}
+      {investmentAllocated > 0 && (
+        <div className="card bg-gradient-to-r from-blue-50 to-violet-50 border-blue-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-slate-500 uppercase">Tiền sẵn sàng đầu tư</p>
+              <p className="text-2xl font-bold text-blue-700">{formatVND(availableToInvest)}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                Phân bổ: {formatVND(investmentAllocated)} · Đã đầu tư: {formatVND(totalInvested)}
+              </p>
+            </div>
+            {availableToInvest > 0 && (
+              <button onClick={() => setShowForm(true)} className="btn-primary">+ Mua ngay</button>
+            )}
+          </div>
+          {investmentAllocated > 0 && (
+            <div className="mt-3">
+              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${Math.min((totalInvested / investmentAllocated) * 100, 100)}%`,
+                    background: totalInvested >= investmentAllocated ? '#10b981' : '#3b82f6',
+                  }}
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">
+                Đã dùng {investmentAllocated > 0 ? ((totalInvested / investmentAllocated) * 100).toFixed(0) : 0}% phân bổ
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Discrepancy Warning */}
+      {hasDiscrepancy && !isConfirmed && (
+        <div className="card bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl mt-0.5">⚠️</span>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-amber-800">Phát hiện chênh lệch phân bổ</p>
+              <p className="text-xs text-amber-600 mt-1">
+                Số tiền phân bổ đầu tư: <strong>{formatVND(investmentAllocated)}</strong> · Số tiền đã đầu tư: <strong>{formatVND(totalInvested)}</strong>
+              </p>
+              <p className="text-xs text-amber-700 mt-1">
+                Chênh lệch: <strong className={discrepancy > 0 ? 'text-red-600' : 'text-blue-600'}>
+                  {discrepancy > 0 ? '+' : ''}{formatVND(discrepancy)}
+                </strong>
+                {discrepancy > 0
+                  ? ' — Bạn đã đầu tư nhiều hơn phân bổ (có thể dùng tiền từ nguồn khác)'
+                  : ' — Bạn chưa đầu tư hết số tiền đã phân bổ'}
+              </p>
+
+              {!showDiscrepancyInput ? (
+                <div className="flex gap-2 mt-3">
+                  <button onClick={() => setShowDiscrepancyInput(true)} className="btn-primary text-xs px-3 py-1.5">
+                    ✓ Xác nhận đúng
+                  </button>
+                  <button onClick={() => { document.getElementById('transaction-table')?.scrollIntoView({ behavior: 'smooth' }); }} className="btn-ghost text-xs px-3 py-1.5">
+                    🔍 Rà soát thủ công
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  <input
+                    type="text"
+                    value={discrepancyReason}
+                    onChange={e => setDiscrepancyReason(e.target.value)}
+                    placeholder="Lý do chênh lệch (VD: dùng tiền chi tiêu thừa để mua thêm)..."
+                    className="input text-xs w-full"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={handleConfirmDiscrepancy} className="btn-primary text-xs px-3 py-1.5">Lưu xác nhận</button>
+                    <button onClick={() => { setShowDiscrepancyInput(false); setDiscrepancyReason(''); }} className="btn-ghost text-xs px-3 py-1.5">Hủy</button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
-      {/* Transaction List */}
-      <div className="card">
+      {/* Confirmed discrepancy display */}
+      {hasDiscrepancy && isConfirmed && (
+        <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">✅</span>
+              <div>
+                <p className="text-xs text-green-700 font-medium">Chênh lệch đã xác nhận</p>
+                <p className="text-[11px] text-green-600">
+                  {formatVND(discrepancyConfirmed.amount)} — {discrepancyConfirmed.reason}
+                </p>
+              </div>
+            </div>
+            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-500 px-2 py-1">
+              Hủy xác nhận
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="kpi"><span className="kpi-label">Tổng giao dịch</span><p className="kpi-value">{transactions.length}</p></div>
+        <div className="kpi"><span className="kpi-label">Mua</span><p className="kpi-value text-emerald-600">{buyCount}</p></div>
+        <div className="kpi"><span className="kpi-label">Bán</span><p className="kpi-value text-red-500">{sellCount}</p></div>
+        <div className="kpi"><span className="kpi-label">Tổng vốn</span><p className="kpi-value text-primary-600">{formatVND(totalInvested)}</p></div>
+      </div>
+
+      {/* Form */}
+      {showForm && (
+        <div className="card animate-fade-in">
+          <h3 className="text-sm font-semibold text-slate-700 mb-4">Thêm giao dịch mới</h3>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Row 1: Ngày, Loại tài sản, Mã cụ thể, Loại giao dịch */}
+            <div className="grid grid-cols-4 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Ngày</label>
+                <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} className="input" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Loại tài sản</label>
+                <select value={selectedParent} onChange={e => {
+                  setSelectedParent(e.target.value);
+                  const parent = parentAssets.find(a => a.id === parseInt(e.target.value));
+                  const first = catalogItems.find(c => c.asset_class === parent?.asset_class);
+                  setForm(f => ({ ...f, asset_type_id: first ? first.id.toString() : e.target.value, asset_name: '' }));
+                }} className="input">
+                  {parentAssets.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Mã cụ thể</label>
+                {specificAssets.length > 0 ? (
+                  <select value={form.asset_type_id} onChange={e => setForm({ ...form, asset_type_id: e.target.value })} className="input">
+                    {specificAssets.map(a => <option key={a.id} value={a.id}>{a.ticker} — {a.name}</option>)}
+                  </select>
+                ) : (
+                  <input type="text" value={form.asset_name} onChange={e => setForm({ ...form, asset_name: e.target.value })}
+                    placeholder="Tên tài sản..." className="input" />
+                )}
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Loại giao dịch</label>
+                <select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="input">
+                  <option value="BUY">MUA</option>
+                  <option value="SELL">BÁN</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Row 2: Số lượng + Giá */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Số lượng</label>
+                <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })}
+                  placeholder="VD: 100" className="input" />
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Giá (₫)</label>
+                <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
+                  placeholder="VD: 36,000" className="input" />
+              </div>
+            </div>
+            {totalAmount > 0 && (
+              <div className="bg-primary-50 rounded-xl px-4 py-2 flex justify-between">
+                <span className="text-sm text-primary-600">Thành tiền</span>
+                <span className="font-bold text-primary-700">{formatVND(totalAmount)}</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2">
+              <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">Hủy</button>
+              <button type="submit" className="btn-primary">Lưu</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Table */}
+      <div id="transaction-table" className="card p-0 overflow-hidden">
         {transactions.length === 0 ? (
-          <p className="text-gray-400 text-sm">Chưa có giao dịch</p>
+          <div className="text-center py-16 text-slate-400">
+            <p className="text-sm">Chưa có giao dịch</p>
+            <button onClick={() => setShowForm(true)} className="btn-primary mt-3 text-sm">Thêm giao dịch đầu tiên</button>
+          </div>
         ) : (
-          <table className="table">
-            <thead><tr><th>Ngày</th><th>Tài sản</th><th>Loại</th><th>KL</th><th>Giá</th><th>Tổng</th></tr></thead>
-            <tbody>
-              {transactions.map(t => (
-                <tr key={t.id}>
-                  <td>{formatDate(t.date)}</td>
-                  <td>{t.icon} {t.ticker || t.asset_name}</td>
-                  <td>
-                    <span className={`badge ${t.type === 'buy' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
-                      {t.type === 'buy' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                      {t.type === 'buy' ? 'Mua' : 'Bán'}
-                    </span>
-                  </td>
-                  <td>{t.quantity}</td>
-                  <td>{formatVND(t.price)}</td>
-                  <td className="font-medium">{formatVND(t.total_amount)}</td>
+          <div className="table-wrap border-0 rounded-none">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>#</th><th>Ngày</th><th>Tài sản</th><th>Loại</th>
+                  <th className="text-right">Khối lượng</th><th className="text-right">Giá</th>
+                  <th className="text-right">Thành tiền</th><th></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {transactions.map((t, i) => (
+                  <tr key={t.id}>
+                    <td className="text-slate-400 text-xs">{i + 1}</td>
+                    <td className="font-medium">{formatDate(t.date)}</td>
+                    <td><span className="text-sm flex items-center gap-1.5"><AppIcon emoji={t.icon} size={16} /> {t.display_name || t.asset_type_name}</span></td>
+                    <td><span className={t.type === 'BUY' ? 'badge-success' : 'badge-danger'}>{t.type === 'BUY' ? 'MUA' : 'BÁN'}</span></td>
+                    <td className="text-right">{t.quantity} {t.unit}</td>
+                    <td className="text-right">{formatVND(t.price)}</td>
+                    <td className="text-right font-semibold">{formatVND(t.total_amount)}</td>
+                    <td className="text-right">
+                      <button onClick={() => handleDelete(t.id)} className="btn-ghost text-xs text-red-500 px-2 py-1">Xóa</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
