@@ -181,12 +181,22 @@ export default function CashFlowPage() {
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${avgSavingsRate >= savingsTargetPct ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
               ≥ {savingsTargetPct}%
             </span>
-            {streak > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{streak}T 🔥</span>
+            {streak >= 3 ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700">
+                {streak} tháng liên tục 🔥
+              </span>
+            ) : streak > 0 ? (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600">
+                {streak} tháng liên tục
+              </span>
+            ) : cashFlowData.length > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-50 text-slate-400">
+                Bắt đầu lại
+              </span>
             )}
           </div>
         </div>
