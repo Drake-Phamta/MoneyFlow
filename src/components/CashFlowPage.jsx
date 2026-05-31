@@ -169,12 +169,16 @@ export default function CashFlowPage() {
         <div className="kpi">
           <span className="kpi-label">Tổng chi tiêu</span>
           <p className="kpi-value text-red-500">{formatVND(totalExpense)}</p>
-          <p className="text-xs text-slate-500">{formatVND(totalExpense / filled.length)}<span className="text-slate-300">/tháng</span></p>
+          {filled.length > 1 && (
+            <p className="text-xs text-slate-500">Trung bình {formatVND(totalExpense / filled.length)}/tháng</p>
+          )}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tiền nhàn rỗi</span>
           <p className={`kpi-value ${totalNet >= 0 ? 'text-primary-600' : 'text-red-500'}`}>{formatVND(totalNet)}</p>
-          <p className="text-xs text-slate-500">{formatVND(avgMonthly)}<span className="text-slate-300">/tháng</span></p>
+          {filled.length > 1 && (
+            <p className="text-xs text-slate-500">Trung bình {formatVND(avgMonthly)}/tháng</p>
+          )}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
