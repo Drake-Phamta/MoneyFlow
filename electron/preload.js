@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('api', {
     setActive: (id) => ipcRenderer.invoke('phases:setActive', id),
     allocations: (phaseId) => ipcRenderer.invoke('phases:allocations', phaseId),
     updateAllocations: (phaseId, allocs) => ipcRenderer.invoke('phases:updateAllocations', phaseId, allocs),
+    checklist: () => ipcRenderer.invoke('phases:checklist'),
   },
   monthly: {
     getAll: () => ipcRenderer.invoke('monthly:getAll'),

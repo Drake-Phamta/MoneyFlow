@@ -6,6 +6,7 @@ const multer = require('multer');
 const cron = require('node-cron');
 const Database = require('./database');
 const PriceService = require('./priceService');
+const setupRoutes = require('./routes');
 
 let mainWindow;
 let db;
@@ -16,7 +17,8 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1000, minHeight: 700,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
-    title: 'Money_Flow',
+    title: 'Money Flow',
+    icon: path.join(__dirname, '..', 'public', 'icon.ico'),
   });
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173');
@@ -36,95 +38,8 @@ function startExpressServer() {
     app2.use(express.json());
     app2.use(express.static(path.join(__dirname, '../dist')));
 
-    // Parameters
-    app2.get('/api/params', (req, res) => { try { res.json(db.getParameters()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/params', (req, res) => { try { db.updateParameter(req.body.key, req.body.value); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/params/avg-expense', (req, res) => { try { res.json(db.getAverageExpense()); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Timeline
-    app2.post('/api/timeline/regenerate', (req, res) => { try { db.regenerateTimeline(req.body.totalMonths, req.body.startMonth, req.body.startYear); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Assets
-    app2.get('/api/assets', (req, res) => { try { res.json(db.getAssetTypes()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/assets', (req, res) => { try { res.json(db.addAssetType(req.body)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/assets/:id/price', (req, res) => { try { db.updateAssetPrice(parseInt(req.params.id), req.body.price); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Categories
-    app2.get('/api/categories', (req, res) => { try { res.json(db.getCategories()); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Phases
-    app2.get('/api/phases', (req, res) => { try { res.json(db.getPhases()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/phases/active', (req, res) => { try { res.json(db.getActivePhase()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/phases/:id/allocations', (req, res) => { try { res.json(db.getPhaseAllocations(parseInt(req.params.id))); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Monthly
-    app2.get('/api/monthly', (req, res) => { try { res.json(db.getMonthlyEntries()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/monthly/filled', (req, res) => { try { res.json(db.getFilledMonths()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/monthly/next', (req, res) => { try { res.json(db.getNextUnfilledMonth()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/monthly/:index', (req, res) => { try { res.json(db.getMonthlyEntry(parseInt(req.params.index))); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/monthly', (req, res) => { try { db.saveMonthlyEntry(req.body); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/monthly/:index', (req, res) => { try { db.deleteMonthlyEntry(parseInt(req.params.index)); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Allocations
-    app2.get('/api/allocations/:entryId', (req, res) => { try { res.json(db.getAllocations(parseInt(req.params.entryId))); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/allocations/adjust', (req, res) => { try { db.adjustInvestmentAllocation(req.body.discrepancyAmount); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/allocations/:entryId', (req, res) => { try { db.saveAllocations(parseInt(req.params.entryId), req.body.allocations); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Transactions
-    app2.get('/api/transactions', (req, res) => { try { res.json(db.getTransactions()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/transactions', (req, res) => { try { res.json(db.addTransaction(req.body)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/transactions/:id', (req, res) => { try { db.deleteTransaction(parseInt(req.params.id)); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Portfolio
-    app2.get('/api/portfolio', (req, res) => { try { res.json(db.getPortfolio()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/portfolio/summary', (req, res) => { try { res.json(db.getPortfolioSummary()); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Activity
-    app2.get('/api/activity', (req, res) => { try { res.json(db.getActivityLog(parseInt(req.query.limit) || 20)); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Data management
-    app2.get('/api/data/stats', (req, res) => { try { res.json(db.getStats()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/data/transactions', (req, res) => { try { db.clearTransactions(); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/data/monthly', (req, res) => { try { db.clearMonthlyEntries(); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/data/all', (req, res) => { try { db.clearAll(); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Import/Export
-    app2.post('/api/import/excel', upload.single('file'), (req, res) => { try { if (!req.file) return res.status(400).json({ error: 'No file' }); res.json(db.importExcelBuffer(req.file.buffer)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/export/excel', (req, res) => { try { const buf = db.exportExcelBuffer(); res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'); res.setHeader('Content-Disposition', 'attachment; filename="MoneyFlow_Data.xlsx"'); res.send(Buffer.from(buf)); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Watchlist
-    app2.get('/api/watchlist', (req, res) => { try { res.json(db.getWatchlist()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/watchlist', (req, res) => { try { res.json(db.addWatchlistItem(req.body)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/watchlist/:id', (req, res) => { try { db.updateWatchlistItem(parseInt(req.params.id), req.body); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/watchlist/:id', (req, res) => { try { db.removeWatchlistItem(parseInt(req.params.id)); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Alerts
-    app2.get('/api/alerts', (req, res) => { try { const unread = req.query.unread === 'true'; res.json(db.getAlerts(unread)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/alerts/count', (req, res) => { try { res.json({ count: db.getUnreadAlertCount() }); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/alerts/:id/read', (req, res) => { try { db.markAlertRead(parseInt(req.params.id)); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/alerts/read-all', (req, res) => { try { db.markAllAlertsRead(); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Price history & refresh
-    app2.get('/api/price-history/:assetId', (req, res) => { try { res.json(db.getPriceHistory(parseInt(req.params.assetId), parseInt(req.query.days) || 30)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/prices/refresh', async (req, res) => { try { const results = await priceService.fetchAllWatchlistPrices(); const alerts = priceService.generateAlerts(); res.json({ fetched: results.length, alerts: alerts.length, results }); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Catalog
-    app2.get('/api/catalog', (req, res) => { try { res.json(db.getAssetCatalog(req.query.class || null, req.query.search || null)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/assets/:id/tracked', (req, res) => { try { db.setTracked(parseInt(req.params.id), req.body.tracked); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // Savings
-    app2.get('/api/savings', (req, res) => { try { res.json(db.getSavingsAccounts()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/savings/summary', (req, res) => { try { res.json(db.getSavingsSummary()); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/savings/maturities', (req, res) => { try { res.json(db.getUpcomingMaturities(parseInt(req.query.days) || 30)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.get('/api/savings/:id', (req, res) => { try { res.json(db.getSavingsAccount(parseInt(req.params.id))); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/savings', (req, res) => { try { res.json(db.addSavingsAccount(req.body)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.put('/api/savings/:id', (req, res) => { try { db.updateSavingsAccount(parseInt(req.params.id), req.body); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.delete('/api/savings/:id', (req, res) => { try { db.deleteSavingsAccount(parseInt(req.params.id)); res.json(true); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/savings/:id/transactions', (req, res) => { try { res.json(db.addSavingsTransaction(parseInt(req.params.id), req.body.type, req.body.amount, req.body.date, req.body.note)); } catch (e) { res.status(500).json({ error: e.message }); } });
-    app2.post('/api/savings/process-matured', (req, res) => { try { res.json(db.processMaturedAccounts()); } catch (e) { res.status(500).json({ error: e.message }); } });
-
-    // SPA fallback
-    app2.get('*', (req, res) => { res.sendFile(path.join(__dirname, '../dist', 'index.html')); });
+    // Setup all API routes (shared with server.js)
+    setupRoutes(app2, db, priceService, upload);
 
     server = app2.listen(0, '127.0.0.1', () => resolve(server.address().port));
   });
@@ -139,8 +54,10 @@ app.whenReady().then(async () => {
   cron.schedule('*/30 9-14 * * 1-5', async () => {
     try {
       console.log('[Cron] Fetching watchlist prices...');
-      await priceService.fetchAllWatchlistPrices();
-      priceService.generateAlerts();
+      const result = await priceService.fetchAllWatchlistPrices();
+      const alerts = priceService.generateAlerts();
+      if (alerts.length) console.log(`[Cron] Generated ${alerts.length} alert(s)`);
+      console.log(`[Cron] Price sync: ${result.success}/${result.total} succeeded`);
     } catch (err) {
       console.error('[Cron] Price fetch error:', err.message);
     }
@@ -153,6 +70,8 @@ app.whenReady().then(async () => {
 app.on('window-all-closed', () => { if (db) db.close(); if (process.platform !== 'darwin') app.quit(); });
 
 async function ready() { if (db?.ready) await db.ready; }
+
+// ===== IPC Handlers (Electron-specific, not REST) =====
 
 // Parameters
 ipcMain.handle('params:get', async () => { await ready(); return db.getParameters(); });
@@ -177,6 +96,7 @@ ipcMain.handle('phases:active', async () => { await ready(); return db.getActive
 ipcMain.handle('phases:setActive', async (_, id) => { await ready(); db.setActivePhase(id); return true; });
 ipcMain.handle('phases:allocations', async (_, phaseId) => { await ready(); return db.getPhaseAllocations(phaseId); });
 ipcMain.handle('phases:updateAllocations', async (_, phaseId, allocs) => { await ready(); db.updatePhaseAllocations(phaseId, allocs); return true; });
+ipcMain.handle('phases:checklist', async () => { await ready(); return db.getChecklistStatus(); });
 
 // Monthly Entries
 ipcMain.handle('monthly:getAll', async () => { await ready(); return db.getMonthlyEntries(); });
@@ -206,6 +126,7 @@ ipcMain.handle('activity:get', async (_, limit) => { await ready(); return db.ge
 // Import/Export
 ipcMain.handle('import:excel', async (_, filePath) => { await ready(); return db.importExcel(filePath); });
 ipcMain.handle('export:excel', async (_, filePath) => { await ready(); return db.exportExcel(filePath); });
+
 // Data management
 ipcMain.handle('data:stats', async () => { await ready(); return db.getStats(); });
 ipcMain.handle('data:clearTransactions', async () => { await ready(); db.clearTransactions(); return true; });
@@ -244,9 +165,9 @@ ipcMain.handle('alerts:markAllRead', async () => { await ready(); db.markAllAler
 ipcMain.handle('priceHistory:get', async (_, assetId, days) => { await ready(); return db.getPriceHistory(assetId, days || 30); });
 ipcMain.handle('prices:refresh', async () => {
   await ready();
-  const results = await priceService.fetchAllWatchlistPrices();
+  const result = await priceService.fetchAllWatchlistPrices();
   const alerts = priceService.generateAlerts();
-  return { fetched: results.length, alerts: alerts.length, results };
+  return { ...result, alerts: alerts.length, alertDetails: alerts };
 });
 
 // Catalog

@@ -1,16 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { formatVND, formatPercent } from '../../utils/formatters';
+import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AppIcon, { CheckCircle } from '../../utils/iconMap';
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-const CATEGORY_LABELS = {
-  'Chứng Khoán': 'Đầu tư',
-};
-
 export default function AllocationGoals() {
+  const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
@@ -52,6 +49,8 @@ export default function AllocationGoals() {
         }
       } catch (err) {
         console.error('AllocationGoals load error:', err);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -59,6 +58,18 @@ export default function AllocationGoals() {
   const portfolio = summary?.portfolio || [];
   const totalCurrentValue = summary?.totalCurrentValue || 0;
   const byCategory = summary?.byCategory || {};
+
+  // Total assets = portfolio + savings (must match getActivePhase logic)
+  const totalSavingsInCategory = Object.values(byCategory).reduce((s, cat) => s + (cat.currentTotal || 0), 0);
+  const totalAssetsForPhase = totalSavingsInCategory > 0 ? totalSavingsInCategory : totalCurrentValue;
+
+  // Average monthly savings for timeline estimates
+  const avgMonthlySavings = useMemo(() => {
+    if (filled.length === 0) return 0;
+    const totalIncome = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
+    const totalExpense = filled.reduce((s, m) => s + (m.expense || 0), 0);
+    return Math.max(0, (totalIncome - totalExpense) / filled.length);
+  }, [filled]);
 
   // Current allocation by category (from portfolio, fallback to monthly allocations)
   const totalAllocated = Object.values(allocsByCategory).reduce((s, c) => s + c.total, 0);
@@ -71,7 +82,7 @@ export default function AllocationGoals() {
       const currentPct = baseTotal > 0 ? (currentTotal / baseTotal) * 100 : 0;
       return {
         name: c.name,
-        label: CATEGORY_LABELS[c.name] || c.name,
+        label: c.name,
         icon: c.icon,
         color: c.color,
         currentPct,
@@ -85,7 +96,7 @@ export default function AllocationGoals() {
   const targetAlloc = useMemo(() => {
     return phaseAllocs.map(pa => ({
       name: pa.category_name,
-      label: CATEGORY_LABELS[pa.category_name] || pa.category_name,
+      label: pa.category_name,
       color: pa.color,
       icon: pa.icon,
       targetPct: pa.ratio * 100,
@@ -135,7 +146,7 @@ export default function AllocationGoals() {
     multiplier: p.goal_multiplier,
   }));
 
-  const totalAssets = totalCurrentValue;
+  const totalAssets = totalAssetsForPhase;
 
   // Risk metrics
   const maxSingleAsset = portfolio.length > 0
@@ -144,6 +155,8 @@ export default function AllocationGoals() {
   const concentrationRisk = totalCurrentValue > 0 ? (maxSingleAsset / totalCurrentValue) * 100 : 0;
   const assetCount = portfolio.length;
   const categoryCount = Object.keys(byCategory).length;
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -164,14 +177,17 @@ export default function AllocationGoals() {
                   <Tooltip formatter={v => formatVND(v)} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="space-y-2 flex-1">
+              <div className="space-y-2.5 flex-1">
                 {currentAlloc.filter(c => c.currentTotal > 0).map(c => (
-                  <div key={c.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} />
-                      <span className="text-xs text-slate-600 flex items-center gap-1"><AppIcon emoji={c.icon} size={14} /> {c.label}</span>
+                  <div key={c.name}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} />
+                        <span className="text-xs text-slate-600">{c.label}</span>
+                      </div>
+                      <span className="text-xs font-bold text-slate-800">{c.currentPct.toFixed(1)}%</span>
                     </div>
-                    <span className="text-xs font-bold text-slate-800">{c.currentPct.toFixed(1)}%</span>
+                    <p className="text-[10px] text-slate-400 ml-5">{formatVND(c.currentTotal)}</p>
                   </div>
                 ))}
               </div>
@@ -192,17 +208,21 @@ export default function AllocationGoals() {
               {targetAlloc.map(t => {
                 const current = currentAlloc.find(c => c.name === t.name);
                 const diff = (current?.currentPct || 0) - t.targetPct;
+                const targetAmount = baseTotal > 0 ? (t.targetPct / 100) * baseTotal : 0;
                 return (
                   <div key={t.name}>
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-slate-700 flex items-center gap-1.5"><AppIcon emoji={t.icon} size={16} /> {t.label}</span>
-                      <span className="text-sm font-bold" style={{ color: t.color }}>{t.targetPct.toFixed(0)}%</span>
+                      <div className="text-right">
+                        <span className="text-sm font-bold" style={{ color: t.color }}>{t.targetPct.toFixed(0)}%</span>
+                        <span className="text-[10px] text-slate-400 ml-1.5">({formatVND(targetAmount)})</span>
+                      </div>
                     </div>
                     <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${Math.min(current?.currentPct || 0, 100)}%`, background: t.color }} />
                     </div>
                     <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
-                      <span>Hiện tại: {(current?.currentPct || 0).toFixed(1)}%</span>
+                      <span>Hiện tại: {formatVND(current?.currentTotal || 0)} ({(current?.currentPct || 0).toFixed(1)}%)</span>
                       <span className={diff > 5 ? 'text-amber-500' : diff < -5 ? 'text-blue-500' : 'text-emerald-500'}>
                         {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
                       </span>
@@ -237,12 +257,24 @@ export default function AllocationGoals() {
         <h3 className="text-sm font-semibold text-slate-700 mb-4">Tiến độ mục tiêu</h3>
         <div className="space-y-3">
           {milestones.map((m, i) => {
-            const pct = m.target > 0 ? Math.min((totalAssets / m.target) * 100, 100) : 0;
-            const reached = m.target > 0 && totalAssets >= m.target;
             const isFI = m.multiplier === 0;
+            const phaseNum = parseInt(m.label);
 
-            // For FI milestone, calculate based on passive income
-            const fiPct = isFI ? 0 : pct; // TODO: calculate from passive income
+            // Milestones theo kịch bản giai đoạn:
+            // Phase 1: Dự phòng balance (xây quỹ dự phòng)
+            // Phase 2: Total assets (đầu tư tăng trưởng)
+            // Phase 3: Total assets (tích lũy)
+            // Phase 4: FI
+            const duPhongBalance = byCategory['Dự Phòng']?.currentTotal || 0;
+            let currentValue;
+            if (phaseNum === 1) {
+              currentValue = duPhongBalance;
+            } else {
+              currentValue = totalAssets;
+            }
+
+            const pct = m.target > 0 ? Math.min((currentValue / m.target) * 100, 100) : 0;
+            const reached = m.target > 0 && currentValue >= m.target;
 
             return (
               <div key={m.name || i} className={`p-3 rounded-xl border ${reached ? 'bg-emerald-50 border-emerald-200' : 'border-slate-200'}`}>
@@ -254,13 +286,18 @@ export default function AllocationGoals() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.name}</p>
                       <p className="text-xs text-slate-400">{m.desc}</p>
-                      {m.multiplier > 0 && <p className="text-[10px] text-slate-300">= {m.multiplier}× chi tiêu</p>}
+                      {m.multiplier > 0 && <p className="text-[10px] text-slate-300">= {m.multiplier}× chi tiêu mục tiêu</p>}
                     </div>
                   </div>
                   {!isFI && (
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-800">{pct.toFixed(1)}%</p>
-                      <p className="text-[10px] text-slate-400">{formatVND(totalAssets)} / {formatVND(m.target)}</p>
+                      <p className="text-[10px] text-slate-400">{formatVND(currentValue)} / {formatVND(m.target)}</p>
+                      {!reached && avgMonthlySavings > 0 && (() => {
+                        const gap = m.target - currentValue;
+                        const months = Math.ceil(gap / avgMonthlySavings);
+                        return <p className="text-[10px] text-blue-500">Đạt trong ~{months} tháng</p>;
+                      })()}
                     </div>
                   )}
                   {isFI && (
@@ -315,12 +352,13 @@ export default function AllocationGoals() {
         {/* Asset breakdown */}
         {portfolio.length > 0 && (
           <div className="mt-4 space-y-2">
-            <p className="text-xs text-slate-400 font-semibold">Mức tập trung theo tài sản:</p>
-            {portfolio.slice(0, 5).map(p => {
+            <p className="text-xs text-slate-400 font-semibold">Top {Math.min(portfolio.length, 5)} tài sản tập trung:</p>
+            {portfolio.slice(0, 5).map((p, i) => {
               const pct = totalCurrentValue > 0 ? (p.current_value / totalCurrentValue) * 100 : 0;
               return (
                 <div key={p.asset_type_id} className="flex items-center gap-3">
-                  <span className="text-sm w-24 truncate flex items-center gap-1"><AppIcon emoji={p.icon} size={14} /> {p.name}</span>
+                  <span className="text-xs text-slate-400 w-4 text-right">{i + 1}</span>
+                  <span className="text-sm w-28 truncate text-slate-700">{p.name}</span>
                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full"
@@ -330,7 +368,8 @@ export default function AllocationGoals() {
                       }}
                     />
                   </div>
-                  <span className="text-xs font-medium text-slate-600 w-12 text-right">{pct.toFixed(0)}%</span>
+                  <span className="text-xs font-medium text-slate-600 w-16 text-right">{formatVND(p.current_value)}</span>
+                  <span className="text-xs text-slate-400 w-10 text-right">{pct.toFixed(0)}%</span>
                 </div>
               );
             })}

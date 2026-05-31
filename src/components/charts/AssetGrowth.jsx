@@ -1,6 +1,7 @@
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCompact } from '../../utils/formatters';
 import { useMemo } from 'react';
+import CustomTooltip from '../../utils/CustomTooltip';
 
 export default function AssetGrowth({ ledger, rates, params }) {
   const data = useMemo(() => {
@@ -38,27 +39,13 @@ export default function AssetGrowth({ ledger, rates, params }) {
     }));
   }, [ledger, rates, params]);
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload) return null;
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl">
-        <p className="text-slate-500 text-xs mb-2 font-medium">{label}</p>
-        {payload.map((entry) => (
-          <p key={entry.name} className="text-xs font-semibold" style={{ color: entry.color }}>
-            {entry.name}: {formatCompact(entry.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
-
   return (
     <ResponsiveContainer width="100%" height={280}>
       <LineChart data={data} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
         <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} interval={11} angle={-45} textAnchor="end" height={40} />
         <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={60} />
-        <Tooltip content={<CustomTooltip />} />
+        <Tooltip content={<CustomTooltip formatValue={formatCompact} />} />
         <Line type="monotone" dataKey="bear" stroke="#ef4444" strokeWidth={1.5} dot={false} />
         <Line type="monotone" dataKey="base" stroke="#3b82f6" strokeWidth={2} dot={false} />
         <Line type="monotone" dataKey="bull" stroke="#10b981" strokeWidth={1.5} dot={false} />

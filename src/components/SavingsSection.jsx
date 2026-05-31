@@ -3,15 +3,12 @@ import { formatVND } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
-import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '@phosphor-icons/react';
+import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '../utils/iconMap';
 
-const SJC_FALLBACK_PRICE = 17000000;
-
-const CATEGORY_LABELS = {
-  'Chứng Khoán': 'Đầu tư',
-};
+const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (1 lượng = 10 chỉ)
 
 export default function SavingsSection() {
+  const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
   const [savingsSummary, setSavingsSummary] = useState(null);
   const [savingsAccounts, setSavingsAccounts] = useState([]);
@@ -24,7 +21,7 @@ export default function SavingsSection() {
   const [categories, setCategories] = useState([]);
   const [sjcPrice, setSjcPrice] = useState(SJC_FALLBACK_PRICE);
   const [savingsForm, setSavingsForm] = useState({
-    name: '', bank: '', type: 'term', principal: '', interest_rate: '',
+    name: '', bank: '', type: 'term', product_type: 'savings', principal: '', interest_rate: '',
     term_months: '', start_date: new Date().toISOString().split('T')[0],
     auto_renew: false, category_id: '',
   });
@@ -51,6 +48,8 @@ export default function SavingsSection() {
       if (sjc && sjc.current_price > 0) setSjcPrice(sjc.current_price);
     } catch (err) {
       console.error('Savings load error:', err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -71,7 +70,7 @@ export default function SavingsSection() {
       await apiClient.savings.add(data);
       setAddingSavings(false);
       setSavingsForm({
-        name: '', bank: '', type: 'term', principal: '', interest_rate: '',
+        name: '', bank: '', type: 'term', product_type: 'savings', principal: '', interest_rate: '',
         term_months: '', start_date: new Date().toISOString().split('T')[0],
         auto_renew: false, category_id: '',
       });
@@ -197,7 +196,7 @@ export default function SavingsSection() {
       return {
         title: 'Giai đoạn Nền tảng',
         text: `Gửi ${ratio}% tiền nhàn rỗi vào 1 sổ tiết kiệm không kỳ hạn hoặc ngắn hạn (1-3 tháng). Mục tiêu: xây quỹ dự phòng ≥ 3× chi tiêu.`,
-        tip: 'Ưu tiên thanh khoan — gửi không kỳ hạn hoặc 1 tháng để rút bất cứ lúc nào.',
+        tip: 'Ưu tiên thanh khoản — gửi không kỳ hạn hoặc 1 tháng để rút bất cứ lúc nào.',
       };
     }
     if (phase.sort_order === 2) {
@@ -223,6 +222,8 @@ export default function SavingsSection() {
 
   const guidance = getSavingsGuidance();
 
+  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+
   return (
     <div className="space-y-6">
       {/* ===== Money_Flow Overview ===== */}
@@ -238,7 +239,7 @@ export default function SavingsSection() {
               <p className="text-xs text-slate-400">Từ {overview.allocByCategory?.length || 0} tháng nhập liệu</p>
             </div>
             <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase">Phân bổ Dự phòng & TK</p>
+              <p className="text-[10px] text-slate-400 uppercase">Phân bổ Dự phòng & Tiết kiệm</p>
               <p className="text-lg font-bold text-blue-600">{formatVND(totalAllocated)}</p>
               <p className="text-xs text-slate-400">{totalSavingsRatio > 0 ? `${Math.round(totalSavingsRatio * 100)}% theo phase` : 'Chưa phân bổ'}</p>
             </div>
@@ -304,7 +305,7 @@ export default function SavingsSection() {
             <div className="mt-3 flex gap-2">
               {phaseAllocs.map(pa => (
                 <div key={pa.category_name} className="flex-1 p-2 rounded-lg border border-slate-200 text-center">
-                  <p className="text-xs text-slate-500 flex items-center justify-center gap-1"><AppIcon emoji={pa.icon} size={14} /> {CATEGORY_LABELS[pa.category_name] || pa.category_name}</p>
+                  <p className="text-xs text-slate-500 flex items-center justify-center gap-1"><AppIcon emoji={pa.icon} size={14} /> {pa.category_name}</p>
                   <p className="text-sm font-bold" style={{ color: pa.color }}>{(pa.ratio * 100).toFixed(0)}%</p>
                 </div>
               ))}
@@ -315,7 +316,7 @@ export default function SavingsSection() {
 
       {/* ===== Type Breakdown + Gold Tracker ===== */}
       {savingsSummary && savingsSummary.accountCount > 0 && (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><Drop size={18} weight="regular" /></div>
@@ -346,7 +347,7 @@ export default function SavingsSection() {
               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600"><Diamond size={18} weight="regular" /></div>
               <div>
                 <p className="text-sm font-semibold text-amber-800">Tích lũy Vàng</p>
-                <p className="text-xs text-amber-600">Mục tiêu: 1 lượng SJC</p>
+                <p className="text-xs text-amber-600">Mục tiêu: 1 chỉ SJC</p>
               </div>
             </div>
             <p className="text-lg font-bold text-amber-700">{formatVND(liquidBalance)}</p>
@@ -357,7 +358,7 @@ export default function SavingsSection() {
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-amber-500">{goldProgress.toFixed(0)}%</span>
               {canBuyGold ? (
-                <span className="text-xs font-bold text-emerald-600">Đủ mua 1 lượng SJC!</span>
+                <span className="text-xs font-bold text-emerald-600">Đủ mua 1 chỉ SJC!</span>
               ) : (
                 <span className="text-[10px] text-amber-500">Còn {formatVND(sjcPrice - liquidBalance)}</span>
               )}
@@ -411,7 +412,7 @@ export default function SavingsSection() {
         {/* Add form */}
         {addingSavings && (
           <div className="mb-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <div className="grid grid-cols-3 gap-3 mb-3">
+            <div className="grid grid-cols-4 gap-3 mb-3">
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Tên sổ</label>
                 <input type="text" value={savingsForm.name} onChange={e => setSavingsForm({ ...savingsForm, name: e.target.value })}
@@ -423,7 +424,14 @@ export default function SavingsSection() {
                   placeholder="VD: MBBank" className="input text-sm" />
               </div>
               <div>
-                <label className="text-xs text-slate-500 mb-1 block">Loại</label>
+                <label className="text-xs text-slate-500 mb-1 block">Sản phẩm</label>
+                <select value={savingsForm.product_type || 'savings'} onChange={e => setSavingsForm({ ...savingsForm, product_type: e.target.value })} className="input text-sm">
+                  <option value="savings">Sổ tiết kiệm</option>
+                  <option value="bond">Trái phiếu</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Kỳ hạn</label>
                 <select value={savingsForm.type} onChange={e => setSavingsForm({ ...savingsForm, type: e.target.value })} className="input text-sm">
                   <option value="liquid">Không kỳ hạn</option>
                   <option value="term">Có kỳ hạn</option>
@@ -476,73 +484,202 @@ export default function SavingsSection() {
           </div>
         )}
 
+        {/* Interest projection summary */}
+        {savingsAccounts.length > 0 && (() => {
+          const totalProjected = savingsAccounts.reduce((s, a) => {
+            if (a.type === 'term' && a.term_months > 0 && a.interest_rate > 0) {
+              return s + Math.round(a.principal * (a.interest_rate / 100) * (a.term_months / 12));
+            }
+            return s + (a.accrued_interest || 0);
+          }, 0);
+          return (
+            <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+              <div>
+                <p className="text-xs text-emerald-600">Dự kiến lãi khi đáo hạn tất cả sổ</p>
+                <p className="text-lg font-bold text-emerald-700">+{formatVND(totalProjected)}</p>
+              </div>
+              <p className="text-xs text-emerald-500">Tổng: {formatVND(totalInSavings + totalProjected)}</p>
+            </div>
+          );
+        })()}
+
         {/* Accounts table */}
         {savingsAccounts.length > 0 ? (
-          <div className="overflow-auto">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ minWidth: '1000px' }}>
               <thead>
-                <tr>
-                  <th>Sổ tiết kiệm</th><th>Loại</th>
-                  <th className="text-right">Lãi suất</th><th className="text-right">Vốn gốc</th>
-                  <th className="text-right">Lãi / Tổng</th>
-                  <th>Đáo hạn</th><th></th>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '180px' }}>Sổ tiết kiệm</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '100px' }}>Ngân hàng</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '120px' }}>Danh mục</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '90px' }}>Kỳ hạn</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '95px' }}>Ngày gửi</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '75px' }}>Lãi suất</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '120px' }}>Vốn gốc</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '100px' }}>Lãi</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '120px' }}>Tổng</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '100px' }}>Đáo hạn</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '140px' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {savingsAccounts.map(a => {
                   const days = getDaysUntilMaturity(a.maturity_date);
                   const accrued = a.accrued_interest || 0;
+                  const isEditing = editingId === a.id;
+                  const isDepositing = depositingId === a.id;
+
+                  if (isEditing) {
+                    return (
+                      <tr key={a.id} className="bg-amber-50">
+                        <td colSpan={11}>
+                          <div className="p-3 space-y-3">
+                            <div className="grid grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Tên sổ</label>
+                                <input type="text" value={editForm.name} onChange={e => setEditForm({ ...editForm, name: e.target.value })} className="input text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Ngân hàng</label>
+                                <input type="text" value={editForm.bank} onChange={e => setEditForm({ ...editForm, bank: e.target.value })} className="input text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Loại</label>
+                                <select value={editForm.type} onChange={e => setEditForm({ ...editForm, type: e.target.value })} className="input text-sm">
+                                  <option value="liquid">Không kỳ hạn</option>
+                                  <option value="term">Có kỳ hạn</option>
+                                </select>
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Lãi suất (%/năm)</label>
+                                <input type="number" step="0.1" value={editForm.interest_rate} onChange={e => setEditForm({ ...editForm, interest_rate: e.target.value })} className="input text-sm" />
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-4 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Kỳ hạn (tháng)</label>
+                                <input type="number" value={editForm.term_months} onChange={e => setEditForm({ ...editForm, term_months: e.target.value })} className="input text-sm" disabled={editForm.type === 'liquid'} />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Ngày gửi</label>
+                                <input type="date" value={editForm.start_date} onChange={e => setEditForm({ ...editForm, start_date: e.target.value })} className="input text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Danh mục</label>
+                                <select value={editForm.category_id} onChange={e => setEditForm({ ...editForm, category_id: e.target.value })} className="input text-sm">
+                                  <option value="">— Chọn —</option>
+                                  {categories.filter(c => c.name.includes('Dự Phòng') || c.name.includes('Tiết kiệm')).map(c => (
+                                    <option key={c.id} value={c.id}>{c.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex items-end">
+                                <label className="flex items-center gap-2 text-sm">
+                                  <input type="checkbox" checked={editForm.auto_renew} onChange={e => setEditForm({ ...editForm, auto_renew: e.target.checked })} />
+                                  Tự động tái tục
+                                </label>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button onClick={() => handleSaveEdit(a.id)} className="btn-primary text-sm">Lưu</button>
+                              <button onClick={() => setEditingId(null)} className="btn-ghost text-sm">Hủy</button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  if (isDepositing) {
+                    return (
+                      <tr key={a.id} className="bg-blue-50">
+                        <td colSpan={11}>
+                          <div className="p-3">
+                            <p className="text-sm font-medium text-slate-700 mb-2">Bơm vốn vào "{a.name}"</p>
+                            <p className="text-xs text-slate-500 mb-3">Số tiền bơm thêm phải ≤ số tiền sẵn sàng ({formatVND(availableForSavings)})</p>
+                            <div className="grid grid-cols-3 gap-3">
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Số tiền bơm</label>
+                                <input type="text" inputMode="numeric" value={depositForm.amount ? formatNumberInput(depositForm.amount) : ''} onChange={e => setDepositForm({ ...depositForm, amount: e.target.value.replace(/\D/g, '') })} placeholder={formatVND(availableForSavings)} className="input text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Ngày bơm</label>
+                                <input type="date" value={depositForm.date} onChange={e => setDepositForm({ ...depositForm, date: e.target.value })} className="input text-sm" />
+                              </div>
+                              <div>
+                                <label className="text-xs text-slate-500 mb-1 block">Ghi chú</label>
+                                <input type="text" value={depositForm.note} onChange={e => setDepositForm({ ...depositForm, note: e.target.value })} placeholder="Bơm vốn" className="input text-sm" />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 mt-3">
+                              <button onClick={() => handleDeposit(a.id)} className="btn-primary text-sm" disabled={!depositForm.amount}>Xác nhận bơm</button>
+                              <button onClick={() => { setDepositingId(null); setDepositForm({ amount: '', date: new Date().toISOString().split('T')[0], note: '' }); }} className="btn-ghost text-sm">Hủy</button>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+
                   return (
-                    <tr key={a.id}>
-                      <td>
+                    <tr key={a.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                      <td className="py-3 px-3">
                         <div className="flex items-center gap-2">
-                          <span>{a.type === 'liquid' ? <Drop size={16} className="text-blue-500" weight="regular" /> : <Lock size={16} className="text-emerald-500" weight="regular" />}</span>
-                          <div>
-                            <p className="text-sm font-medium text-slate-800">{a.name}</p>
-                            {a.auto_renew ? <p className="text-[10px] text-blue-500">Tự tái tục</p> : null}
+                          <span className="shrink-0">{a.type === 'liquid' ? <Drop size={16} className="text-blue-400" weight="regular" /> : <Lock size={16} className="text-emerald-400" weight="regular" />}</span>
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-700 truncate">{a.name}</p>
+                            <p className="text-[10px] text-slate-400">{a.product_type === 'bond' ? 'Trái phiếu' : 'Tiết kiệm'}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="text-sm text-slate-600">{a.bank}</td>
-                      <td>
-                        <span className={a.type === 'liquid' ? 'badge bg-blue-100 text-blue-700' : 'badge bg-emerald-100 text-emerald-700'}>
+                      <td className="py-3 px-3 text-sm text-slate-500">{a.bank}</td>
+                      <td className="py-3 px-3">
+                        {a.category_name ? (
+                          <span className="text-xs text-slate-500">{a.category_name}</span>
+                        ) : <span className="text-xs text-slate-300">—</span>}
+                      </td>
+                      <td className="py-3 px-3 text-center">
+                        <span className={`text-xs ${a.type === 'liquid' ? 'text-blue-500' : 'text-slate-500'}`}>
                           {a.type === 'liquid' ? 'Không kỳ hạn' : `${a.term_months} tháng`}
                         </span>
                       </td>
-                      <td className="text-right text-sm">{a.interest_rate}%</td>
-                      <td className="text-right font-semibold text-sm">{formatVND(a.principal)}</td>
-                      <td className="text-right text-sm text-emerald-600">+{formatVND(accrued)}</td>
-                      <td className="text-right font-bold text-sm">{formatVND(a.principal + accrued)}</td>
-                      <td>
+                      <td className="py-3 px-3 text-center text-xs text-slate-400">{a.start_date || '—'}</td>
+                      <td className="py-3 px-3 text-right text-sm text-slate-500">{a.interest_rate}%</td>
+                      <td className="py-3 px-3 text-right text-sm font-medium text-slate-700">{formatVND(a.principal)}</td>
+                      <td className="py-3 px-3 text-right text-sm text-emerald-500">+{formatVND(accrued)}</td>
+                      <td className="py-3 px-3 text-right text-sm font-semibold text-slate-800">{formatVND(a.principal + accrued)}</td>
+                      <td className="py-3 px-3 text-center">
                         {a.maturity_date ? (
                           <div>
-                            <p className="text-xs text-slate-500">{a.maturity_date}</p>
+                            <p className="text-xs text-slate-400">{a.maturity_date}</p>
                             <p className={`text-xs font-medium ${getMaturityColor(days)}`}>{getMaturityLabel(days)}</p>
                           </div>
                         ) : <span className="text-xs text-slate-300">—</span>}
                       </td>
-                      <td>
-                        <button onClick={() => handleDeleteSavings(a.id)} className="btn-ghost text-xs text-red-500 px-2 py-1">Xóa</button>
+                      <td className="py-3 px-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
+                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" disabled={availableForSavings <= 0}>Bơm vốn</button>
+                          <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition">Xóa</button>
+                        </div>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50 font-semibold">
-                  <td colSpan={3}>Tổng ({savingsAccounts.length} sổ)</td>
-                  <td className="text-right text-sm font-semibold">{formatVND(totalInSavings)}</td>
-                  <td className="text-right text-sm">
-                    <span className="text-emerald-600">+{formatVND(totalAccrued)}</span>
-                    <p className="text-xs font-bold">{formatVND(totalInSavings + totalAccrued)}</p>
-                  </td>
+                <tr className="bg-slate-50 border-t border-slate-200">
+                  <td colSpan={6} className="py-3 px-3 text-sm font-medium text-slate-600 text-left">Tổng ({savingsAccounts.length} sổ)</td>
+                  <td className="py-3 px-3 text-right text-sm font-medium text-slate-700">{formatVND(totalInSavings)}</td>
+                  <td className="py-3 px-3 text-right text-sm text-emerald-500">+{formatVND(totalAccrued)}</td>
+                  <td className="py-3 px-3 text-right text-sm font-bold text-slate-800">{formatVND(totalInSavings + totalAccrued)}</td>
                   <td colSpan={2}></td>
                 </tr>
               </tfoot>
             </table>
           </div>
         ) : !addingSavings ? (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-12 text-slate-400">
             <p className="text-sm">Chưa có sổ tiết kiệm nào</p>
             <p className="text-xs mt-1">Thêm sổ để theo dõi lãi suất và đáo hạn</p>
           </div>

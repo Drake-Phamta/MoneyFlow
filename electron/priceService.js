@@ -10,7 +10,7 @@ class PriceService {
     const from = now - 7 * 86400;
     const url = `${VNDIRECT_API}?resolution=D&symbol=${encodeURIComponent(symbol)}&from=${from}&to=${now}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
     if (!res.ok) throw new Error(`VNDIRECT API error: ${res.status}`);
     const data = await res.json();
 
@@ -32,10 +32,11 @@ class PriceService {
 
   async fetchPriceHistory(symbol, days = 30) {
     const now = Math.floor(Date.now() / 1000);
-    const from = now - (days + 10) * 86400;
+    // days=0 means fetch ALL available history (back to year 2000)
+    const from = days === 0 ? 946684800 : now - (days + 10) * 86400;
     const url = `${VNDIRECT_API}?resolution=D&symbol=${encodeURIComponent(symbol)}&from=${from}&to=${now}`;
 
-    const res = await fetch(url);
+    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
     if (!res.ok) throw new Error(`VNDIRECT API error: ${res.status}`);
     const data = await res.json();
 
@@ -59,7 +60,7 @@ class PriceService {
 
   async fetchGoldPrice() {
     try {
-      const res = await fetch('http://banggia.phuquygroup.vn/');
+      const res = await fetch('http://banggia.phuquygroup.vn/', { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
       if (!res.ok) return null;
       const html = await res.text();
 
@@ -100,7 +101,7 @@ class PriceService {
     const fetchDate = async (d) => {
       const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
       try {
-        const res = await fetch(`https://btmc.vn/ProductHome/getGoldDate?date=${encodeURIComponent(dateStr)}`);
+        const res = await fetch(`https://btmc.vn/ProductHome/getGoldDate?date=${encodeURIComponent(dateStr)}`, { headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' } });
         const data = await res.json();
         const sjcSell = data?.Data?.sjcban;
         if (sjcSell) {
@@ -133,9 +134,9 @@ class PriceService {
   }
 
   async fetchAllWatchlistPrices() {
-    // Fetch prices for ALL assets with a ticker (not just tracked ones)
-    const tracked = this.db.query('SELECT * FROM asset_types WHERE ticker IS NOT NULL AND active = 1 ORDER BY sort_order');
-    console.log(`[PriceService] Fetching prices for ${tracked.length} assets: ${tracked.map(t => t.ticker).join(', ')}`);
+    // Only fetch prices for assets that are tracked AND have active investments
+    const tracked = this.db.getPriceRefreshTargets();
+    console.log(`[PriceService] Fetching prices for ${tracked.length} invested assets: ${tracked.map(t => t.ticker).join(', ')}`);
     const results = [];
 
     for (const item of tracked) {
@@ -143,7 +144,7 @@ class PriceService {
       try {
         let price;
 
-        // Gold (SJC): fetch from btmc.vn
+        // Gold (SJC): fetch from phuquygroup.vn (price is per-chỉ)
         if (item.asset_class === 'gold' || item.ticker === 'SJC') {
           price = await this.fetchGoldPrice();
         } else {
@@ -153,7 +154,7 @@ class PriceService {
 
         if (!price) {
           console.log(`[PriceService] No data for ${item.ticker}`);
-          results.push({ id: item.id, name: item.name, status: 'no_data' });
+          results.push({ id: item.id, name: item.name, ticker: item.ticker, status: 'no_data' });
           continue;
         }
 
@@ -165,12 +166,10 @@ class PriceService {
         if (!item.peak_price || item.peak_price === 0) {
           try {
             if (item.asset_class === 'gold') {
-              // Gold: fetch 30-day history from btmc.vn API
               const goldPeak = await this.fetchGoldHistoryPeak();
               if (goldPeak > highForPeak) highForPeak = goldPeak;
             } else {
-              // Stocks/ETFs: fetch full history from VNDIRECT
-              const history = await this.fetchPriceHistory(item.ticker, 3650);
+              const history = await this.fetchPriceHistory(item.ticker, 0);
               for (const bar of history) {
                 if (bar.high > highForPeak) highForPeak = bar.high;
               }
@@ -178,7 +177,6 @@ class PriceService {
           } catch (e) { /* fallback to daily high */ }
         }
 
-        // Save snapshot + update price (updateAssetPrice uses MAX(peak, high))
         this.db.savePriceSnapshot(item.id, price.date, price);
         this.db.updateAssetPrice(item.id, price.close, highForPeak);
 
@@ -188,12 +186,20 @@ class PriceService {
       }
     }
 
-    return results;
+    const success = results.filter(r => r.status === 'ok').length;
+    const failed = results.filter(r => r.status === 'error').length;
+    const noData = results.filter(r => r.status === 'no_data').length;
+
+    return { results, total: tracked.length, success, failed, noData };
   }
 
   generateAlerts() {
-    const tracked = this.db.query('SELECT * FROM asset_types WHERE ticker IS NOT NULL AND active = 1 ORDER BY sort_order');
+    // Only generate alerts for assets that are tracked AND have active investments
+    const tracked = this.db.getPriceRefreshTargets();
     const alerts = [];
+
+    // Alert thresholds for price drops (only alert at these specific levels)
+    const DROP_THRESHOLDS = [0.15, 0.20, 0.25, 0.30, 0.40, 0.50];
 
     for (const item of tracked) {
       if (!item.current_price || !item.peak_price) continue;
@@ -202,61 +208,107 @@ class PriceService {
       const recoveryPct = item.current_price / item.peak_price;
       const label = item.ticker ? `${item.ticker} (${item.name})` : item.name;
 
-      // Price drop alert: 15%+ from peak (skip if no current price)
+      // Price drop alert: only at specific thresholds (15%, 20%, 25%, etc.)
       if (item.current_price > 0 && dropPct >= 0.15) {
-        const id = this.db.addAlert(
-          item.id,
-          'price_drop',
-          `${label} giảm ${(dropPct * 100).toFixed(1)}% từ đỉnh. Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit}, Đỉnh: ${item.peak_price.toLocaleString('vi-VN')} ${item.unit}`,
-          { price: item.current_price, peak: item.peak_price, drop_pct: dropPct }
-        );
-        if (id) alerts.push({ id, type: 'price_drop', name: label });
+        // Find the highest threshold this drop crosses
+        const crossedThreshold = DROP_THRESHOLDS.filter(t => dropPct >= t).pop();
+        if (crossedThreshold) {
+          // Check if we already alerted at this threshold level
+          const lastAlert = this.db.queryOne(
+            `SELECT data FROM alerts WHERE asset_type_id = ? AND type = 'price_drop' ORDER BY created_at DESC LIMIT 1`,
+            [item.id]
+          );
+          let lastThreshold = 0;
+          if (lastAlert?.data) {
+            try {
+              const data = JSON.parse(lastAlert.data);
+              lastThreshold = DROP_THRESHOLDS.filter(t => data.drop_pct >= t).pop() || 0;
+            } catch (e) {}
+          }
+
+          // Only alert if we've crossed a new threshold
+          if (crossedThreshold > lastThreshold) {
+            const id = this.db.addAlert(
+              item.id,
+              'price_drop',
+              `${label} giảm ${(dropPct * 100).toFixed(0)}% từ đỉnh. Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit}, Đỉnh: ${item.peak_price.toLocaleString('vi-VN')} ${item.unit}`,
+              { price: item.current_price, peak: item.peak_price, drop_pct: dropPct, threshold: crossedThreshold }
+            );
+            if (id) alerts.push({ id, type: 'price_drop', name: label });
+          }
+        }
       }
 
-      // Recovery alert: back to 90%+ of peak
+      // Recovery alert: back to 90%+ of peak (only once)
       if (recoveryPct >= 0.90 && recoveryPct < 1.0) {
-        const id = this.db.addAlert(
-          item.id,
-          'price_recovery',
-          `${label} phục hồi về ${(recoveryPct * 100).toFixed(1)}% đỉnh. Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit}`,
-          { price: item.current_price, peak: item.peak_price, recovery_pct: recoveryPct }
+        // Check if we already have a recovery alert
+        const existingRecovery = this.db.queryOne(
+          `SELECT id FROM alerts WHERE asset_type_id = ? AND type = 'price_recovery' AND created_at > datetime('now', '-30 days')`,
+          [item.id]
         );
-        if (id) alerts.push({ id, type: 'price_recovery', name: label });
+        if (!existingRecovery) {
+          const id = this.db.addAlert(
+            item.id,
+            'price_recovery',
+            `${label} phục hồi về ${(recoveryPct * 100).toFixed(0)}% đỉnh. Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit}`,
+            { price: item.current_price, peak: item.peak_price, recovery_pct: recoveryPct }
+          );
+          if (id) alerts.push({ id, type: 'price_recovery', name: label });
+        }
       }
 
-      // Take profit alert: full recovery to 100%+ of peak
+      // Take profit alert: full recovery to 100%+ of peak (only once per 7 days)
       if (recoveryPct >= 1.0) {
         const id = this.db.addAlert(
           item.id,
           'take_profit',
-          `${label} đã phục hồi hoàn toàn! Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit} >= Đỉnh: ${item.peak_price.toLocaleString('vi-VN')} ${item.unit}`,
+          `${label} đạt đỉnh mới! Giá: ${item.current_price.toLocaleString('vi-VN')} ${item.unit}`,
           { price: item.current_price, peak: item.peak_price }
         );
         if (id) alerts.push({ id, type: 'take_profit', name: label });
       }
     }
 
-    // Check for stop-loss on sniper transactions
+    // Check for stop-loss on sniper transactions (strategy = 'sniper')
     const sniperTxns = this.db.query(`
       SELECT t.*, a.ticker, a.name as asset_type_name, a.current_price as market_price
       FROM transactions t
       JOIN asset_types a ON a.id = t.asset_type_id
-      WHERE t.type = 'BUY' AND (t.note LIKE '%Bắn Tỉa%' OR t.note LIKE '%[deploy]%')
+      WHERE t.type = 'BUY' AND t.strategy = 'sniper'
     `);
 
     for (const txn of sniperTxns) {
       if (!txn.market_price || txn.market_price <= 0 || !txn.price || txn.price <= 0) continue;
 
       const lossPct = (txn.price - txn.market_price) / txn.price;
-      if (lossPct >= 0.35) {
-        const label = txn.asset_name || txn.asset_type_name;
-        const id = this.db.addAlert(
-          txn.asset_type_id,
-          'stop_loss',
-          `${label} lỗ ${(lossPct * 100).toFixed(1)}% từ giá mua ${txn.price.toLocaleString('vi-VN')}. Giá hiện tại: ${txn.market_price.toLocaleString('vi-VN')}`,
-          { entry_price: txn.price, current_price: txn.market_price, loss_pct: lossPct }
+      // Stop-loss thresholds: 25%, 35%, 50%
+      const STOP_LOSS_THRESHOLDS = [0.25, 0.35, 0.50];
+      const crossedThreshold = STOP_LOSS_THRESHOLDS.filter(t => lossPct >= t).pop();
+
+      if (crossedThreshold) {
+        // Check last stop-loss alert for this transaction
+        const lastAlert = this.db.queryOne(
+          `SELECT data FROM alerts WHERE asset_type_id = ? AND type = 'stop_loss' ORDER BY created_at DESC LIMIT 1`,
+          [txn.asset_type_id]
         );
-        if (id) alerts.push({ id, type: 'stop_loss', name: label });
+        let lastThreshold = 0;
+        if (lastAlert?.data) {
+          try {
+            const data = JSON.parse(lastAlert.data);
+            lastThreshold = STOP_LOSS_THRESHOLDS.filter(t => data.loss_pct >= t).pop() || 0;
+          } catch (e) {}
+        }
+
+        if (crossedThreshold > lastThreshold) {
+          const label = txn.asset_name || txn.asset_type_name;
+          const id = this.db.addAlert(
+            txn.asset_type_id,
+            'stop_loss',
+            `${label} lỗ ${(lossPct * 100).toFixed(0)}% từ giá mua ${txn.price.toLocaleString('vi-VN')}. Giá hiện tại: ${txn.market_price.toLocaleString('vi-VN')}`,
+            { entry_price: txn.price, current_price: txn.market_price, loss_pct: lossPct, threshold: crossedThreshold }
+          );
+          if (id) alerts.push({ id, type: 'stop_loss', name: label });
+        }
       }
     }
 

@@ -5,27 +5,27 @@ import { Gear, Warning } from '../utils/iconMap';
 
 const PARAM_GROUPS = [
   {
-    title: 'I. Ngưỡng Chuyển Phase',
+    title: 'I. Ngưỡng chuyển phase',
     keys: ['SURVIVAL_THRESHOLD', 'SURVIVAL_LOWER_BOUND'],
   },
   {
-    title: 'II. Tỷ Lệ Phân Bổ — Phase 1',
+    title: 'II. Tỷ lệ phân bổ — Phase 1',
     keys: ['PHASE_1_SURVIVAL_RATIO', 'PHASE_1_ETF_RATIO'],
   },
   {
-    title: 'III. Tỷ Lệ Phân Bổ — Phase 2',
+    title: 'III. Tỷ lệ phân bổ — Phase 2',
     keys: ['PHASE_2_ETF_RATIO', 'PHASE_2_SNIPER_RATIO'],
   },
   {
-    title: 'IV. Lãi Suất ETF — 3 Kịch Bản',
+    title: 'IV. Lãi suất ETF — 3 kịch bản',
     keys: ['ETF_RATE_BEAR', 'ETF_RATE_BASE', 'ETF_RATE_BULL'],
   },
   {
-    title: 'V. Lãi Suất Khác',
+    title: 'V. Lãi suất khác',
     keys: ['SNIPER_BANK_RATE', 'INFLATION_MONTHLY'],
   },
   {
-    title: 'VI. Tham Số Vận Hành',
+    title: 'VI. Tham số vận hành',
     keys: ['STRESS_INCOME_MIN', 'FI_MONTHLY_EXPENSE', 'REBALANCE_THRESHOLD', 'DEFAULT_INFLOW'],
   },
 ];
@@ -83,7 +83,7 @@ export default function Parameters() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold flex items-center gap-2"><Gear size={28} /> Tham Số Hệ Thống</h1>
+        <h1 className="text-2xl font-bold flex items-center gap-2"><Gear size={28} /> Tham số hệ thống</h1>
         <p className="text-xs text-slate-400">Click vào giá trị để chỉnh sửa. Tự động tính lại toàn bộ khi lưu.</p>
       </div>
 

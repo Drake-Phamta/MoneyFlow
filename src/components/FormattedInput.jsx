@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
-
-function formatWithDots(value) {
-  const nums = value.replace(/\D/g, '');
-  if (!nums) return '';
-  return nums.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
+import { formatNumberInput as formatWithDots } from '../utils/numberFormat';
 
 export default function FormattedInput({ value, onChange, onBlur, placeholder, className, disabled }) {
   const [isFocused, setIsFocused] = useState(false);

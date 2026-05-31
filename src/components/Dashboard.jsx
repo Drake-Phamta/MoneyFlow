@@ -6,18 +6,75 @@ import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AllocationPie from './charts/AllocationPie';
 import AppIcon from '../utils/iconMap';
-import { ArrowClockwise, Bell, Calendar, Warning, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, BookmarkSimple, Lightbulb, CheckCircle, PiggyBank } from '@phosphor-icons/react';
+import CustomTooltip from '../utils/CustomTooltip';
+import { ArrowClockwise, Warning, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, BookmarkSimple, PiggyBank, CheckCircle, XCircle, Info, X, Bell, Calendar, ChartLineUp } from '../utils/iconMap';
 
-// Display labels (DB name → user-facing label)
-const CATEGORY_LABELS = {
-  'Chứng Khoán': 'Đầu Tư',
-};
+// Relative time formatter for activity feed
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return '';
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
 
-// Category metadata (matching database seed order)
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút trước`;
+  if (diffHours < 24) return `${diffHours} giờ trước`;
+  if (diffDays < 7) return `${diffDays} ngày trước`;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+}
+
+// Loading skeleton component
+function LoadingSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="h-8 w-48 bg-slate-200 rounded-lg"></div>
+          <div className="h-4 w-32 bg-slate-100 rounded mt-2"></div>
+        </div>
+        <div className="h-9 w-32 bg-slate-100 rounded-lg"></div>
+      </div>
+
+      {/* Phase card skeleton */}
+      <div className="card bg-slate-50">
+        <div className="h-5 w-24 bg-slate-200 rounded mb-3"></div>
+        <div className="h-4 w-64 bg-slate-100 rounded mb-4"></div>
+        <div className="h-2 w-full bg-slate-200 rounded-full"></div>
+      </div>
+
+      {/* KPI row skeleton */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <div key={i} className="kpi">
+            <div className="h-3 w-20 bg-slate-200 rounded mb-2"></div>
+            <div className="h-6 w-28 bg-slate-100 rounded"></div>
+          </div>
+        ))}
+      </div>
+
+      {/* Main grid skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <div className="card h-64 bg-slate-50"></div>
+        </div>
+        <div className="space-y-4">
+          <div className="card h-40 bg-slate-50"></div>
+          <div className="card h-48 bg-slate-50"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Category metadata (matching database categories)
 const CATEGORY_META = [
-  { name: 'Dự Phòng', color: '#10b981', icon: 'shield-check' },
-  { name: 'Chứng Khoán', color: '#3b82f6', icon: 'trend-up' },
-  { name: 'Vàng', color: '#f59e0b', icon: 'gem' },
+  { name: 'Dự Phòng', color: '#10b981', icon: 'wallet' },
+  { name: 'Đầu Tư', color: '#3b82f6', icon: 'chart-line' },
+  { name: 'Vàng', color: '#f59e0b', icon: 'coins' },
   { name: 'Bắn Tỉa', color: '#ef4444', icon: 'crosshair' },
   { name: 'Tiết kiệm & Trái phiếu', color: '#8b5cf6', icon: 'bank' },
 ];
@@ -38,6 +95,10 @@ export default function Dashboard() {
   const [lastRefresh, setLastRefresh] = useState(null);
   const [savingsSummary, setSavingsSummary] = useState(null);
   const [maturities, setMaturities] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [alerts, setAlerts] = useState([]);
 
   useEffect(() => {
     loadData();
@@ -48,9 +109,40 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Poll activity every 30s (only when tab visible)
+  useEffect(() => {
+    let lastActivityId = activity.length > 0 ? activity[0].id : 0;
+    const POLL_INTERVAL = 30000;
+
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const latest = await apiClient.activity.get(1);
+        if (latest.length > 0 && latest[0].id !== lastActivityId) {
+          lastActivityId = latest[0].id;
+          const fresh = await apiClient.activity.get(10);
+          setActivity(fresh);
+          // Also refresh alert count
+          const ac = await apiClient.alerts.count().catch(() => ({ count: 0 }));
+          setAlertCount(ac?.count || 0);
+        }
+      } catch (e) { /* silent */ }
+    };
+
+    const interval = setInterval(poll, POLL_INTERVAL);
+    const onVisibility = () => { if (!document.hidden) poll(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [activity]);
+
   async function loadData() {
     try {
-      const [s, p, f, a, n, ac, ss, mats, phases] = await Promise.all([
+      setLoading(true);
+      const [s, p, f, a, n, ac, ss, mats, phases, alertsData] = await Promise.all([
         apiClient.portfolio.summary().catch(e => { console.error('portfolio.summary error:', e); return null; }),
         apiClient.phases.active(),
         apiClient.monthly.filled(),
@@ -60,6 +152,7 @@ export default function Dashboard() {
         apiClient.savings.summary().catch(() => null),
         apiClient.savings.maturities(30).catch(() => []),
         apiClient.phases.get().catch(() => []),
+        apiClient.alerts.get().catch(() => []),
       ]);
       setSummary(s);
       setPhase(p);
@@ -70,6 +163,7 @@ export default function Dashboard() {
       setSavingsSummary(ss);
       setMaturities(mats);
       setAllPhases(phases);
+      setAlerts(alertsData || []);
 
       // Fetch phase allocations for active phase
       if (p?.id) {
@@ -80,6 +174,8 @@ export default function Dashboard() {
       }
     } catch (err) {
       console.error('Dashboard load error:', err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -156,7 +252,7 @@ export default function Dashboard() {
   // Allocation pie data (all 5 categories)
   const allocPieData = useMemo(() => {
     return CATEGORY_META.map(c => ({
-      name: CATEGORY_LABELS[c.name] || c.name,
+      name: c.name,
       value: byCategory[c.name]?.currentTotal || 0,
       color: c.color,
       icon: c.icon,
@@ -184,15 +280,33 @@ export default function Dashboard() {
       setLastRefresh(new Date());
       localStorage.setItem('lastPriceRefresh', Date.now().toString());
       await loadData();
-      if (!silent && result?.results) {
-        const failed = result.results.filter(r => r.status !== 'ok');
-        if (failed.length > 0) {
-          console.warn('Price sync issues:', failed);
+
+      if (!silent && result) {
+        const { total = 0, success = 0, failed = 0, noData = 0 } = result;
+
+        if (total === 0) {
+          setToast({ type: 'info', message: 'Không có tài sản nào đang đầu tư để cập nhật' });
+        } else if (failed === 0 && noData === 0) {
+          setToast({ type: 'success', message: 'Đã cập nhật giá thành công' });
+        } else if (success > 0) {
+          const failNames = (result.results || [])
+            .filter(r => r.status === 'error')
+            .map(r => r.ticker || r.name)
+            .slice(0, 3)
+            .join(', ');
+          const detail = failNames ? ` (${failNames})` : '';
+          setToast({ type: 'warning', message: `Cập nhật ${success}/${total} thành công, ${failed} lỗi${detail}` });
+        } else {
+          setToast({ type: 'error', message: 'Không thể cập nhật giá. Kiểm tra kết nối mạng.' });
         }
+        setTimeout(() => setToast(null), failed > 0 ? 5000 : 4000);
       }
     } catch (err) {
       console.error('Refresh error:', err);
-      if (!silent) alert('Lỗi đồng bộ giá: ' + err.message);
+      if (!silent) {
+        setToast({ type: 'error', message: 'Lỗi đồng bộ giá: ' + err.message });
+        setTimeout(() => setToast(null), 5000);
+      }
       localStorage.setItem('lastPriceRefresh', Date.now().toString());
     } finally {
       setRefreshing(false);
@@ -204,38 +318,84 @@ export default function Dashboard() {
     return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   }
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload) return null;
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl">
-        <p className="text-slate-500 text-xs mb-2 font-medium">{label}</p>
-        {payload.map(e => (
-          <p key={e.name} className="text-xs font-semibold" style={{ color: e.color }}>
-            {e.name}: {formatVND(e.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Tổng Quan</h1>
+          <h1 className="page-title">Tổng quan</h1>
           <p className="page-subtitle">
             {filled.length > 0 ? `Đã ghi nhận ${filled.length} tháng` : 'Bắt đầu ghi nhận dòng tiền'}
             {lastRefresh && <span className="text-slate-300 ml-2">· Giá cập nhật {formatTime(lastRefresh)}</span>}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          {alertCount > 0 && (
-            <button onClick={() => navigate('/investments')} className="relative btn-ghost text-sm">
-              <Bell size={18} weight="regular" />
+        <div className="flex items-center gap-3 relative">
+          <button onClick={() => setShowAlerts(!showAlerts)} className="relative btn-ghost text-sm">
+            <Bell size={18} weight="regular" />
+            {alertCount > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
-            </button>
+            )}
+          </button>
+
+          {/* Alerts dropdown */}
+          {showAlerts && (
+            <div className="absolute top-full right-0 mt-2 w-96 bg-white rounded-xl shadow-xl border border-slate-200 z-50 max-h-[480px] overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-slate-700">Thông báo ({alerts.length})</h4>
+                <div className="flex items-center gap-3">
+                  {alertCount > 0 && (
+                    <button onClick={async () => {
+                      await apiClient.alerts.markAllRead();
+                      setAlertCount(0);
+                      setAlerts(prev => prev.map(a => ({ ...a, read: 1 })));
+                    }} className="text-xs text-primary-600 hover:underline">Đọc tất cả</button>
+                  )}
+                  <button onClick={() => setShowAlerts(false)} className="text-slate-400 hover:text-slate-600">
+                    <span className="text-lg leading-none">×</span>
+                  </button>
+                </div>
+              </div>
+              <div className="overflow-y-auto max-h-80">
+                {alerts.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-8">Không có thông báo</p>
+                ) : (
+                  alerts.map(alert => (
+                    <div key={alert.id}
+                      className={`px-4 py-3 border-b border-slate-50 hover:bg-slate-50 cursor-pointer transition-colors ${!alert.read ? 'bg-blue-50/50' : ''}`}
+                      onClick={async () => {
+                        // Mark as read
+                        if (!alert.read) {
+                          await apiClient.alerts.markRead(alert.id);
+                          setAlertCount(prev => Math.max(0, prev - 1));
+                          setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, read: 1 } : a));
+                        }
+                        // Navigate based on alert type
+                        setShowAlerts(false);
+                        navigate('/investments?tab=sniper');
+                      }}>
+                      <div className="flex items-start gap-2">
+                        <span className={`inline-block w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                          alert.type === 'price_drop' ? 'bg-red-500' :
+                          alert.type === 'stop_loss' ? 'bg-red-600' :
+                          alert.type === 'take_profit' ? 'bg-emerald-500' :
+                          alert.type === 'price_recovery' ? 'bg-blue-500' : 'bg-slate-400'
+                        }`}></span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-slate-700 leading-relaxed">{alert.message}</p>
+                          <p className="text-[10px] text-slate-400 mt-1">{formatRelativeTime(alert.created_at)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
           )}
+
           <button onClick={() => handleRefreshPrices(false)} disabled={refreshing} className="btn-ghost text-sm flex items-center gap-1.5">
             <ArrowClockwise size={16} className={refreshing ? 'animate-spin' : ''} weight="regular" />
             <span>{refreshing ? 'Đang tải...' : 'Đồng bộ giá'}</span>
@@ -247,7 +407,7 @@ export default function Dashboard() {
       {maturities.length > 0 && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
           <div>
-            <p className="text-sm font-semibold text-amber-700">Sắp đáo hạn ({maturities.length} sổ trong 30 ngày tới)</p>
+            <p className="text-sm font-semibold text-amber-700">Sắp đáo hạn ({maturities.length} sổ tiết kiệm trong 30 ngày tới)</p>
             <p className="text-xs text-amber-600 mt-0.5">
               {maturities.slice(0, 3).map(m => m.name).join(', ')}
               {maturities.length > 3 && ` +${maturities.length - 3} sổ khác`}
@@ -299,6 +459,12 @@ export default function Dashboard() {
                   style={{ width: `${phaseProgress.pct}%` }}
                 />
               </div>
+              {/* Remaining amount hint */}
+              {phaseProgress.current < phaseProgress.goal && (
+                <p className="text-xs text-slate-500 mt-1.5">
+                  Còn lại <span className="font-semibold text-primary-600">{formatVND(phaseProgress.goal - phaseProgress.current)}</span> để đạt mục tiêu
+                </p>
+              )}
             </div>
           )}
 
@@ -340,7 +506,7 @@ export default function Dashboard() {
           <p className="kpi-value text-primary-600">{formatVND(totalCurrentValue)}</p>
         </div>
         <div className="kpi">
-          <span className="kpi-label">Lãi / Lỗ</span>
+          <span className="kpi-label">Lãi/Lỗ</span>
           <p className={`kpi-value ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
             {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
           </p>
@@ -362,7 +528,7 @@ export default function Dashboard() {
           ) : (
             <>
               <p className="kpi-value text-slate-300">--</p>
-              <p className="text-xs text-slate-400">Nhập chi tiêu để tính</p>
+              <p className="text-xs text-slate-400">Nhập dữ liệu tháng để tính</p>
             </>
           )}
         </div>
@@ -480,7 +646,7 @@ export default function Dashboard() {
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="income" fill="#10b981" name="Thu nhập" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="expense" fill="#f87171" name="Chi tiêu" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="net" fill="#3b82f6" name="Tiết kiệm" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="net" fill="#3b82f6" name="Dòng tiền ròng" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -492,99 +658,83 @@ export default function Dashboard() {
           {/* Quick Actions */}
           <div className="card">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Thao tác nhanh</h3>
-            <div className="space-y-2">
-              <button onClick={() => navigate('/cashflow')} className="btn-secondary w-full text-left text-sm">Nhập liệu tháng</button>
-              <button onClick={() => navigate('/investments')} className="btn-secondary w-full text-left text-sm">Ghi giao dịch</button>
-              <button onClick={() => navigate('/investments')} className="btn-ghost w-full text-left text-sm">Quản lý danh mục đầu tư</button>
-              <button onClick={() => handleRefreshPrices(false)} disabled={refreshing} className="btn-ghost w-full text-left text-sm">
-                {refreshing ? 'Đang đồng bộ...' : 'Đồng bộ giá'}
+            <div className="space-y-1.5">
+              <button onClick={() => navigate('/cashflow')} className="w-full text-left text-sm px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 flex items-center gap-2">
+                <NotePencil size={16} weight="regular" />
+                Nhập liệu tháng
+              </button>
+              <button onClick={() => navigate('/investments')} className="w-full text-left text-sm px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 flex items-center gap-2">
+                <ArrowDownLeft size={16} weight="regular" />
+                Ghi giao dịch
+              </button>
+              <button onClick={() => navigate('/investments')} className="w-full text-left text-sm px-3 py-2.5 rounded-xl text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-all duration-200 flex items-center gap-2">
+                <ChartLineUp size={16} weight="regular" />
+                Quản lý danh mục
               </button>
             </div>
           </div>
 
-          {/* Allocation Pie — all 5 categories */}
+          {/* Allocation Pie — current distribution */}
           <div className="card">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Phân bổ danh mục</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Phân bổ hiện tại</h3>
             <AllocationPie data={allocPieData} />
           </div>
 
-          {/* Phase Allocation Targets vs Actual */}
-          {phaseAllocs.length > 0 && (
-            <div className="card">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Phân bổ mục tiêu</h3>
-              <div className="space-y-2">
-                {phaseAllocs.map(a => {
-                  // Include savings for Dự Phòng and TK&TP categories
-                  let actual = byCategory[a.category_name]?.currentTotal || 0;
-                  if (a.category_name?.includes('Dự Phòng') || a.category_name?.includes('Tiết kiệm')) {
-                    actual += totalSavingsBalance;
-                  }
-                  const totalAssets = grandTotal;
-                  const actualPct = totalAssets > 0 ? (actual / totalAssets) * 100 : 0;
-                  const targetPct = a.ratio * 100;
-                  const diff = actualPct - targetPct;
-                  const meta = CATEGORY_META.find(c => c.name === a.category_name);
-                  return (
-                    <div key={a.category_id}>
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-600 flex items-center gap-1">
-                          <AppIcon name={meta?.icon} size={14} /> {a.category_name}
-                        </span>
-                        <span className="text-xs text-slate-400">Mục tiêu: {targetPct.toFixed(0)}%</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full transition-all"
-                            style={{
-                              width: `${Math.min(actualPct, 100)}%`,
-                              background: meta?.color || '#94a3b8',
-                            }}
-                          />
-                        </div>
-                        <span className={`text-[10px] font-medium w-12 text-right ${
-                          Math.abs(diff) > 10 ? 'text-amber-600' : 'text-slate-500'
-                        }`}>
-                          {actualPct.toFixed(0)}%
-                        </span>
-                      </div>
-                      {Math.abs(diff) > 10 && (
-                        <p className="text-[10px] text-amber-600 mt-0.5">
-                          <Warning size={12} className="inline mr-0.5" weight="fill" /> {diff > 0 ? 'Thừa' : 'Thiếu'} {Math.abs(diff).toFixed(0)}% so với mục tiêu
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Category breakdown */}
+          {/* Target vs Actual — only categories with money */}
           <div className="card">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Theo danh mục</h3>
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">So với mục tiêu</h3>
             <div className="space-y-3">
-              {Object.entries(byCategory).map(([cat, data]) => {
-                const gain = data.currentTotal - data.total;
-                const gainPct = data.total > 0 ? (gain / data.total) * 100 : 0;
-                const meta = CATEGORY_META.find(c => c.name === cat);
+              {CATEGORY_META.filter(meta => (byCategory[meta.name]?.currentTotal || 0) > 0).map(meta => {
+                const phaseAlloc = phaseAllocs.find(a => a.category_name === meta.name);
+                const targetPct = phaseAlloc ? phaseAlloc.ratio * 100 : 0;
+
+                const catData = byCategory[meta.name];
+                const actual = catData?.currentTotal || 0;
+                const invested = catData?.total || 0;
+                const gain = actual - invested;
+                const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
+                const totalAssets = grandTotal;
+                const actualPct = totalAssets > 0 ? (actual / totalAssets) * 100 : 0;
+                const diff = actualPct - targetPct;
+
                 return (
-                  <div key={cat}>
+                  <div key={meta.name} className="pb-3 border-b border-slate-50 last:border-0 last:pb-0">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-700 flex items-center gap-1.5">
-                        {meta?.Icon && <meta.Icon size={16} weight="regular" />}
-                        {cat}
+                      <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: meta.color }}></span>
+                        {meta.name}
                       </span>
-                      <span className="text-sm font-bold text-slate-800">{formatVND(data.currentTotal)}</span>
+                      <span className="text-sm font-bold text-slate-800">{formatVND(actual)}</span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>Vốn: {formatVND(data.total)}</span>
-                      <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>{gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%</span>
+                    {invested > 0 && (
+                      <div className="flex items-center justify-between text-xs text-slate-400 mb-1.5 ml-4">
+                        <span>Vốn: {formatVND(invested)}</span>
+                        <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>
+                          {gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 ml-4">
+                      <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${Math.min(actualPct, 100)}%`, background: meta.color }}
+                        />
+                      </div>
+                      <span className="text-[10px] text-slate-400 w-16 text-right">
+                        {actualPct.toFixed(0)}%/{targetPct.toFixed(0)}%
+                      </span>
                     </div>
+                    {targetPct > 0 && Math.abs(diff) > 10 && (
+                      <p className="text-[10px] text-amber-600 mt-1 ml-4">
+                        <Warning size={10} className="inline mr-0.5" weight="fill" />
+                        {diff > 0 ? 'Thừa' : 'Thiếu'} {Math.abs(diff).toFixed(0)}%
+                      </p>
+                    )}
                   </div>
                 );
               })}
-              {Object.keys(byCategory).length === 0 && (
+              {Object.keys(byCategory).filter(cat => byCategory[cat]?.currentTotal > 0).length === 0 && (
                 <p className="text-xs text-slate-400 text-center py-4">Chưa có dữ liệu</p>
               )}
             </div>
@@ -596,7 +746,7 @@ export default function Dashboard() {
       {activity.length > 0 && (
         <div className="card">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Hoạt động gần đây</h3>
-          <div className="space-y-2">
+          <div className="space-y-1 max-h-[320px] overflow-y-auto pr-1">
             {activity.map(a => {
               const ACTIVITY_ICONS = {
                 MONTHLY_ENTRY: { Icon: NotePencil, bg: 'bg-blue-50', color: 'text-blue-600' },
@@ -604,6 +754,7 @@ export default function Dashboard() {
                 SELL: { Icon: ArrowUpRight, bg: 'bg-red-50', color: 'text-red-600' },
                 CLEAR: { Icon: Trash, bg: 'bg-slate-100', color: 'text-slate-500' },
                 DELETE_ENTRY: { Icon: Trash, bg: 'bg-slate-100', color: 'text-slate-500' },
+                SAVINGS: { Icon: PiggyBank, bg: 'bg-violet-50', color: 'text-violet-600' },
               };
               const { Icon, bg, color } = ACTIVITY_ICONS[a.type] || { Icon: BookmarkSimple, bg: 'bg-slate-100', color: 'text-slate-500' };
               return (
@@ -613,7 +764,7 @@ export default function Dashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-700 truncate">{a.description}</p>
-                    <p className="text-xs text-slate-400">{a.date}</p>
+                    <p className="text-xs text-slate-400">{formatRelativeTime(a.date)}</p>
                   </div>
                   {a.amount > 0 && <span className="text-sm font-semibold text-slate-800">{formatVND(a.amount)}</span>}
                 </div>
@@ -623,15 +774,22 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Onboarding */}
-      {filled.length === 0 && (
-        <div className="card bg-amber-50 border-amber-200">
-          <h3 className="text-sm font-bold text-amber-800 mb-2">Bắt đầu thôi!</h3>
-          <p className="text-sm text-amber-700 mb-3">Nhập liệu tháng đầu tiên để bắt đầu theo dõi tài chính.</p>
-          <div className="flex gap-2">
-            <button onClick={() => navigate('/cashflow')} className="btn-primary text-sm">Nhập liệu ngay</button>
-            <button onClick={() => navigate('/settings')} className="btn-secondary text-sm">Import từ Excel</button>
-          </div>
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-slide-up ${
+          toast.type === 'error' ? 'bg-red-500' :
+          toast.type === 'success' ? 'bg-emerald-500' :
+          toast.type === 'warning' ? 'bg-amber-500' :
+          toast.type === 'info' ? 'bg-slate-500' : 'bg-slate-700'
+        } text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
+          {toast.type === 'success' && <CheckCircle size={20} weight="fill" />}
+          {toast.type === 'error' && <XCircle size={20} weight="fill" />}
+          {toast.type === 'warning' && <Warning size={20} weight="fill" />}
+          {toast.type === 'info' && <Info size={20} weight="fill" />}
+          <span className="text-sm font-medium">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="text-white/70 hover:text-white">
+            <X size={18} />
+          </button>
         </div>
       )}
     </div>

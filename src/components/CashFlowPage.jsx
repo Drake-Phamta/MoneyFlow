@@ -3,8 +3,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { formatVND, formatCompact } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import MonthlyEntry from './MonthlyEntry';
-import { TrendUp, TrendDown, Minus } from '@phosphor-icons/react';
+import { TrendUp, TrendDown, Minus } from '../utils/iconMap';
 import MasterLedger from './MasterLedger';
+import CustomTooltip from '../utils/CustomTooltip';
 
 export default function CashFlowPage() {
   const [showWizard, setShowWizard] = useState(false);
@@ -68,28 +69,52 @@ export default function CashFlowPage() {
   const bestMonth = sortedByNet[0];
   const worstMonth = sortedByNet[sortedByNet.length - 1];
 
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload) return null;
+  // Empty state
+  if (filled.length === 0) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl">
-        <p className="text-slate-500 text-xs mb-2 font-medium">{label}</p>
-        {payload.map(e => (
-          <p key={e.name} className="text-xs font-semibold" style={{ color: e.color }}>
-            {e.name}: {formatVND(e.value)}
-          </p>
-        ))}
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="page-title">Dòng tiền</h1>
+            <p className="page-subtitle">Chưa có dữ liệu dòng tiền</p>
+          </div>
+          <button onClick={() => setShowWizard(true)} className="btn-primary">
+            Nhập liệu tháng mới
+          </button>
+        </div>
+
+        {showWizard && (
+          <div className="card border-primary-200 bg-primary-50/30">
+            <MonthlyEntry onComplete={() => { setShowWizard(false); loadData(); }} />
+          </div>
+        )}
+
+        {!showWizard && (
+          <div className="card text-center py-16">
+            <div className="w-20 h-20 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-6">
+              <TrendUp size={40} className="text-primary-500" weight="duotone" />
+            </div>
+            <h2 className="text-xl font-bold text-slate-800 mb-2">Bắt đầu theo dõi dòng tiền</h2>
+            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
+              Ghi lại thu nhập và chi tiêu hàng tháng để theo dõi dòng tiền nhàn rỗi, phân bổ vào các danh mục đầu tư.
+            </p>
+            <button onClick={() => setShowWizard(true)} className="btn-primary-lg">
+              Nhập liệu tháng đầu tiên →
+            </button>
+          </div>
+        )}
       </div>
     );
-  };
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Dòng Tiền</h1>
+          <h1 className="page-title">Dòng tiền</h1>
           <p className="page-subtitle">
-            {filled.length} tháng đã ghi nhận · TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng
+            {filled.length} tháng đã ghi nhận · TB nhàn rỗi {formatVND(avgMonthly)}/tháng
           </p>
         </div>
         <button onClick={() => setShowWizard(!showWizard)} className="btn-primary">
@@ -117,30 +142,28 @@ export default function CashFlowPage() {
       </div>
 
       {/* KPI Row */}
-      <div className="grid grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi">
           <span className="kpi-label">Tổng thu nhập</span>
           <p className="kpi-value text-emerald-600">{formatVND(totalIncome)}</p>
+          <p className="text-xs text-slate-400">{filled.length} tháng</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Tổng chi tiêu</span>
           <p className="kpi-value text-red-500">{formatVND(totalExpense)}</p>
+          <p className="text-xs text-slate-400">TB {formatVND(totalExpense / filled.length)}/tháng</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Tiền nhàn rỗi</span>
           <p className={`kpi-value ${totalNet >= 0 ? 'text-primary-600' : 'text-red-500'}`}>{formatVND(totalNet)}</p>
+          <p className="text-xs text-slate-400">TB {formatVND(avgMonthly)}/tháng</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
-          <p className="text-xs text-slate-400">Mục tiêu: ≥ 30%</p>
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">TB tiền nhàn rỗi</span>
-          <p className="kpi-value text-blue-600">{formatVND(avgMonthly)}</p>
-          <p className="text-xs text-slate-400">{streak} tháng liên tục dương</p>
+          <p className="text-xs text-slate-400">Mục tiêu: ≥ 30% · {streak} tháng dương liên tục</p>
         </div>
       </div>
 
@@ -150,11 +173,11 @@ export default function CashFlowPage() {
           {/* Cash Flow Chart */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-700">Phân bổ thu chi theo tháng</h3>
+              <h3 className="text-sm font-semibold text-slate-700">Dòng tiền theo tháng</h3>
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Thu nhập</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Chi tiêu</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Nhàn rỗi</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -172,15 +195,21 @@ export default function CashFlowPage() {
 
           {/* Savings Rate Chart */}
           <div className="card">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">Tỷ lệ tiết kiệm theo tháng</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
+              <div className="flex gap-4 text-xs text-slate-400">
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-emerald-500 border-dashed" /> Mục tiêu 30%</span>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+              <LineChart data={cashFlowData.map(d => ({ ...d, target: 30 }))} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} />
-                <Tooltip formatter={v => `${v.toFixed(1)}%`} />
-                <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Tỷ lệ tiết kiệm" />
-                <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Mục tiêu 30%" />
+                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} domain={[0, 100]} />
+                <Tooltip formatter={(v, name) => [`${v.toFixed(1)}%`, name]} />
+                <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
+                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Mục tiêu" />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -188,39 +217,41 @@ export default function CashFlowPage() {
           {/* Bottom row */}
           <div className="grid grid-cols-2 gap-4">
             <div className="card">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Dự báo</h3>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Dự báo tích lũy</h3>
               <div className="space-y-3">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-500">Đã tích lũy</span>
                   <span className="text-sm font-bold text-slate-800">{formatVND(totalNet)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-500">Còn lại {Math.max(0, totalMonths - filled.length)} tháng</span>
                   <span className="text-sm font-bold text-primary-600">+{formatVND(avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <div className="border-t border-slate-100 pt-2 flex justify-between">
+                <div className="border-t border-slate-100 pt-2 flex justify-between items-center">
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-[10px] text-slate-400">Dựa trên tiền nhàn rỗi TB {formatVND(avgMonthly)}/tháng</p>
+                <p className="text-[10px] text-slate-400">Dựa trên TB nhàn rỗi {formatVND(avgMonthly)}/tháng</p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
-                    <p className="text-xs text-slate-500 mb-1">Xu hướng gần đây (3 tháng)</p>
+                    <p className="text-xs text-slate-500 mb-1">Xu hướng 3 tháng gần nhất</p>
                     {(() => {
                       const recent3 = cashFlowData.slice(-3);
                       const recentAvg = recent3.reduce((s, d) => s + d.net, 0) / 3;
                       const diff = recentAvg - avgMonthly;
                       const TrendIcon = diff > 0 ? TrendUp : diff < 0 ? TrendDown : Minus;
                       return (
-                        <p className="text-xs flex items-center gap-1">
-                          <TrendIcon size={14} className={diff > 0 ? 'text-emerald-500' : diff < 0 ? 'text-red-500' : 'text-slate-400'} weight="regular" />
-                          TB gần: <span className="font-semibold">{formatVND(recentAvg)}</span>
-                          {diff !== 0 && (
-                            <span className={diff > 0 ? 'text-emerald-600' : 'text-red-500'}>
-                              {' '}({diff > 0 ? '+' : ''}{formatVND(diff)} vs TB chung)
-                            </span>
-                          )}
-                        </p>
+                        <div className="flex items-center gap-2">
+                          <TrendIcon size={16} className={diff > 0 ? 'text-emerald-500' : diff < 0 ? 'text-red-500' : 'text-slate-400'} weight="bold" />
+                          <div>
+                            <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
+                            {diff !== 0 && (
+                              <p className={`text-[10px] ${diff > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với TB
+                              </p>
+                            )}
+                          </div>
+                        </div>
                       );
                     })()}
                   </div>
@@ -232,18 +263,18 @@ export default function CashFlowPage() {
               <div className="space-y-3">
                 {bestMonth && (
                   <div className="p-3 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">Tháng dòng tiền cao nhất</p>
-                    <p className="text-sm font-bold text-emerald-700">{bestMonth.month_label}: {formatVND(bestMonth.net)}</p>
+                    <p className="text-xs text-emerald-600 mb-1">Tháng nhàn rỗi cao nhất</p>
+                    <p className="text-sm font-bold text-emerald-700">{bestMonth.month}: {formatVND(bestMonth.net)}</p>
                   </div>
                 )}
                 {worstMonth && (
                   <div className="p-3 bg-red-50 rounded-xl">
-                    <p className="text-xs text-red-600 mb-1">Tháng dòng tiền thấp nhất</p>
-                    <p className="text-sm font-bold text-red-700">{worstMonth.month_label}: {formatVND(worstMonth.net)}</p>
+                    <p className="text-xs text-red-600 mb-1">Tháng nhàn rỗi thấp nhất</p>
+                    <p className="text-sm font-bold text-red-700">{worstMonth.month}: {formatVND(worstMonth.net)}</p>
                   </div>
                 )}
                 <div className="p-3 bg-blue-50 rounded-xl">
-                  <p className="text-xs text-blue-600 mb-1">Chuỗi nhập liệu liên tục</p>
+                  <p className="text-xs text-blue-600 mb-1">Chuỗi tháng dương liên tục</p>
                   <p className="text-sm font-bold text-blue-700">{streak} tháng</p>
                 </div>
               </div>

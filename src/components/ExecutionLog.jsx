@@ -5,6 +5,7 @@ import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
 
 export default function ExecutionLog({ embedded }) {
+  const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]);
   const [parentAssets, setParentAssets] = useState([]);
@@ -23,6 +24,7 @@ export default function ExecutionLog({ embedded }) {
     quantity: '',
     price: '',
     note: '',
+    strategy: '',
   });
 
   useEffect(() => {
@@ -78,6 +80,8 @@ export default function ExecutionLog({ embedded }) {
         }
       } catch (err) {
         console.error('ExecutionLog load error:', err);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
@@ -111,9 +115,10 @@ export default function ExecutionLog({ embedded }) {
         price: price,
         total_amount: total,
         note: form.note,
+        strategy: form.strategy || '',
       });
       const firstSpecific = catalogItems.find(c => c.asset_class === parentAsset?.asset_class);
-      setForm({ date: new Date().toISOString().split('T')[0], asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '' });
+      setForm({ date: new Date().toISOString().split('T')[0], asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '', strategy: '' });
       setShowForm(false);
       setTransactions(await apiClient.transactions.get());
     } catch (err) {
@@ -169,6 +174,8 @@ export default function ExecutionLog({ embedded }) {
   const hasDiscrepancy = investmentAllocated > 0 && Math.abs(discrepancy) > 1000; // ignore tiny rounding
   const isConfirmed = discrepancyConfirmed && Math.abs(discrepancyConfirmed.amount - discrepancy) < 1000;
 
+  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {!embedded && (
@@ -189,79 +196,96 @@ export default function ExecutionLog({ embedded }) {
 
       {/* Available to invest banner */}
       {investmentAllocated > 0 && (
-        <div className="card bg-gradient-to-r from-blue-50 to-violet-50 border-blue-200">
-          <div className="flex items-center justify-between">
+        <div className="card">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-xs text-slate-500 uppercase">Tiền sẵn sàng đầu tư</p>
-              <p className="text-2xl font-bold text-blue-700">{formatVND(availableToInvest)}</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Phân bổ: {formatVND(investmentAllocated)} · Đã đầu tư: {formatVND(totalInvested)}
-              </p>
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Tiền sẵn sàng đầu tư</p>
+              <p className="text-2xl font-bold text-slate-800 mt-1">{formatVND(availableToInvest)}</p>
             </div>
             {availableToInvest > 0 && (
-              <button onClick={() => setShowForm(true)} className="btn-primary">+ Mua ngay</button>
+              <button onClick={() => setShowForm(true)} className="btn-primary text-sm">+ Mua ngay</button>
             )}
           </div>
-          {investmentAllocated > 0 && (
-            <div className="mt-3">
-              <div className="h-2 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{
-                    width: `${Math.min((totalInvested / investmentAllocated) * 100, 100)}%`,
-                    background: totalInvested >= investmentAllocated ? '#10b981' : '#3b82f6',
-                  }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                Đã dùng {investmentAllocated > 0 ? ((totalInvested / investmentAllocated) * 100).toFixed(0) : 0}% phân bổ
-              </p>
-            </div>
-          )}
+          <div className="flex items-center gap-4 text-xs text-slate-400 mb-3">
+            <span>Phân bổ: <strong className="text-slate-600">{formatVND(investmentAllocated)}</strong></span>
+            <span className="text-slate-200">|</span>
+            <span>Đã đầu tư: <strong className="text-slate-600">{formatVND(totalInvested)}</strong></span>
+          </div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all"
+              style={{
+                width: `${Math.min((totalInvested / investmentAllocated) * 100, 100)}%`,
+                background: totalInvested >= investmentAllocated ? '#10b981' : '#3b82f6',
+              }}
+            />
+          </div>
+          <p className="text-[10px] text-slate-400 mt-1.5">
+            Đã dùng {investmentAllocated > 0 ? ((totalInvested / investmentAllocated) * 100).toFixed(0) : 0}% phân bổ
+          </p>
         </div>
       )}
 
       {/* Discrepancy Warning */}
       {hasDiscrepancy && !isConfirmed && (
-        <div className="card bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 animate-fade-in">
+        <div className={`card animate-fade-in ${discrepancy > 0 ? 'border-amber-200 bg-amber-50/50' : 'border-blue-200 bg-blue-50/50'}`}>
           <div className="flex items-start gap-3">
-            <span className="mt-0.5"><Warning size={24} className="text-amber-500" weight="fill" /></span>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-amber-800">Phát hiện chênh lệch phân bổ</p>
-              <p className="text-xs text-amber-600 mt-1">
-                Số tiền phân bổ đầu tư: <strong>{formatVND(investmentAllocated)}</strong> · Số tiền đã đầu tư: <strong>{formatVND(totalInvested)}</strong>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${discrepancy > 0 ? 'bg-amber-100' : 'bg-blue-100'}`}>
+              <Warning size={16} className={discrepancy > 0 ? 'text-amber-500' : 'text-blue-500'} weight="fill" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-700">
+                {discrepancy > 0 ? 'Đã đầu tư vượt phân bổ' : 'Chưa đầu tư hết phân bổ'}
               </p>
-              <p className="text-xs text-amber-700 mt-1">
-                Chênh lệch: <strong className={discrepancy > 0 ? 'text-red-600' : 'text-blue-600'}>
-                  {discrepancy > 0 ? '+' : ''}{formatVND(discrepancy)}
-                </strong>
+              <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                <span>Phân bổ: <strong className="text-slate-700">{formatVND(investmentAllocated)}</strong></span>
+                <span>Đã đầu tư: <strong className="text-slate-700">{formatVND(totalInvested)}</strong></span>
+                <span className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-500'}>
+                  Còn lại: <strong>{formatVND(Math.abs(discrepancy))}</strong>
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
                 {discrepancy > 0
-                  ? ' — Bạn đã đầu tư nhiều hơn phân bổ (có thể dùng tiền từ nguồn khác)'
-                  : ' — Bạn chưa đầu tư hết số tiền đã phân bổ'}
+                  ? 'Có thể do bổ sung vốn từ nguồn khác hoặc cần rà soát lại dữ liệu'
+                  : 'Số tiền còn lại vẫn có thể đầu tư trong các tháng tiếp theo'}
               </p>
 
-              {!showDiscrepancyInput ? (
-                <div className="flex gap-2 mt-3">
-                  <button onClick={() => setShowDiscrepancyInput(true)} className="btn-primary text-xs px-3 py-1.5">
-                    ✓ Xác nhận đúng
+              {/* Over-investment: confirm or review */}
+              {discrepancy > 0 && (
+                <>
+                  {!showDiscrepancyInput ? (
+                    <div className="flex gap-2 mt-3">
+                      <button onClick={() => setShowDiscrepancyInput(true)} className="text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition font-medium">
+                        ✓ Xác nhận đúng
+                      </button>
+                      <button onClick={() => { document.getElementById('transaction-table')?.scrollIntoView({ behavior: 'smooth' }); }} className="text-xs px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition">
+                        <MagnifyingGlass size={12} className="inline mr-1" /> Rà soát thủ công
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="text"
+                        value={discrepancyReason}
+                        onChange={e => setDiscrepancyReason(e.target.value)}
+                        placeholder="Lý do chênh lệch (VD: dùng tiền chi tiêu thừa để mua thêm)..."
+                        className="input text-xs w-full"
+                      />
+                      <div className="flex gap-2">
+                        <button onClick={handleConfirmDiscrepancy} className="text-xs px-3 py-1.5 rounded-lg bg-amber-100 text-amber-700 hover:bg-amber-200 transition font-medium">Lưu xác nhận</button>
+                        <button onClick={() => { setShowDiscrepancyInput(false); setDiscrepancyReason(''); }} className="text-xs px-3 py-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition">Hủy</button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Under-investment: just show CTA */}
+              {discrepancy < 0 && (
+                <div className="mt-3">
+                  <button onClick={() => setShowForm(true)} className="text-xs px-3 py-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200 transition font-medium">
+                    + Đầu tư ngay
                   </button>
-                  <button onClick={() => { document.getElementById('transaction-table')?.scrollIntoView({ behavior: 'smooth' }); }} className="btn-ghost text-xs px-3 py-1.5">
-                    <MagnifyingGlass size={12} className="inline mr-1" /> Rà soát thủ công
-                  </button>
-                </div>
-              ) : (
-                <div className="mt-3 space-y-2">
-                  <input
-                    type="text"
-                    value={discrepancyReason}
-                    onChange={e => setDiscrepancyReason(e.target.value)}
-                    placeholder="Lý do chênh lệch (VD: dùng tiền chi tiêu thừa để mua thêm)..."
-                    className="input text-xs w-full"
-                  />
-                  <div className="flex gap-2">
-                    <button onClick={handleConfirmDiscrepancy} className="btn-primary text-xs px-3 py-1.5">Lưu xác nhận</button>
-                    <button onClick={() => { setShowDiscrepancyInput(false); setDiscrepancyReason(''); }} className="btn-ghost text-xs px-3 py-1.5">Hủy</button>
-                  </div>
                 </div>
               )}
             </div>
@@ -271,18 +295,20 @@ export default function ExecutionLog({ embedded }) {
 
       {/* Confirmed discrepancy display */}
       {hasDiscrepancy && isConfirmed && (
-        <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
+        <div className="card border-emerald-200 bg-emerald-50/50">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle size={20} className="text-emerald-500" weight="fill" />
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
+                <CheckCircle size={16} className="text-emerald-500" weight="fill" />
+              </div>
               <div>
-                <p className="text-xs text-green-700 font-medium">Chênh lệch đã xác nhận</p>
-                <p className="text-[11px] text-green-600">
+                <p className="text-xs font-medium text-slate-600">Chênh lệch đã xác nhận</p>
+                <p className="text-xs text-slate-400 mt-0.5">
                   {formatVND(discrepancyConfirmed.amount)} — {discrepancyConfirmed.reason}
                 </p>
               </div>
             </div>
-            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-500 px-2 py-1">
+            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-500 px-2 py-1 rounded transition">
               Hủy xác nhận
             </button>
           </div>
@@ -337,6 +363,14 @@ export default function ExecutionLog({ embedded }) {
                   <option value="SELL">BÁN</option>
                 </select>
               </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Chiến lược</label>
+                <select value={form.strategy} onChange={e => setForm({ ...form, strategy: e.target.value })} className="input">
+                  <option value="">Thường</option>
+                  <option value="DCA">DCA (Trung bình giá)</option>
+                  <option value="Sniper">Bắn tỉa (Sniper)</option>
+                </select>
+              </div>
             </div>
 
             {/* Row 2: Số lượng + Giá */}
@@ -375,13 +409,14 @@ export default function ExecutionLog({ embedded }) {
           </div>
         ) : (
           <div className="table-wrap border-0 rounded-none">
-            <table className="table">
+            <table className="w-full" style={{ tableLayout: 'fixed' }}>
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '40px' }}>#</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '100px' }}>Ngày</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Tài sản</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '70px' }}>Loại</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>Chiến lược</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>KL</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '120px' }}>Giá</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Thành tiền</th>
@@ -403,6 +438,13 @@ export default function ExecutionLog({ embedded }) {
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.type === 'BUY' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                         {t.type === 'BUY' ? 'MUA' : 'BÁN'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {t.strategy ? (
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.strategy === 'Sniper' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
+                          {t.strategy}
+                        </span>
+                      ) : <span className="text-xs text-slate-300">—</span>}
                     </td>
                     <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{t.quantity}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>

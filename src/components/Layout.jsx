@@ -1,12 +1,12 @@
 import { NavLink } from 'react-router-dom';
-import { SquaresFour, ArrowsLeftRight, ChartLineUp, BookOpen, Gear, TrendUp } from '@phosphor-icons/react';
+import { SquaresFour, ArrowsLeftRight, ChartLineUp, BookOpen, Gear, TrendUp } from '../utils/iconMap';
 
 const navItems = [
-  { path: '/', label: 'Tổng Quan', Icon: SquaresFour },
-  { path: '/cashflow', label: 'Dòng Tiền', Icon: ArrowsLeftRight },
-  { path: '/investments', label: 'Đầu Tư', Icon: ChartLineUp },
-  { path: '/scenarios', label: 'Kịch Bản', Icon: BookOpen },
-  { path: '/settings', label: 'Cài Đặt', Icon: Gear },
+  { path: '/', label: 'Tổng quan', Icon: SquaresFour },
+  { path: '/cashflow', label: 'Dòng tiền', Icon: ArrowsLeftRight },
+  { path: '/investments', label: 'Đầu tư', Icon: ChartLineUp },
+  { path: '/scenarios', label: 'Kịch bản', Icon: BookOpen },
+  { path: '/settings', label: 'Cài đặt', Icon: Gear },
 ];
 
 export default function Layout({ children }) {
@@ -17,11 +17,9 @@ export default function Layout({ children }) {
         {/* Logo */}
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-sm">
-              <TrendUp size={22} color="white" weight="bold" />
-            </div>
+            <img src="/icon.png" alt="Money Flow" className="w-10 h-10 rounded-xl shadow-sm" />
             <div>
-              <h1 className="text-base font-bold text-slate-800 tracking-tight">Money_Flow</h1>
+              <h1 className="text-base font-bold text-slate-800 tracking-tight">Money Flow</h1>
               <p className="text-[11px] text-slate-400">Quản lý tài chính cá nhân</p>
             </div>
           </div>

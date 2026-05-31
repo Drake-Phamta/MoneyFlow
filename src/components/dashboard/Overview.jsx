@@ -3,10 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AllocationPie from '../charts/AllocationPie';
-
-const CATEGORY_LABELS = {
-  'Chứng Khoán': 'Đầu Tư',
-};
+import AppIcon, { Bell, ArrowClockwise, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, PiggyBank, BookmarkSimple, CheckCircle, XCircle, Warning, Info, X } from '../../utils/iconMap';
 
 export default function Overview() {
   const navigate = useNavigate();
@@ -20,12 +17,46 @@ export default function Overview() {
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
+  const [toast, setToast] = useState(null);
 
   useEffect(() => {
     loadData();
-    // Auto-refresh prices silently on mount
-    handleRefreshPrices(true);
+    // Auto-refresh prices silently on mount (throttle: 1 hour)
+    const lastRefreshTime = localStorage.getItem('lastPriceRefresh');
+    const oneHour = 60 * 60 * 1000;
+    if (!lastRefreshTime || (Date.now() - parseInt(lastRefreshTime)) > oneHour) {
+      handleRefreshPrices(true);
+    }
   }, []);
+
+  // Poll activity every 30s (only when tab visible)
+  useEffect(() => {
+    let lastActivityId = activity.length > 0 ? activity[0].id : 0;
+    const POLL_INTERVAL = 30000;
+
+    const poll = async () => {
+      if (document.hidden) return;
+      try {
+        const latest = await apiClient.activity.get(1);
+        if (latest.length > 0 && latest[0].id !== lastActivityId) {
+          lastActivityId = latest[0].id;
+          const fresh = await apiClient.activity.get(10);
+          setActivity(fresh);
+          const ac = await apiClient.alerts.count().catch(() => ({ count: 0 }));
+          setAlertCount(ac?.count || 0);
+        }
+      } catch (e) { /* silent */ }
+    };
+
+    const interval = setInterval(poll, POLL_INTERVAL);
+    const onVisibility = () => { if (!document.hidden) poll(); };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, [activity]);
 
   async function loadData() {
     try {
@@ -74,11 +105,31 @@ export default function Overview() {
     if (refreshing) return;
     setRefreshing(true);
     try {
-      await apiClient.prices.refresh();
+      const result = await apiClient.prices.refresh();
       setLastRefresh(new Date());
+      localStorage.setItem('lastPriceRefresh', Date.now().toString());
       await loadData();
+
+      if (!silent && result) {
+        const { total = 0, success = 0, failed = 0 } = result;
+        if (total === 0) {
+          setToast({ type: 'info', message: 'Không có tài sản nào đang đầu tư để cập nhật' });
+        } else if (failed === 0) {
+          setToast({ type: 'success', message: 'Đã cập nhật giá thành công' });
+        } else if (success > 0) {
+          setToast({ type: 'warning', message: `Cập nhật ${success}/${total} thành công, ${failed} lỗi` });
+        } else {
+          setToast({ type: 'error', message: 'Không thể cập nhật giá. Kiểm tra kết nối mạng.' });
+        }
+        setTimeout(() => setToast(null), failed > 0 ? 5000 : 4000);
+      }
     } catch (err) {
-      if (!silent) console.error('Refresh error:', err);
+      console.error('Refresh error:', err);
+      if (!silent) {
+        setToast({ type: 'error', message: 'Lỗi đồng bộ giá: ' + err.message });
+        setTimeout(() => setToast(null), 5000);
+      }
+      localStorage.setItem('lastPriceRefresh', Date.now().toString());
     } finally {
       setRefreshing(false);
     }
@@ -103,14 +154,12 @@ export default function Overview() {
         <div className="flex items-center gap-3">
           {alertCount > 0 && (
             <button onClick={() => navigate('/sniper')} className="relative btn-ghost text-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+              <Bell size={18} />
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
             </button>
           )}
           <button onClick={() => handleRefreshPrices(false)} disabled={refreshing} className="btn-ghost text-sm flex items-center gap-1.5" title={lastRefresh ? `Cập nhật lúc ${formatTime(lastRefresh)}` : 'Cập nhật giá thị trường'}>
-            <svg className={`${refreshing ? 'animate-spin' : ''}`} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/>
-            </svg>
+            <ArrowClockwise size={16} className={refreshing ? 'animate-spin' : ''} />
             <span>{refreshing ? 'Đang tải...' : 'Đồng bộ giá'}</span>
           </button>
           <button onClick={() => navigate('/monthly')} className="btn-primary">
@@ -197,7 +246,7 @@ export default function Overview() {
                       <tr key={p.asset_type_id}>
                         <td>
                           <div className="flex items-center gap-2">
-                            <span className="text-base">{p.icon}</span>
+                            <AppIcon emoji={p.icon} size={16} />
                             <div>
                               <p className="text-sm font-medium text-slate-800">{p.name}</p>
                               <p className="text-[10px] text-slate-400">{p.category}</p>
@@ -268,7 +317,7 @@ export default function Overview() {
                 return (
                   <div key={cat}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-700">{CATEGORY_LABELS[cat] || cat}</span>
+                      <span className="text-sm font-medium text-slate-700">{cat}</span>
                       <span className="text-sm font-bold text-slate-800">{formatVND(data.currentTotal)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-400">
@@ -297,12 +346,19 @@ export default function Overview() {
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Hoạt động gần đây</h3>
           <div className="space-y-2">
             {activity.map(a => {
-              const icons = { MONTHLY_ENTRY: '📝', BUY: '🟢', SELL: '🔴', CLEAR: '🗑️', DELETE_ENTRY: '🗑️' };
-              const colors = { MONTHLY_ENTRY: 'bg-blue-50 text-blue-600', BUY: 'bg-emerald-50 text-emerald-600', SELL: 'bg-red-50 text-red-600' };
+              const ACTIVITY_ICONS = {
+                MONTHLY_ENTRY: { Icon: NotePencil, bg: 'bg-blue-50', color: 'text-blue-600' },
+                BUY: { Icon: ArrowDownLeft, bg: 'bg-emerald-50', color: 'text-emerald-600' },
+                SELL: { Icon: ArrowUpRight, bg: 'bg-red-50', color: 'text-red-600' },
+                CLEAR: { Icon: Trash, bg: 'bg-slate-100', color: 'text-slate-500' },
+                DELETE_ENTRY: { Icon: Trash, bg: 'bg-slate-100', color: 'text-slate-500' },
+                SAVINGS: { Icon: PiggyBank, bg: 'bg-violet-50', color: 'text-violet-600' },
+              };
+              const { Icon, bg, color } = ACTIVITY_ICONS[a.type] || { Icon: BookmarkSimple, bg: 'bg-slate-100', color: 'text-slate-500' };
               return (
                 <div key={a.id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${colors[a.type] || 'bg-slate-100 text-slate-500'}`}>
-                    {icons[a.type] || '📌'}
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bg} ${color}`}>
+                    <Icon size={16} weight="regular" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-slate-700 truncate">{a.description}</p>
@@ -325,6 +381,25 @@ export default function Overview() {
             <button onClick={() => navigate('/monthly')} className="btn-primary text-sm">Nhập liệu ngay</button>
             <button onClick={() => navigate('/settings')} className="btn-secondary text-sm">Import từ Excel</button>
           </div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-slide-up ${
+          toast.type === 'error' ? 'bg-red-500' :
+          toast.type === 'success' ? 'bg-emerald-500' :
+          toast.type === 'warning' ? 'bg-amber-500' :
+          toast.type === 'info' ? 'bg-slate-500' : 'bg-slate-700'
+        } text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
+          {toast.type === 'success' && <CheckCircle size={20} weight="fill" />}
+          {toast.type === 'error' && <XCircle size={20} weight="fill" />}
+          {toast.type === 'warning' && <Warning size={20} weight="fill" />}
+          {toast.type === 'info' && <Info size={20} weight="fill" />}
+          <span className="text-sm font-medium">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="text-white/70 hover:text-white">
+            <X size={18} />
+          </button>
         </div>
       )}
     </div>

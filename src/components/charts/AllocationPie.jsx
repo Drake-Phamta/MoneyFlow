@@ -1,6 +1,6 @@
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatVND } from '../../utils/formatters';
-import { ChartDonut } from '../../utils/iconMap';
+import AppIcon, { ChartDonut } from '../../utils/iconMap';
 
 export default function AllocationPie({ data = [] }) {
   const filtered = data.filter(d => d.value > 0);
@@ -46,7 +46,8 @@ export default function AllocationPie({ data = [] }) {
             <div className="flex items-center gap-2">
               <div className="w-2.5 h-2.5 rounded-full" style={{ background: d.color }} />
               <span className="text-xs text-slate-600 flex items-center gap-1">
-                {d.Icon ? <d.Icon size={14} weight="regular" /> : d.icon} {d.name}
+                {d.icon && <AppIcon name={d.icon} size={14} />}
+                {d.name}
               </span>
             </div>
             <div className="text-right">

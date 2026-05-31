@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 import { formatVND, formatCompact } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
+import CustomTooltip from '../../utils/CustomTooltip';
 
 export default function CashFlow() {
   const [filled, setFilled] = useState([]);
@@ -73,20 +74,6 @@ export default function CashFlow() {
     if (filled[i].total_inflow > 0) streak++;
     else break;
   }
-
-  const CustomTooltip = ({ active, payload, label }) => {
-    if (!active || !payload) return null;
-    return (
-      <div className="bg-white border border-slate-200 rounded-xl p-3 shadow-xl">
-        <p className="text-slate-500 text-xs mb-2 font-medium">{label}</p>
-        {payload.map(e => (
-          <p key={e.name} className="text-xs font-semibold" style={{ color: e.color }}>
-            {e.name}: {formatVND(e.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-6 animate-fade-in">

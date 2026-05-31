@@ -48,6 +48,7 @@ export const api = {
     setActive: (id) => post(`/phases/${id}/active`),
     allocations: (phaseId) => get(`/phases/${phaseId}/allocations`),
     updateAllocations: (phaseId, allocs) => post(`/phases/${phaseId}/allocations`, { allocations: allocs }),
+    checklist: () => get('/phases/checklist'),
   },
   monthly: {
     getAll: () => get('/monthly'),

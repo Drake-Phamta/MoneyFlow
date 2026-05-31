@@ -1,6 +1,22 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
 build/
+release/
+
+# Database files
+data/
+
+# Trash (files to be deleted manually)
+trash/
+
+# Environment
 .env
 .vite
 .DS_Store
+
+# OS files
+Thumbs.db
+desktop.ini

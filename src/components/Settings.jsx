@@ -261,7 +261,7 @@ export default function Settings() {
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
-        <h1 className="page-title">Cài Đặt</h1>
+        <h1 className="page-title">Cài đặt</h1>
         <p className="page-subtitle">Quản lý phases, tài sản, và import dữ liệu</p>
       </div>
 
@@ -269,8 +269,8 @@ export default function Settings() {
       <div className="card">
         <h3 className="text-sm font-semibold text-slate-700 mb-1">Chi tiêu hàng tháng</h3>
         <p className="text-xs text-slate-500 mb-4">
-          <strong>Kỳ vọng</strong> = mức bạn muốn/target. <strong>Thực tế</strong> = trung bình từ dữ liệu nhập hàng tháng.
-          Phase detection dùng chi tiêu <strong>thực tế</strong>.
+          <strong>Kỳ vọng</strong> = mức bạn muốn/target (dùng cho phase detection & mục tiêu).{' '}
+          <strong>Thực tế</strong> = trung bình từ dữ liệu nhập hàng tháng (tham khảo).
         </p>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <div>
@@ -312,8 +312,8 @@ export default function Settings() {
             <p className="text-[10px] text-slate-300">thực tế</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl text-center">
-            <p className="text-[10px] text-emerald-600">Tự do tài chính (lãi 5%)</p>
-            <p className="text-sm font-bold text-emerald-700">{formatVND(avgExpense * 12 / 0.05)}</p>
+            <p className="text-[10px] text-emerald-600">Tự do tài chính (quy tắc 4%)</p>
+            <p className="text-sm font-bold text-emerald-700">{formatVND(avgExpense * 12 / 0.04)}</p>
             <p className="text-[10px] text-emerald-400">thực tế</p>
           </div>
         </div>
@@ -605,7 +605,7 @@ export default function Settings() {
       </div>
 
       {/* Data Management */}
-      <div className="card border-red-100">
+      <div className="card border border-red-200">
         <h3 className="text-sm font-semibold text-slate-700 mb-1">Quản lý dữ liệu</h3>
         <p className="text-xs text-slate-500 mb-4">Xóa dữ liệu đã nhập. Không thể hoàn tác.</p>
 
@@ -635,36 +635,36 @@ export default function Settings() {
         )}
 
         <div className="space-y-2">
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+          <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
               <p className="text-sm font-medium text-slate-700">Xóa giao dịch</p>
               <p className="text-xs text-slate-400">Xóa tất cả lệnh mua/bán. Giữ nguyên nhập liệu tháng.</p>
             </div>
-            <button onClick={() => setConfirmClear('transactions')} className="btn-danger text-sm" disabled={!stats?.txns}>Xóa giao dịch</button>
+            <button onClick={() => setConfirmClear('transactions')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.txns}>Xóa giao dịch</button>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+          <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
               <p className="text-sm font-medium text-slate-700">Xóa dữ liệu nhập liệu</p>
               <p className="text-xs text-slate-400">Xóa tất cả nhập liệu tháng + giao dịch + phân bổ.</p>
             </div>
-            <button onClick={() => setConfirmClear('monthly')} className="btn-danger text-sm" disabled={!stats?.monthly}>Xóa nhập liệu</button>
+            <button onClick={() => setConfirmClear('monthly')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.monthly}>Xóa nhập liệu</button>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+          <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
               <p className="text-sm font-medium text-slate-700">Xóa sổ tiết kiệm</p>
               <p className="text-xs text-slate-400">Xóa tất cả sổ tiết kiệm. Dữ liệu khác giữ nguyên.</p>
             </div>
-            <button onClick={() => setConfirmClear('savings')} className="btn-danger text-sm" disabled={!stats?.savings}>Xóa sổ tiết kiệm</button>
+            <button onClick={() => setConfirmClear('savings')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.savings}>Xóa sổ tiết kiệm</button>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-red-50 rounded-xl border border-red-100">
+          <div className="flex items-center justify-between p-4 min-h-[72px] bg-red-50 rounded-xl">
             <div>
               <p className="text-sm font-medium text-red-700">Xóa tất cả & Reset</p>
               <p className="text-xs text-red-400">Xóa toàn bộ dữ liệu, reset về trạng thái ban đầu.</p>
             </div>
-            <button onClick={() => setConfirmClear('all')} className="btn-danger text-sm font-bold">Reset toàn bộ</button>
+            <button onClick={() => setConfirmClear('all')} className="btn-danger text-sm font-bold w-44 shrink-0">Reset toàn bộ</button>
           </div>
         </div>
       </div>

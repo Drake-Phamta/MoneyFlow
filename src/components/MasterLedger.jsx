@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import { CheckCircle } from '@phosphor-icons/react';
+import { CheckCircle } from '../utils/iconMap';
 
 export default function MasterLedger() {
   const [entries, setEntries] = useState([]);
@@ -95,17 +95,20 @@ export default function MasterLedger() {
 
   const columns = [
     { key: 'month_label', label: 'Tháng', width: 'w-20' },
-    { key: 'total_inflow', label: 'Dòng Tiền', width: 'w-28', editable: true, format: v => formatVND(v) },
-    { key: 'phase_id', label: 'Giai đoạn', width: 'w-40', format: (v) => getPhaseName(v) },
-    { key: 'note', label: 'Ghi chú', width: 'w-48' },
-    { key: 'status', label: 'Trạng thái', width: 'w-20', format: v => v === 'confirmed' ? <CheckCircle size={16} className="text-emerald-500" weight="regular" /> : <span className="text-slate-300">—</span> },
+    { key: 'income', label: 'Thu nhập', width: 'w-28', editable: true, format: v => formatVND(v) },
+    { key: 'expense', label: 'Chi tiêu', width: 'w-28', editable: true, format: v => formatVND(v) },
+    { key: 'bonus', label: 'Thưởng', width: 'w-24', editable: true, format: v => v ? formatVND(v) : '—' },
+    { key: 'total_inflow', label: 'Nhàn rỗi', width: 'w-28', format: v => formatVND(v) },
+    { key: 'phase_id', label: 'Giai đoạn', width: 'w-32', format: (v) => getPhaseName(v) },
+    { key: 'note', label: 'Ghi chú', width: 'w-40' },
+    { key: 'status', label: 'Trạng thái', width: 'w-16', format: v => v === 'confirmed' ? <CheckCircle size={16} className="text-emerald-500" weight="regular" /> : <span className="text-slate-300">—</span> },
   ];
 
   return (
     <div className="space-y-4 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Sổ Cái</h1>
+          <h1 className="page-title">Sổ cái</h1>
           <p className="page-subtitle">Bảng kê chi tiết dòng tiền theo tháng</p>
         </div>
         <div className="flex gap-1 bg-slate-100 rounded-xl p-1 flex-wrap">

@@ -2,29 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import AppIcon, { Check, X, CheckCircle } from '../utils/iconMap';
-
-const CATEGORY_LABELS = {
-  'Chứng Khoán': 'Đầu tư',
-};
-
-// Format number with dot separators as user types (Vietnamese convention)
-function formatNumberInput(value) {
-  const nums = value.replace(/\D/g, '');
-  if (!nums) return '';
-  return nums.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-}
-
-// Parse formatted string back to number
-function parseNumberInput(value) {
-  return parseFloat(value.replace(/\./g, '')) || 0;
-}
+import AppIcon, { Check, CheckCircle } from '../utils/iconMap';
+import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 
 const STEPS = [
   { id: 1, label: 'Dòng tiền', desc: 'Thu nhập & chi tiêu' },
   { id: 2, label: 'Phân bổ', desc: 'Chia tiền vào danh mục' },
-  { id: 3, label: 'Giao dịch', desc: 'Ghi lệnh mua/bán' },
-  { id: 4, label: 'Hoàn tất', desc: 'Xác nhận tháng' },
+  { id: 3, label: 'Hoàn tất', desc: 'Xác nhận tháng' },
 ];
 
 export default function MonthlyEntry() {
@@ -36,13 +20,11 @@ export default function MonthlyEntry() {
   const [nextMonth, setNextMonth] = useState(null);
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [assetTypes, setAssetTypes] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [filled, setFilled] = useState([]);
 
   // Edit mode
-  const [editMode, setEditMode] = useState(false); // null or month_index
+  const [editMode, setEditMode] = useState(false);
   const [editMonth, setEditMonth] = useState(null);
 
   // Form
@@ -51,16 +33,6 @@ export default function MonthlyEntry() {
   const [bonus, setBonus] = useState('');
   const [note, setNote] = useState('');
   const [allocs, setAllocs] = useState([]);
-  const [trades, setTrades] = useState([]);
-
-  // Budget tracking: how much spent per allocation category
-  const spentByCategory = {};
-  for (const t of trades) {
-    if (t.category_id && t.quantity && t.price) {
-      const amt = parseFloat(t.quantity) * parseFloat(t.price);
-      spentByCategory[t.category_id] = (spentByCategory[t.category_id] || 0) + (t.type === 'BUY' ? amt : -amt);
-    }
-  }
 
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -69,18 +41,14 @@ export default function MonthlyEntry() {
 
   async function loadAll() {
     try {
-      const [n, p, c, a, params, f] = await Promise.all([
+      const [n, p, params, f] = await Promise.all([
         apiClient.monthly.next(),
         apiClient.phases.active(),
-        apiClient.categories.get(),
-        apiClient.assets.get(),
         apiClient.params.get(),
         apiClient.monthly.filled(),
       ]);
       setNextMonth(n);
       setPhase(p);
-      setCategories(c);
-      setAssetTypes(a);
       setFilled(f);
       const paramMap = {};
       for (const param of params) paramMap[param.key] = param.value;
@@ -102,22 +70,16 @@ export default function MonthlyEntry() {
     if (totalInflow > 0 && phaseAllocs.length > 0) {
       setAllocs(prev => {
         if (prev.length === 0) {
-          // First time: create allocs from phaseAllocs
           allocsInitialized.current = true;
-          return phaseAllocs.map(pa => {
-            const planned = Math.round(totalInflow * pa.ratio);
-            return {
-              category_id: pa.category_id,
-              category_name: pa.category_name,
-              color: pa.color,
-              icon: pa.icon,
-              ratio: pa.ratio,
-              planned_amount: planned,
-              actual_amount: planned,
-            };
-          });
+          return phaseAllocs.map(pa => ({
+            category_id: pa.category_id,
+            category_name: pa.category_name,
+            color: pa.color,
+            icon: pa.icon,
+            ratio: pa.ratio,
+            planned_amount: Math.round(totalInflow * pa.ratio),
+          }));
         }
-        // Update existing allocs' planned_amount (preserve actual_amount edits)
         return prev.map(a => ({
           ...a,
           planned_amount: Math.round(totalInflow * (a.ratio || 0)),
@@ -150,7 +112,6 @@ export default function MonthlyEntry() {
           icon: a.icon,
           ratio: phaseAllocs.find(pa => pa.category_id === a.category_id)?.ratio || 0,
           planned_amount: a.planned_amount,
-          actual_amount: a.actual_amount,
         })));
       }
     } catch (err) {
@@ -163,7 +124,7 @@ export default function MonthlyEntry() {
     setEditMode(false);
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
-    setAllocs([]); setTrades([]);
+    setAllocs([]);
     allocsInitialized.current = false;
     setStep(1);
     loadAll();
@@ -178,35 +139,6 @@ export default function MonthlyEntry() {
       console.error('Delete error:', err);
       alert('Lỗi khi xóa: ' + err.message);
     }
-  }
-
-  function updateAllocAmount(catId, rawValue) {
-    const amount = parseNumberInput(rawValue);
-    setAllocs(prev => prev.map(a =>
-      a.category_id === catId ? { ...a, actual_amount: amount } : a
-    ));
-  }
-
-  function addTrade(categoryId) {
-    setTrades(prev => [...prev, {
-      id: Date.now(),
-      date: new Date().toISOString().split('T')[0],
-      category_id: categoryId || allocs[0]?.category_id || null,
-      asset_type_id: assetTypes[0]?.id || 1,
-      asset_name: '',
-      type: 'BUY',
-      quantity: '',
-      price: '',
-      note: '',
-    }]);
-  }
-
-  function updateTrade(id, field, value) {
-    setTrades(prev => prev.map(t => t.id === id ? { ...t, [field]: value } : t));
-  }
-
-  function removeTrade(id) {
-    setTrades(prev => prev.filter(t => t.id !== id));
   }
 
   async function handleSave() {
@@ -231,27 +163,11 @@ export default function MonthlyEntry() {
         await apiClient.allocations.save(entry.id, allocs.map(a => ({
           category_id: a.category_id,
           planned_amount: a.planned_amount,
-          actual_amount: a.actual_amount || a.planned_amount,
+          actual_amount: a.planned_amount,
         })));
       }
 
-      for (const t of trades) {
-        if (t.quantity && t.price) {
-          await apiClient.transactions.add({
-            date: t.date,
-            asset_type_id: parseInt(t.asset_type_id),
-            asset_name: t.asset_name || '',
-            type: t.type,
-            quantity: parseFloat(t.quantity),
-            price: parseFloat(t.price),
-            total_amount: parseFloat(t.quantity) * parseFloat(t.price),
-            note: t.note,
-            monthly_entry_id: entry?.id,
-          });
-        }
-      }
-
-      setStep(4);
+      setStep(3);
     } catch (err) {
       console.error('Save error:', err);
       alert('Lỗi khi lưu: ' + err.message);
@@ -262,7 +178,7 @@ export default function MonthlyEntry() {
     setEditMode(false);
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
-    setAllocs([]); setTrades([]);
+    setAllocs([]);
     allocsInitialized.current = false;
     setStep(1);
     loadAll();
@@ -275,7 +191,7 @@ export default function MonthlyEntry() {
   return (
     <div className="max-w-3xl mx-auto animate-fade-in">
       <div className="mb-6">
-        <h1 className="page-title">Nhập Liệu</h1>
+        <h1 className="page-title">Nhập liệu</h1>
         <p className="page-subtitle">
           {editMode ? `Chỉnh sửa ${editMonth?.month_label}` : nextMonth ? `${nextMonth.month_label}` : 'Tất cả đã được ghi nhận'}
         </p>
@@ -307,21 +223,21 @@ export default function MonthlyEntry() {
       )}
 
       <div className="card">
-        {/* STEP 1 */}
+        {/* STEP 1: Cash Flow */}
         {step === 1 && activeMonth && (
           <div className="space-y-5 animate-fade-in">
             <div>
               <h2 className="text-lg font-bold text-slate-800">Dòng tiền tháng {activeMonth.month_label}</h2>
-              <p className="text-sm text-slate-500">Phase: <strong>{phase?.name}</strong></p>
+              <p className="text-sm text-slate-500">Giai đoạn: <strong>{phase?.name}</strong></p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-1.5 block">Thu nhập chính (₫)</label>
-                <input type="text" inputMode="numeric" value={income} onChange={e => setIncome(formatNumberInput(e.target.value))} placeholder="3.700.000" className="input input-lg" autoFocus />
+                <input type="text" inputMode="numeric" value={income} onChange={e => setIncome(formatNumberInput(e.target.value))} placeholder="15.000.000" className="input input-lg" autoFocus />
               </div>
               <div>
                 <label className="text-xs font-medium text-slate-500 mb-1.5 block">Chi tiêu (₫)</label>
-                <input type="text" inputMode="numeric" value={expense} onChange={e => setExpense(formatNumberInput(e.target.value))} placeholder="0" className="input input-lg" />
+                <input type="text" inputMode="numeric" value={expense} onChange={e => setExpense(formatNumberInput(e.target.value))} placeholder="8.000.000" className="input input-lg" />
               </div>
             </div>
             <div>
@@ -344,129 +260,42 @@ export default function MonthlyEntry() {
           </div>
         )}
 
-        {/* STEP 2 */}
+        {/* STEP 2: Allocation */}
         {step === 2 && (
           <div className="space-y-5 animate-fade-in">
-            <h2 className="text-lg font-bold text-slate-800">Phân bổ dòng tiền</h2>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800">Phân bổ dòng tiền</h2>
+              <p className="text-sm text-slate-500">Tiền nhàn rỗi <strong>{formatVND(totalInflow)}</strong> phân bổ theo <strong>{phase?.name}</strong></p>
+            </div>
             <div className="space-y-3">
               {allocs.map(a => (
                 <div key={a.category_id} className="flex items-center justify-between p-4 rounded-xl border" style={{ borderColor: a.color + '30', background: a.color + '08' }}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: a.color }}><AppIcon emoji={a.icon} size={20} color="white" /></div>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: a.color }}>
+                      <AppIcon emoji={a.icon} size={20} color="white" />
+                    </div>
                     <div>
-                      <p className="text-sm font-semibold text-slate-800">{CATEGORY_LABELS[a.category_name] || a.category_name}</p>
-                      <p className="text-xs text-slate-500">{a.ratio > 0 ? `${(a.ratio * 100).toFixed(0)}% dòng tiền` : 'Tùy chỉnh'}</p>
+                      <p className="text-sm font-semibold text-slate-800">{a.category_name}</p>
+                      <p className="text-xs text-slate-500">{(a.ratio * 100).toFixed(0)}% dòng tiền</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-lg font-bold" style={{ color: a.color }}>{formatVND(a.planned_amount)}</p>
-                    <input type="text" inputMode="numeric" value={a.actual_amount ? formatNumberInput(a.actual_amount.toString()) : ''} onChange={e => updateAllocAmount(a.category_id, e.target.value)} placeholder={formatNumberInput(a.planned_amount.toString())} className="input text-xs py-1 w-32 text-right mt-1" />
-                  </div>
+                  <p className="text-lg font-bold" style={{ color: a.color }}>{formatVND(a.planned_amount)}</p>
                 </div>
               ))}
             </div>
+            <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
+              <span className="text-sm text-slate-500">Tổng phân bổ</span>
+              <span className="text-sm font-bold text-slate-800">{formatVND(allocs.reduce((s, a) => s + a.planned_amount, 0))}</span>
+            </div>
             <div className="flex justify-between">
               <button onClick={() => setStep(1)} className="btn-ghost">← Quay lại</button>
-              <button onClick={() => setStep(3)} className="btn-primary-lg">Tiếp theo →</button>
+              <button onClick={handleSave} className="btn-primary-lg">Lưu & Hoàn tất →</button>
             </div>
           </div>
         )}
 
-        {/* STEP 3 */}
+        {/* STEP 3: Done */}
         {step === 3 && (
-          <div className="space-y-5 animate-fade-in">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Ghi giao dịch thực tế</h2>
-              <p className="text-sm text-slate-500">Ghi lại các lệnh mua/bán đã thực hiện. Mỗi giao dịch gắn với một danh mục phân bổ.</p>
-            </div>
-
-            {/* Budget overview per category */}
-            <div className="space-y-2">
-              {allocs.filter(a => a.category_name !== 'Dự Phòng').map(a => {
-                const budget = a.actual_amount || a.planned_amount;
-                const spent = spentByCategory[a.category_id] || 0;
-                const remaining = budget - spent;
-                const pct = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
-                const catTrades = trades.filter(t => t.category_id === a.category_id);
-
-                return (
-                  <div key={a.category_id} className="border rounded-xl overflow-hidden" style={{ borderColor: a.color + '30' }}>
-                    {/* Category header */}
-                    <div className="p-3 flex items-center justify-between" style={{ background: a.color + '08' }}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg"><AppIcon emoji={a.icon} size={20} /></span>
-                        <div>
-                          <p className="text-sm font-semibold text-slate-800">{CATEGORY_LABELS[a.category_name] || a.category_name}</p>
-                          <p className="text-xs text-slate-500">Budget: {formatVND(budget)}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-xs text-slate-400">Còn lại</p>
-                        <p className="text-sm font-bold" style={{ color: remaining >= 0 ? a.color : '#ef4444' }}>
-                          {formatVND(remaining)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Progress bar */}
-                    <div className="px-3 py-1">
-                      <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: a.color }} />
-                      </div>
-                    </div>
-
-                    {/* Trades under this category */}
-                    <div className="px-3 pb-3 space-y-2">
-                      {catTrades.map(t => (
-                        <div key={t.id} className="flex items-center gap-2 bg-white rounded-lg p-2 border border-slate-100">
-                          <select value={t.type} onChange={e => updateTrade(t.id, 'type', e.target.value)} className="input text-xs py-1 w-16">
-                            <option value="BUY">MUA</option><option value="SELL">BÁN</option>
-                          </select>
-                          <select value={t.asset_type_id} onChange={e => updateTrade(t.id, 'asset_type_id', e.target.value)} className="input text-xs py-1 w-28">
-                            {assetTypes.filter(at => at.ticker).map(at => <option key={at.id} value={at.id}>{at.ticker} — {at.name}</option>)}
-                          </select>
-                          <input type="text" value={t.asset_name} onChange={e => updateTrade(t.id, 'asset_name', e.target.value)} placeholder="Tên (VD: FPT, VNM...)" className="input text-xs py-1 flex-1" />
-                          <input type="number" value={t.quantity} onChange={e => updateTrade(t.id, 'quantity', e.target.value)} placeholder="KL" className="input text-xs py-1 w-16" step="any" />
-                          <input type="text" inputMode="numeric" value={t.price ? formatNumberInput(t.price.toString()) : ''} onChange={e => updateTrade(t.id, 'price', e.target.value.replace(/\D/g, ''))} placeholder="Giá" className="input text-xs py-1 w-24" />
-                          <span className="text-xs font-semibold text-slate-600 w-20 text-right">
-                            {(parseFloat(t.quantity) || 0) * (parseFloat(t.price) || 0) > 0
-                              ? formatVND((parseFloat(t.quantity) || 0) * (parseFloat(t.price) || 0))
-                              : '—'}
-                          </span>
-                          <button onClick={() => removeTrade(t.id)} className="text-slate-400 hover:text-red-500 p-1">
-                            <X size={14} />
-                          </button>
-                        </div>
-                      ))}
-                      <button onClick={() => addTrade(a.category_id)} className="text-xs text-slate-400 hover:text-primary-600 flex items-center gap-1 py-1">
-                        + Thêm giao dịch {CATEGORY_LABELS[a.category_name] || a.category_name}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Trades in categories without allocation (e.g. using existing funds) */}
-            {allocs.filter(a => a.category_name === 'Dự Phòng').length > 0 && (
-              <div className="border border-slate-200 rounded-xl p-3">
-                <p className="text-xs text-slate-400 mb-2">Giao dịch từ quỹ khác (không gắn phân bổ tháng này)</p>
-                <button onClick={() => addTrade(null)} className="btn-ghost text-xs">+ Thêm giao dịch khác</button>
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <button onClick={() => setStep(2)} className="btn-ghost">← Quay lại</button>
-              <div className="flex gap-2">
-                <button onClick={handleSave} className="btn-secondary">Lưu chưa có giao dịch</button>
-                <button onClick={handleSave} className="btn-primary-lg">Lưu & Hoàn tất →</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 4: Done */}
-        {step === 4 && (
           <div className="text-center py-8 animate-fade-in">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
               <CheckCircle size={32} className="text-emerald-500" weight="bold" />
@@ -474,7 +303,9 @@ export default function MonthlyEntry() {
             <h2 className="text-xl font-bold text-slate-800 mb-2">
               {editMode ? `Đã cập nhật ${editMonth?.month_label}!` : `Đã lưu ${nextMonth?.month_label}!`}
             </h2>
-            <p className="text-sm text-slate-500 mb-6">Dòng tiền {formatVND(totalInflow)} đã được lưu.</p>
+            <p className="text-sm text-slate-500 mb-6">
+              Dòng tiền <strong>{formatVND(totalInflow)}</strong> đã được phân bổ vào {allocs.length} danh mục.
+            </p>
             <div className="flex justify-center gap-3">
               <button onClick={() => navigate('/')} className="btn-secondary">Về Dashboard</button>
               <button onClick={resetAndNew} className="btn-primary">{editMode ? 'Xong' : 'Nhập tháng tiếp'}</button>
@@ -502,7 +333,7 @@ export default function MonthlyEntry() {
                 <div className="flex items-center gap-4">
                   <div className="text-right">
                     <p className="text-sm font-bold text-primary-600">{formatVND(m.total_inflow)}</p>
-                    <p className="text-xs text-slate-400">Thu: {formatVND(m.total_inflow)}</p>
+                    <p className="text-xs text-slate-400">Thu: {formatVND((m.income || 0) + (m.bonus || 0))} · Chi: {formatVND(m.expense || 0)}</p>
                   </div>
                   <div className="flex gap-1">
                     <button onClick={() => startEdit(m.month_index)} className="btn-ghost text-xs px-2 py-1">Sửa</button>
@@ -521,7 +352,7 @@ export default function MonthlyEntry() {
           <div className="card max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold text-slate-800 mb-2">Xóa nhập liệu?</h3>
             <p className="text-sm text-slate-500 mb-4">
-              Dữ liệu tháng {filled.find(m => m.month_index === deleteConfirm)?.month_label} sẽ bị xóa. Các giao dịch liên quan cũng sẽ bị xóa.
+              Dữ liệu tháng {filled.find(m => m.month_index === deleteConfirm)?.month_label} sẽ bị xóa.
             </p>
             <div className="flex justify-end gap-2">
               <button onClick={() => setDeleteConfirm(null)} className="btn-ghost">Hủy</button>

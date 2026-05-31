@@ -287,6 +287,8 @@ class FinancialDB {
     try { this.db.run('ALTER TABLE asset_types ADD COLUMN is_tracked INTEGER DEFAULT 0'); } catch (e) {}
     try { this.db.run('ALTER TABLE asset_types ADD COLUMN peak_price REAL DEFAULT 0'); } catch (e) {}
     try { this.db.run('ALTER TABLE asset_types ADD COLUMN asset_class TEXT DEFAULT "other"'); } catch (e) {}
+    try { this.db.run('ALTER TABLE transactions ADD COLUMN strategy TEXT DEFAULT ""'); } catch (e) {}
+    try { this.db.run('ALTER TABLE savings_accounts ADD COLUMN product_type TEXT DEFAULT "savings"'); } catch (e) {}
   }
 
   migrateToV2() {
@@ -372,7 +374,7 @@ class FinancialDB {
       ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
       ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng miếng SJC', 'gold', 'lượng', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng miếng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -444,14 +446,14 @@ Nguyên tắc:
 
 Phân bổ dòng tiền nhàn rỗi:
 • 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16-18 triệu mua 1 lượng vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
+• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
 • 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
 • 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
 • 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
 
 Hành động cụ thể:
 1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
-2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16-18 triệu → mua 1 lượng SJC
+2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC
 3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
 4. Rebalance mỗi 3 tháng
 
@@ -465,14 +467,14 @@ Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiê
 
 Phân bổ dòng tiền nhàn rỗi:
 • 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
-• 20% → Vàng — tăng tỷ lệ, mua 1-2 lượng SJC/năm. SJC 1 lượng là chuẩn (thanh khoản tốt nhất)
+• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
 • 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
 • 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
 • 5% → Dự Phòng — duy trì
 
 Hành động cụ thể:
 1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
-2. Vàng: mua 1-2 lượng SJC/năm
+2. Vàng: mua 1-2 chỉ SJC/năm
 3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
 4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
 5. Rebalance mỗi quý
@@ -543,7 +545,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const assetPresets = [
       ['Cổ phiếu', 'Giao dịch', 'stock', 'CP', '#10b981', 'chart-line', 1],
       ['ETF / Quỹ', 'Giao dịch', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 2],
-      ['Vàng', 'Tích trữ', 'gold', 'lượng', '#f59e0b', 'gem', 3],
+      ['Vàng', 'Tích trữ', 'gold', 'chỉ', '#f59e0b', 'gem', 3],
       ['Crypto', 'Giao dịch', 'crypto', 'coin', '#8b5cf6', 'currency-btc', 4],
       ['Trái phiếu', 'Tích trữ', 'bond', 'VNĐ', '#ec4899', 'scroll', 5],
       ['Tiết kiệm ngân hàng', 'Tích trữ', 'savings', 'VNĐ', '#8b5cf6', 'bank', 6],
@@ -594,7 +596,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
       ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng miếng SJC', 'gold', 'lượng', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng miếng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -661,15 +663,15 @@ Nguyên tắc:
 
 Phân bổ dòng tiền nhàn rỗi:
 • 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16-18 triệu mua 1 lượng vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
+• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
 • 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
 • 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
 • 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
 
 Hành động cụ thể:
 1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
-2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16-18 triệu → mua 1 lượng SJC (thanh khoản tốt, dễ bán lại)
-3. Bắn Tỉa: theo dõi Sniper Playbook,部署 khi thị trường sụt giảm
+2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC (thanh khoản tốt, dễ bán lại)
+3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
 4. Rebalance mỗi 3 tháng
 5. Không bán Đầu Tư để mua khi dip — dùng tiền từ Bắn Tỉa
 
@@ -686,14 +688,14 @@ Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiê
 
 Phân bổ dòng tiền nhàn rỗi:
 • 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
-• 20% → Vàng — tăng tỷ lệ, mua 1-2 lượng SJC/năm. SJC 1 lượng là chuẩn (thanh khoản tốt nhất)
+• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
 • 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
 • 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
 • 5% → Dự Phòng — duy trì, điều chỉnh theo chi tiêu thực tế
 
 Hành động cụ thể:
 1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
-2. Vàng: mua 1-2 lượng SJC/năm. Có thể đa dạng: vàng miếng + ETF vàng
+2. Vàng: mua 1-2 chỉ SJC/năm. Có thể đa dạng: vàng miếng + ETF vàng
 3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
 4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
 5. Rebalance mỗi quý
@@ -856,6 +858,19 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     return this.query(sql, params);
   }
   getTrackedAssets() { return this.query('SELECT * FROM asset_types WHERE is_tracked = 1 AND active = 1 ORDER BY sort_order'); }
+  getPriceRefreshTargets() {
+    // Assets being invested (net quantity > 0) OR being watched in Sniper (is_tracked = 1)
+    return this.query(`
+      SELECT * FROM asset_types
+      WHERE ticker IS NOT NULL AND active = 1 AND is_tracked = 1
+      UNION
+      SELECT a.* FROM asset_types a
+      INNER JOIN transactions t ON t.asset_type_id = a.id
+      WHERE a.ticker IS NOT NULL AND a.active = 1
+      GROUP BY a.id
+      HAVING SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END) > 0
+    `);
+  }
   setTracked(assetId, tracked) {
     this.run('UPDATE asset_types SET is_tracked = ? WHERE id = ?', [tracked ? 1 : 0, assetId]);
     this.save();
@@ -917,42 +932,57 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   getActivePhase() {
-    // Auto-detect phase based on actual data — supports regression
+    // Auto-detect phase based on ACTUAL data (not allocations) — supports regression
     const phases = this.query('SELECT * FROM phases ORDER BY sort_order');
     if (!phases.length) return null;
 
-    // Calculate total Dự Phòng balance (use actual_amount if > 0, else planned_amount)
-    const duPhongAllocs = this.query(`
-      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
-      FROM allocations a
-      JOIN categories c ON c.id = a.category_id
-      WHERE c.name LIKE '%Dự Phòng%'
-    `);
-    const duPhongTotal = duPhongAllocs[0]?.total || 0;
+    // Phase 1: Use ACTUAL savings balance assigned to Dự Phòng category
+    // (Not allocations — user may allocate to Dự Phòng but spend on investments)
+    let duPhongActual = 0;
+    try {
+      const duPhongSavings = this.query(`
+        SELECT COALESCE(SUM(sa.principal + COALESCE(
+          (SELECT SUM(st.amount) FROM savings_transactions st
+           WHERE st.savings_account_id = sa.id AND st.type = 'interest'), 0
+        )), 0) as total
+        FROM savings_accounts sa
+        JOIN categories c ON c.id = sa.category_id
+        WHERE c.name LIKE '%Dự Phòng%' AND sa.status = 'active'
+      `);
+      duPhongActual = duPhongSavings[0]?.total || 0;
+    } catch (e) { /* savings table may not exist yet */ }
 
-    // Calculate total portfolio value
+    // Phase 2+: Use total assets = portfolio value + all savings
     const portfolio = this.query(`
       SELECT COALESCE(SUM(CASE WHEN type='BUY' THEN total_amount ELSE -total_amount END), 0) as total
       FROM transactions
     `);
     const portfolioTotal = portfolio[0]?.total || 0;
 
-    const totalAllocated = this.query(`
-      SELECT COALESCE(SUM(actual_amount), 0) as total FROM allocations
-    `);
-    const totalAssets = Math.max(totalAllocated[0]?.total || 0, portfolioTotal);
+    let totalSavings = 0;
+    try {
+      const savingsResult = this.query(`
+        SELECT COALESCE(SUM(principal), 0) as total FROM savings_accounts WHERE status = 'active'
+      `);
+      totalSavings = savingsResult[0]?.total || 0;
+    } catch (e) { /* savings table may not exist yet */ }
+
+    const totalAssets = portfolioTotal + totalSavings;
 
     // Use TARGET expense (FI_MONTHLY_EXPENSE) — this is the lifestyle user is building toward
     const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
 
     // Phase logic — find HIGHEST qualifying phase (supports regression)
+    // Phase 1: Dự phòng < 3× expense → building emergency fund
+    // Phase 2: Dự phòng ≥ 3× expense → start investing
+    // Phase 3: Total assets ≥ 6× expense → accumulate
+    // Phase 4: Total assets ≥ 24× expense → financial independence
     let activePhase = phases[0]; // Default Phase 1
     for (const p of phases) {
       if (p.sort_order === 1) { activePhase = p; continue; }
-      if (p.sort_order === 2 && duPhongTotal >= 3 * monthlyExpense) { activePhase = p; continue; }
+      if (p.sort_order === 2 && duPhongActual >= 3 * monthlyExpense) { activePhase = p; continue; }
       if (p.sort_order === 3 && totalAssets >= 6 * monthlyExpense) { activePhase = p; continue; }
       if (p.sort_order === 4 && totalAssets >= 24 * monthlyExpense) { activePhase = p; continue; }
-      // If condition not met → stop, don't go higher
       break;
     }
 
@@ -970,6 +1000,58 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     this.run('UPDATE phases SET is_active = 0');
     this.run('UPDATE phases SET is_active = 1 WHERE id = ?', [phaseId]);
     this.save();
+  }
+  getChecklistStatus() {
+    const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
+    const portfolio = this.getPortfolio();
+    const savings = this.getSavingsAccounts().filter(s => s.status === 'active');
+    const totalSavings = savings.reduce((sum, s) => sum + (s.principal || 0), 0);
+    const totalAssets = portfolio.reduce((sum, p) => sum + (p.current_value || p.total_invested || 0), 0) + totalSavings;
+    const duPhongSavings = savings.filter(s => {
+      const cat = this.queryOne('SELECT name FROM categories WHERE id = ?', [s.category_id]);
+      return cat?.name?.includes('Dự Phòng');
+    }).reduce((sum, s) => sum + (s.principal || 0), 0);
+    const hasTermSavings = savings.some(s => s.type === 'term');
+    const goldAssets = portfolio.filter(p => p.asset_class === 'gold');
+    const stockAssets = portfolio.filter(p => p.asset_class !== 'gold' && p.asset_class !== 'etf');
+    const etfAssets = portfolio.filter(p => p.asset_class === 'etf');
+    const sniperTxns = this.query("SELECT COUNT(*) as cnt FROM transactions WHERE strategy = 'sniper'");
+    const sniperDeployed = (sniperTxns[0]?.cnt || 0) > 0;
+    const hasAnySavings = savings.length > 0;
+    const hasAnyStocks = stockAssets.length > 0 || etfAssets.length > 0;
+    const hasETF = etfAssets.length > 0;
+    const diversified = (stockAssets.length + etfAssets.length) >= 3;
+    const hasGold = goldAssets.length > 0;
+
+    return {
+      1: {
+        savings_acc: hasAnySavings,
+        broker_acc: portfolio.length > 0,
+        emergency_3x: duPhongSavings >= 3 * monthlyExpense,
+        first_etf: hasAnyStocks,
+        track_money: true,
+      },
+      2: {
+        emergency_done: duPhongSavings >= 3 * monthlyExpense,
+        diversify_stocks: diversified,
+        gold_fund: hasGold,
+        sniper_ammo: this.queryOne("SELECT COALESCE(SUM(ratio), 0) as total FROM phase_allocations pa JOIN categories c ON c.id = pa.category_id WHERE c.name LIKE '%Bắn Tỉa%'")?.total > 0,
+        start_tktp: hasTermSavings,
+      },
+      3: {
+        gold_1luong: goldAssets.some(g => g.total_quantity >= 1),
+        dividend_stocks: stockAssets.length >= 3,
+        tktp_1so: hasTermSavings,
+        sniper_deploy: sniperDeployed,
+        gov_bonds: false,
+      },
+      4: {
+        passive_income: false,
+        balanced_portfolio: diversified && hasGold && hasTermSavings,
+        emergency_6x: duPhongSavings >= 6 * monthlyExpense,
+        rebalance_quarterly: false,
+      },
+    };
   }
   getPhaseAllocations(phaseId) {
     return this.query(`
@@ -1080,16 +1162,17 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   adjustInvestmentAllocation(discrepancyAmount) {
-    // Find all filled monthly entries
-    const filled = this.query('SELECT id FROM monthly_entries ORDER BY id DESC');
-    if (filled.length === 0) return;
+    // Find the most recent filled monthly entry
+    const latest = this.queryOne('SELECT id FROM monthly_entries WHERE total_inflow > 0 ORDER BY id DESC LIMIT 1');
+    if (!latest) return;
 
-    // Find investment allocations across all months (exclude Dự Phòng and Tiết kiệm)
+    // Find investment allocations for the latest month (exclude Dự Phòng and Tiết kiệm)
     const allAllocs = this.query(`
       SELECT a.id, a.actual_amount, a.planned_amount, a.monthly_entry_id, c.name as category_name
       FROM allocations a
       JOIN categories c ON c.id = a.category_id
-    `);
+      WHERE a.monthly_entry_id = ?
+    `, [latest.id]);
     const investAllocs = allAllocs.filter(a => !a.category_name.includes('Dự Phòng') && !a.category_name.includes('Tiết kiệm'));
 
     if (investAllocs.length === 0) return;
@@ -1112,10 +1195,10 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     `);
   }
   addTransaction(data) {
-    this.run(`INSERT INTO transactions (date, asset_type_id, asset_name, type, quantity, price, total_amount, fee, note, monthly_entry_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    this.run(`INSERT INTO transactions (date, asset_type_id, asset_name, type, quantity, price, total_amount, fee, note, monthly_entry_id, strategy)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [data.date, data.asset_type_id, data.asset_name || '', data.type, data.quantity, data.price,
-       data.total_amount, data.fee || 0, data.note || '', data.monthly_entry_id || null]);
+       data.total_amount, data.fee || 0, data.note || '', data.monthly_entry_id || null, data.strategy || '']);
     // Log activity
     const asset = this.queryOne('SELECT name, icon FROM asset_types WHERE id = ?', [data.asset_type_id]);
     const displayName = data.asset_name || asset?.name || '';
@@ -1135,7 +1218,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     return this.query(`
       SELECT
         a.id as asset_type_id, a.name, a.category, a.ticker, a.unit, a.color, a.icon,
-        a.current_price,
+        a.current_price, a.asset_class,
         COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) as total_quantity,
         COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount ELSE -t.total_amount END), 0) as total_invested,
         CASE WHEN COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) > 0
@@ -1155,6 +1238,32 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     `);
   }
 
+  // Map asset to allocation category based on asset_class and transaction strategy
+  _getAssetAllocationCategory(assetTypeId, assetClass) {
+    // Check if this asset has any sniper strategy transactions
+    const sniperTx = this.queryOne(
+      "SELECT COUNT(*) as cnt FROM transactions WHERE asset_type_id = ? AND LOWER(strategy) = 'sniper'",
+      [assetTypeId]
+    );
+    if (sniperTx?.cnt > 0) return 'Bắn Tỉa';
+
+    // Map by asset_class
+    switch (assetClass) {
+      case 'stock':
+      case 'etf':
+        return 'Đầu Tư';
+      case 'gold':
+        return 'Vàng';
+      case 'crypto':
+        return 'Bắn Tỉa';  // High risk, speculative
+      case 'bond':
+      case 'savings':
+        return 'Tiết kiệm & Trái phiếu';
+      default:
+        return 'Đầu Tư';
+    }
+  }
+
   getPortfolioSummary() {
     const portfolio = this.getPortfolio();
     const totalInvested = portfolio.reduce((s, p) => s + p.total_invested, 0);
@@ -1162,12 +1271,13 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const totalGain = totalCurrentValue - totalInvested;
     const byCategory = {};
 
-    // Investment assets (stocks, ETFs, gold, etc.)
+    // Investment assets — map to allocation category (not asset_types.category)
     for (const p of portfolio) {
-      if (!byCategory[p.category]) byCategory[p.category] = { total: 0, currentTotal: 0, items: [] };
-      byCategory[p.category].total += p.total_invested;
-      byCategory[p.category].currentTotal += p.current_value;
-      byCategory[p.category].items.push(p);
+      const catName = this._getAssetAllocationCategory(p.asset_type_id, p.asset_class || 'other');
+      if (!byCategory[catName]) byCategory[catName] = { total: 0, currentTotal: 0, items: [] };
+      byCategory[catName].total += p.total_invested;
+      byCategory[catName].currentTotal += p.current_value;
+      byCategory[catName].items.push(p);
     }
 
     // Savings accounts — group by their assigned category
@@ -1381,7 +1491,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   // ===== WATCHLIST (compatibility wrappers → use asset_types) =====
   getWatchlist() {
     // Return tracked assets in watchlist-compatible shape
-    return this.query("SELECT id, name, ticker, current_price, peak_price, unit, 1 as auto_track FROM asset_types WHERE is_tracked = 1 AND active = 1 ORDER BY sort_order");
+    return this.query("SELECT id, name, ticker, current_price, peak_price, unit, asset_class, is_tracked FROM asset_types WHERE is_tracked = 1 AND active = 1 ORDER BY sort_order");
   }
   addWatchlistItem(data) {
     // Find or create asset_type with this ticker
@@ -1515,7 +1625,12 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   getSavingsAccounts() {
-    const accounts = this.query('SELECT * FROM savings_accounts ORDER BY status ASC, maturity_date ASC');
+    const accounts = this.query(`
+      SELECT sa.*, c.name as category_name, c.color as category_color, c.icon as category_icon
+      FROM savings_accounts sa
+      LEFT JOIN categories c ON c.id = sa.category_id
+      ORDER BY sa.status ASC, sa.maturity_date ASC
+    `);
     return accounts.map(a => {
       const accrued = this.calculateAccruedInterest(a);
       const transactions = this.query('SELECT * FROM savings_transactions WHERE savings_account_id = ? ORDER BY date DESC', [a.id]);
@@ -1577,8 +1692,8 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         const maturity = new Date(account.maturity_date);
         if (now >= maturity) return fullInterest;
       }
-      // Prorate based on days elapsed vs term days
-      const termDays = account.term_months * 30;
+      // Prorate based on days elapsed vs term days (use 365-day year)
+      const termDays = Math.round(account.term_months * 365 / 12);
       const prorated = Math.round(fullInterest * Math.min(daysElapsed / termDays, 1));
       return prorated;
     }

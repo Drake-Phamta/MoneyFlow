@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import ExecutionLog from './ExecutionLog';
 import SniperPlaybook from './SniperPlaybook';
 import SavingsSection from './SavingsSection';
 import AllocationGoals from './dashboard/AllocationGoals';
-import { ChartLineUp, Bank, CrosshairSimple, ListChecks } from '@phosphor-icons/react';
+import { ChartLineUp, Bank, CrosshairSimple, ListChecks } from '../utils/iconMap';
 
 const TABS = [
   { id: 'portfolio', label: 'Danh mục', Icon: ChartLineUp },
@@ -20,14 +21,20 @@ const TAB_DESCRIPTIONS = {
 };
 
 export default function InvestmentsPage() {
-  const [activeTab, setActiveTab] = useState('portfolio');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'portfolio');
+
+  // Sync URL when tab changes
+  useEffect(() => {
+    setSearchParams({ tab: activeTab }, { replace: true });
+  }, [activeTab, setSearchParams]);
 
   return (
     <div className="space-y-4 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="page-title">Đầu Tư</h1>
+          <h1 className="page-title">Đầu tư</h1>
           <p className="page-subtitle">Quản lý danh mục, tiết kiệm và cơ hội đầu tư</p>
         </div>
       </div>

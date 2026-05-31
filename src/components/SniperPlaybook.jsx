@@ -2,9 +2,10 @@ import { useState, useEffect } from 'react';
 import { formatVND, formatDate } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
-import AppIcon, { Bell, X } from '../utils/iconMap';
+import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
 
 export default function SniperPlaybook({ embedded }) {
+  const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState(null);
   const [sniperAllocated, setSniperAllocated] = useState(0);
   const [sniperDeployed, setSniperDeployed] = useState(0);
@@ -14,6 +15,7 @@ export default function SniperPlaybook({ embedded }) {
   const [alerts, setAlerts] = useState([]);
   const [showAlerts, setShowAlerts] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Catalog state
   const [showCatalog, setShowCatalog] = useState(false);
@@ -45,14 +47,19 @@ export default function SniperPlaybook({ embedded }) {
 
       const filled = await apiClient.monthly.filled();
       let totalAlloc = 0;
-      for (const entry of filled) {
-        const allocs = await apiClient.allocations.get(entry.id);
-        const sniper = allocs.find(a => a.category_name?.includes('Bắn Tỉa'));
-        if (sniper) totalAlloc += sniper.actual_amount || sniper.planned_amount;
+      if (filled.length > 0) {
+        const allAllocs = await Promise.all(
+          filled.map(m => apiClient.allocations.get(m.id).catch(() => []))
+        );
+        for (const allocs of allAllocs) {
+          const sniper = allocs.find(a => a.category_name?.includes('Bắn Tỉa'));
+          if (sniper) totalAlloc += sniper.actual_amount || sniper.planned_amount;
+        }
       }
       setSniperAllocated(totalAlloc);
 
       const sniperTxns = txns.filter(t =>
+        t.strategy === 'Sniper' ||
         t.note?.toLowerCase().includes('bắn tỉa') ||
         t.note?.toLowerCase().includes('sniper') ||
         t.note?.toLowerCase().includes('[deploy]')
@@ -67,6 +74,8 @@ export default function SniperPlaybook({ embedded }) {
       }
     } catch (err) {
       console.error('Sniper load error:', err);
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -111,10 +120,26 @@ export default function SniperPlaybook({ embedded }) {
   async function handleRefreshPrices() {
     setRefreshing(true);
     try {
-      await apiClient.prices.refresh();
+      const result = await apiClient.prices.refresh();
       await loadData();
+
+      if (result) {
+        const { total = 0, success = 0, failed = 0 } = result;
+        if (total === 0) {
+          setToast({ type: 'info', message: 'Không có tài sản nào đang đầu tư để cập nhật' });
+        } else if (failed === 0) {
+          setToast({ type: 'success', message: 'Đã cập nhật giá thành công' });
+        } else if (success > 0) {
+          setToast({ type: 'warning', message: `Cập nhật ${success}/${total} thành công, ${failed} lỗi` });
+        } else {
+          setToast({ type: 'error', message: 'Không thể cập nhật giá. Kiểm tra kết nối mạng.' });
+        }
+        setTimeout(() => setToast(null), failed > 0 ? 5000 : 4000);
+      }
     } catch (err) {
       console.error('Price refresh error:', err);
+      setToast({ type: 'error', message: 'Lỗi đồng bộ giá: ' + err.message });
+      setTimeout(() => setToast(null), 5000);
     }
     setRefreshing(false);
   }
@@ -130,16 +155,6 @@ export default function SniperPlaybook({ embedded }) {
       if (showCatalog) loadCatalog();
     } catch (err) {
       console.error('Toggle track error:', err);
-    }
-  }
-
-  async function updateWatch(id, field, value) {
-    const numVal = typeof value === 'string' ? parseNumberInput(value) : (parseFloat(value) || 0);
-    setWatchlist(prev => prev.map(w => w.id === id ? { ...w, [field]: numVal } : w));
-    try {
-      await apiClient.watchlist.update(id, { [field]: numVal });
-    } catch (err) {
-      console.error('Update watchlist error:', err);
     }
   }
 
@@ -170,9 +185,10 @@ export default function SniperPlaybook({ embedded }) {
       price,
       total_amount: total,
       note,
+      strategy: 'Sniper',
     });
 
-    setDeployForm({ date: new Date().toISOString().split('T')[0], asset_type_id: watchlist[0]?.id?.toString() || '', quantity: '', price: '', note: '' });
+    setDeployForm({ date: new Date().toISOString().split('T')[0], asset_type_id: watchlist.length > 0 ? watchlist[0].id.toString() : '', quantity: '', price: '', note: '' });
     setShowDeploy(false);
     loadData();
   }
@@ -187,6 +203,8 @@ export default function SniperPlaybook({ embedded }) {
     { value: 'gold', label: 'Vàng' },
     { value: 'crypto', label: 'Crypto' },
   ];
+
+  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -207,7 +225,7 @@ export default function SniperPlaybook({ embedded }) {
             </button>
           )}
           <button onClick={handleRefreshPrices} disabled={refreshing} className="btn-ghost text-sm">
-            {refreshing ? 'Đang tải...' : 'Làm mới giá'}
+            {refreshing ? 'Đang tải...' : 'Đồng bộ giá'}
           </button>
         </div>
       </div>
@@ -280,38 +298,47 @@ export default function SniperPlaybook({ embedded }) {
               const isHot = dd >= 0.15;
 
               return (
-                <div key={w.id} className={`flex items-center gap-4 p-3 rounded-xl border ${isHot ? level.bg + ' ring-1 ' + level.ring : 'border-slate-200 bg-white'}`}>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-sm font-semibold text-slate-800">{w.ticker || w.name}</span>
-                      {w.ticker && <span className="text-[10px] text-slate-400">{w.name}</span>}
-                      {isHot && <span className={`badge text-[10px] ${level.bg} ${level.text}`}>{level.label}</span>}
-                    </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-500">
-                      <span>Giá: <strong>{(w.current_price || 0).toLocaleString('vi-VN')} {w.unit}</strong></span>
-                      <span>Đỉnh: <strong>{(w.peak_price || 0).toLocaleString('vi-VN')}</strong></span>
-                    </div>
+                <div key={w.id} className={`flex items-center gap-6 px-4 py-3 rounded-xl border transition ${isHot ? level.bg + ' ring-1 ' + level.ring : 'border-slate-100 hover:border-slate-200 bg-white'}`}>
+                  {/* Ticker */}
+                  <div className="w-32 shrink-0">
+                    <p className="text-sm font-bold text-slate-800">{w.ticker || w.name}</p>
+                    {w.ticker && <p className="text-[11px] text-slate-400 truncate">{w.name}</p>}
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <div>
-                      <label className="text-[10px] text-slate-400 block">Giá</label>
-                      <input type="text" inputMode="numeric" value={w.current_price ? formatNumberInput(String(w.current_price)) : ''} onChange={e => updateWatch(w.id, 'current_price', e.target.value)} className="input text-xs py-1 w-28" />
-                    </div>
-                    <div>
-                      <label className="text-[10px] text-slate-400 block">Đỉnh</label>
-                      <input type="text" inputMode="numeric" value={w.peak_price ? formatNumberInput(String(w.peak_price)) : ''} onChange={e => updateWatch(w.id, 'peak_price', e.target.value)} className="input text-xs py-1 w-28" />
-                    </div>
+                  {/* Giá hiện tại */}
+                  <div className="w-36 shrink-0">
+                    <p className="text-[10px] text-slate-400 uppercase">Giá</p>
+                    <p className="text-sm font-semibold text-slate-700">{(w.current_price || 0).toLocaleString('vi-VN')} <span className="text-[10px] text-slate-400">{w.unit}</span></p>
                   </div>
 
-                  <div className="text-right w-20">
-                    <p className={`text-lg font-bold ${isHot ? 'text-red-500' : 'text-slate-400'}`}>
+                  {/* Đỉnh */}
+                  <div className="w-36 shrink-0">
+                    <p className="text-[10px] text-slate-400 uppercase">Đỉnh</p>
+                    <p className="text-sm font-semibold text-slate-700">{(w.peak_price || 0).toLocaleString('vi-VN')}</p>
+                  </div>
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Level */}
+                  <div className="w-40 shrink-0 text-center">
+                    {isHot ? (
+                      <span className={`text-xs px-2.5 py-1 rounded-lg font-medium ${level.bg} ${level.text}`}>{level.label} — {level.pct}%</span>
+                    ) : (
+                      <span className="text-xs text-slate-400">—</span>
+                    )}
+                  </div>
+
+                  {/* Drawdown */}
+                  <div className="w-24 shrink-0 text-right">
+                    <p className={`text-xl font-bold leading-none ${isHot ? 'text-red-500' : 'text-slate-200'}`}>
                       {(dd * 100).toFixed(1)}%
                     </p>
-                    <p className="text-[10px] text-slate-400">sụt giảm</p>
+                    <p className="text-[10px] text-slate-400 mt-0.5">sụt giảm</p>
                   </div>
 
-                  <button onClick={() => toggleTrack(w)} className="text-slate-300 hover:text-red-500 p-1" title="Ngừng theo dõi">
+                  {/* Remove */}
+                  <button onClick={() => toggleTrack(w)} className="shrink-0 text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition" title="Ngừng theo dõi">
                     <X size={14} />
                   </button>
                 </div>
@@ -480,21 +507,38 @@ export default function SniperPlaybook({ embedded }) {
         {deployHistory.length === 0 ? (
           <div className="text-center py-8 text-slate-400 text-sm">Chưa có lệnh bắn tỉa</div>
         ) : (
-          <div className="table-wrap border-0 rounded-none">
-            <table className="table">
+          <div className="overflow-x-auto">
+            <table className="w-full" style={{ minWidth: '700px' }}>
               <thead>
-                <tr><th>Ngày</th><th>Tài sản</th><th>Loại</th><th className="text-right">Khối lượng</th><th className="text-right">Giá</th><th className="text-right">Thành tiền</th><th>Ghi chú</th></tr>
+                <tr className="border-b border-slate-200">
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '90px' }}>Ngày</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3">Tài sản</th>
+                  <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '70px' }}>Loại</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '80px' }}>KL</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '100px' }}>Giá</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '120px' }}>Thành tiền</th>
+                  <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '200px' }}>Ghi chú</th>
+                </tr>
               </thead>
               <tbody>
                 {deployHistory.map(t => (
-                  <tr key={t.id}>
-                    <td className="font-medium">{formatDate(t.date)}</td>
-                    <td className="flex items-center gap-1.5"><AppIcon emoji={t.icon} size={16} /> {t.display_name || t.asset_type_name}</td>
-                    <td><span className={t.type === 'BUY' ? 'badge-success' : 'badge-danger'}>{t.type === 'BUY' ? 'MUA' : 'BÁN'}</span></td>
-                    <td className="text-right">{t.quantity} {t.unit}</td>
-                    <td className="text-right">{formatVND(t.price)}</td>
-                    <td className="text-right font-semibold">{formatVND(t.total_amount)}</td>
-                    <td className="text-xs text-slate-400 max-w-[200px] truncate">{t.note}</td>
+                  <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="py-3 px-3 text-sm text-slate-500">{formatDate(t.date)}</td>
+                    <td className="py-3 px-3">
+                      <div className="flex items-center gap-1.5">
+                        <AppIcon emoji={t.icon} size={16} />
+                        <span className="text-sm font-medium text-slate-700">{t.display_name || t.asset_type_name}</span>
+                      </div>
+                    </td>
+                    <td className="py-3 px-3 text-center">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${t.type === 'BUY' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>
+                        {t.type === 'BUY' ? 'MUA' : 'BÁN'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-3 text-right text-sm text-slate-600">{t.quantity} {t.unit}</td>
+                    <td className="py-3 px-3 text-right text-sm text-slate-600">{formatVND(t.price)}</td>
+                    <td className="py-3 px-3 text-right text-sm font-semibold text-slate-700">{formatVND(t.total_amount)}</td>
+                    <td className="py-3 px-3 text-xs text-slate-400 truncate" title={t.note}>{t.note}</td>
                   </tr>
                 ))}
               </tbody>
@@ -508,6 +552,25 @@ export default function SniperPlaybook({ embedded }) {
         <div className="card">
           <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Hướng dẫn từ {phase.name}</h3>
           <div className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{phase.guidance}</div>
+        </div>
+      )}
+
+      {/* Toast notification */}
+      {toast && (
+        <div className={`fixed bottom-6 right-6 z-50 animate-slide-up ${
+          toast.type === 'error' ? 'bg-red-500' :
+          toast.type === 'success' ? 'bg-emerald-500' :
+          toast.type === 'warning' ? 'bg-amber-500' :
+          toast.type === 'info' ? 'bg-slate-500' : 'bg-slate-700'
+        } text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
+          {toast.type === 'success' && <CheckCircle size={20} weight="fill" />}
+          {toast.type === 'error' && <XCircle size={20} weight="fill" />}
+          {toast.type === 'warning' && <Warning size={20} weight="fill" />}
+          {toast.type === 'info' && <Info size={20} weight="fill" />}
+          <span className="text-sm font-medium">{toast.message}</span>
+          <button onClick={() => setToast(null)} className="text-white/70 hover:text-white">
+            <X size={18} />
+          </button>
         </div>
       )}
     </div>
