@@ -59,9 +59,8 @@ export default function AllocationGoals() {
   const totalCurrentValue = summary?.totalCurrentValue || 0;
   const byCategory = summary?.byCategory || {};
 
-  // Total assets = portfolio + savings (must match getActivePhase logic)
-  const totalSavingsInCategory = Object.values(byCategory).reduce((s, cat) => s + (cat.currentTotal || 0), 0);
-  const totalAssetsForPhase = totalSavingsInCategory > 0 ? totalSavingsInCategory : totalCurrentValue;
+  // Total assets = all categories combined (investments + savings + gold + sniper...)
+  const totalAssets = Object.values(byCategory).reduce((s, cat) => s + (cat.currentTotal || 0), 0);
 
   // Average monthly savings for timeline estimates
   const avgMonthlySavings = useMemo(() => {
@@ -73,7 +72,7 @@ export default function AllocationGoals() {
 
   // Current allocation by category (from portfolio, fallback to monthly allocations)
   const totalAllocated = Object.values(allocsByCategory).reduce((s, c) => s + c.total, 0);
-  const baseTotal = totalCurrentValue > 0 ? totalCurrentValue : totalAllocated;
+  const baseTotal = totalAssets > 0 ? totalAssets : totalAllocated;
   const currentAlloc = useMemo(() => {
     return categories.map(c => {
       const catData = byCategory[c.name];
@@ -92,16 +91,21 @@ export default function AllocationGoals() {
     }).filter(c => c.currentTotal > 0 || phaseAllocs.some(pa => pa.category_name === c.name));
   }, [categories, byCategory, totalCurrentValue, phaseAllocs, allocsByCategory]);
 
-  // Target allocation from phase
+  // Target allocation from phase — VND based on phase.goal_amount
   const targetAlloc = useMemo(() => {
+    if (!phaseAllocs.length || !phase?.goal_amount) return [];
+    const maxRatio = Math.max(...phaseAllocs.map(pa => pa.ratio));
+    if (maxRatio <= 0) return [];
+    const totalGoal = phase.goal_amount / maxRatio;
     return phaseAllocs.map(pa => ({
       name: pa.category_name,
       label: pa.category_name,
       color: pa.color,
       icon: pa.icon,
       targetPct: pa.ratio * 100,
+      targetVND: totalGoal * pa.ratio,
     }));
-  }, [phaseAllocs]);
+  }, [phaseAllocs, phase]);
 
   // Rebalance alerts
   const rebalanceAlerts = useMemo(() => {
@@ -109,6 +113,7 @@ export default function AllocationGoals() {
       const target = targetAlloc.find(t => t.name === c.name);
       if (!target) return null;
       const diff = c.currentPct - target.targetPct;
+      const diffVND = c.currentTotal - target.targetVND;
       if (Math.abs(diff) > 10) {
         return {
           name: c.name,
@@ -117,6 +122,7 @@ export default function AllocationGoals() {
           current: c.currentPct,
           target: target.targetPct,
           diff,
+          diffVND,
           direction: diff > 0 ? 'thừa' : 'thiếu',
         };
       }
@@ -145,8 +151,6 @@ export default function AllocationGoals() {
     name: p.name,
     multiplier: p.goal_multiplier,
   }));
-
-  const totalAssets = totalAssetsForPhase;
 
   // Risk metrics
   const maxSingleAsset = portfolio.length > 0
@@ -195,7 +199,7 @@ export default function AllocationGoals() {
           )}
         </div>
 
-        {/* Target allocation */}
+        {/* Target allocation — Bullet chart */}
         <div className="card xl:col-span-3">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">
             Phân bổ mục tiêu
@@ -204,27 +208,53 @@ export default function AllocationGoals() {
           {targetAlloc.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">Chưa có phân bổ mục tiêu</div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {targetAlloc.map(t => {
                 const current = currentAlloc.find(c => c.name === t.name);
-                const diff = (current?.currentPct || 0) - t.targetPct;
-                const targetAmount = baseTotal > 0 ? (t.targetPct / 100) * baseTotal : 0;
+                const currentVND = current?.currentTotal || 0;
+                const maxVND = Math.max(t.targetVND, currentVND, 1);
+                const fillPct = (currentVND / maxVND) * 100;
+                const targetPct = (t.targetVND / maxVND) * 100;
+                const diff = currentVND - t.targetVND;
+                const reached = currentVND >= t.targetVND;
+
                 return (
                   <div key={t.name}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-slate-700 flex items-center gap-1.5"><AppIcon emoji={t.icon} size={16} /> {t.label}</span>
-                      <div className="text-right">
-                        <span className="text-sm font-bold" style={{ color: t.color }}>{t.targetPct.toFixed(0)}%</span>
-                        <span className="text-[10px] text-slate-400 ml-1.5">({formatVND(targetAmount)})</span>
+                    {/* Label row */}
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-sm text-slate-700 flex items-center gap-1.5">
+                        <AppIcon name={t.icon} size={16} /> {t.label}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                          reached ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
+                        }`}>
+                          {reached ? '✓ Đạt' : `Còn ${formatVND(Math.abs(diff))}`}
+                        </span>
                       </div>
                     </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${Math.min(current?.currentPct || 0, 100)}%`, background: t.color }} />
+
+                    {/* Bullet bar: target = background, current = fill */}
+                    <div className="relative h-3 bg-slate-100 rounded-full overflow-hidden">
+                      {/* Target background */}
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full opacity-25"
+                        style={{ width: `${Math.min(targetPct, 100)}%`, background: t.color }}
+                      />
+                      {/* Current fill */}
+                      <div
+                        className="absolute inset-y-0 left-0 rounded-full transition-all duration-700"
+                        style={{ width: `${Math.min(fillPct, 100)}%`, background: t.color }}
+                      />
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
-                      <span>Hiện tại: {formatVND(current?.currentTotal || 0)} ({(current?.currentPct || 0).toFixed(1)}%)</span>
-                      <span className={diff > 5 ? 'text-amber-500' : diff < -5 ? 'text-blue-500' : 'text-emerald-500'}>
-                        {diff > 0 ? '+' : ''}{diff.toFixed(1)}%
+
+                    {/* Values row */}
+                    <div className="flex items-center justify-between mt-1.5 text-[11px]">
+                      <span className="text-slate-500">
+                        Hiện tại: <span className="font-semibold text-slate-700">{formatVND(currentVND)}</span>
+                      </span>
+                      <span className="text-slate-400">
+                        Mục tiêu: <span className="font-medium text-slate-600">{formatVND(t.targetVND)}</span>
                       </span>
                     </div>
                   </div>
@@ -242,10 +272,15 @@ export default function AllocationGoals() {
           <div className="space-y-2">
             {rebalanceAlerts.map(a => (
               <div key={a.name} className="flex items-center justify-between text-sm">
-                <span className="text-amber-700 flex items-center gap-1"><AppIcon emoji={a.icon} size={14} /> {a.label}</span>
-                <span className="text-amber-600">
-                  {a.direction === 'thừa' ? 'Thừa' : 'Thiếu'} {Math.abs(a.diff).toFixed(1)}% ({a.current.toFixed(0)}% → {a.target.toFixed(0)}%)
-                </span>
+                <span className="text-amber-700 flex items-center gap-1"><AppIcon name={a.icon} size={14} /> {a.label}</span>
+                <div className="text-right">
+                  <span className="text-amber-600">
+                    {a.direction === 'thừa' ? 'Thừa' : 'Thiếu'} {formatVND(Math.abs(a.diffVND))}
+                  </span>
+                  <span className="text-amber-400 text-[10px] ml-1.5">
+                    ({a.current.toFixed(0)}% → {a.target.toFixed(0)}%)
+                  </span>
+                </div>
               </div>
             ))}
           </div>
@@ -295,7 +330,11 @@ export default function AllocationGoals() {
                       <p className="text-[10px] text-slate-400">{formatVND(currentValue)} / {formatVND(m.target)}</p>
                       {!reached && avgMonthlySavings > 0 && (() => {
                         const gap = m.target - currentValue;
-                        const months = Math.ceil(gap / avgMonthlySavings);
+                        // Phase 1: only allocation ratio goes to Dự Phòng
+                        // Phase 2+: all savings contribute to total assets
+                        const duPhongRatio = phaseAllocs.find(a => a.category_name === 'Dự Phòng')?.ratio || 0.7;
+                        const monthlyRate = phaseNum === 1 ? avgMonthlySavings * duPhongRatio : avgMonthlySavings;
+                        const months = monthlyRate > 0 ? Math.ceil(gap / monthlyRate) : 999;
                         return <p className="text-[10px] text-blue-500">Đạt trong ~{months} tháng</p>;
                       })()}
                     </div>

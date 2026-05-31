@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AllocationPie from '../charts/AllocationPie';
-import AppIcon, { Bell, ArrowClockwise, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, PiggyBank, BookmarkSimple, CheckCircle, XCircle, Warning, Info, X } from '../../utils/iconMap';
+import AppIcon, { Bell, ArrowClockwise, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, PiggyBank, BookmarkSimple, CheckCircle, XCircle, Warning, Info, X, CaretDown, CaretUp } from '../../utils/iconMap';
 
 export default function Overview() {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ export default function Overview() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [toast, setToast] = useState(null);
+  const [phaseAllocs, setPhaseAllocs] = useState([]);
+  const [expandedCategory, setExpandedCategory] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -74,6 +76,14 @@ export default function Overview() {
       setActivity(a);
       setNextMonth(n);
       setAlertCount(ac?.count || 0);
+
+      // Fetch phase allocations for actual-vs-target comparison
+      if (p?.id) {
+        try {
+          const allocs = await apiClient.phases.allocations(p.id);
+          setPhaseAllocs(allocs || []);
+        } catch { setPhaseAllocs([]); }
+      }
     } catch (err) {
       console.error('Overview load error:', err);
     }
@@ -86,6 +96,43 @@ export default function Overview() {
   const totalGainPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
   const totalInflow = filled.reduce((s, m) => s + (m.total_inflow || 0), 0);
   const byCategory = summary?.byCategory || {};
+
+  // Category metadata for allocation display
+  const CATEGORY_META = [
+    { name: 'Dự Phòng', color: '#10b981', icon: 'wallet' },
+    { name: 'Đầu Tư', color: '#3b82f6', icon: 'chart-line' },
+    { name: 'Vàng', color: '#f59e0b', icon: 'coins' },
+    { name: 'Bắn Tỉa', color: '#ef4444', icon: 'crosshair' },
+    { name: 'Tiết kiệm & Trái phiếu', color: '#8b5cf6', icon: 'bank' },
+  ];
+
+  // Pie chart data (all 5 categories)
+  const allocPieData = CATEGORY_META.map(c => ({
+    name: c.name,
+    value: byCategory[c.name]?.currentTotal || 0,
+    color: c.color,
+    icon: c.icon,
+  }));
+
+  // Target allocation lookup — VND per category
+  const targetLookup = (() => {
+    if (!phaseAllocs.length || !phaseGoal) return {};
+    const maxRatio = Math.max(...phaseAllocs.map(a => a.ratio));
+    if (maxRatio <= 0) return {};
+    const totalGoal = phaseGoal / maxRatio;
+    const lookup = {};
+    phaseAllocs.forEach(a => { lookup[a.category_name] = totalGoal * a.ratio; });
+    return lookup;
+  })();
+
+  // Total assets for percentage calculation
+  const totalAssets = CATEGORY_META.reduce((s, c) => s + (byCategory[c.name]?.currentTotal || 0), 0);
+
+  // Phase goal for category target VND calculation
+  const avgMonthlyExpense = filled.length > 0
+    ? filled.reduce((s, m) => s + (m.expense || 0), 0) / filled.length
+    : 4000000;
+  const phaseGoal = phase?.goal_amount || (phase?.goal_multiplier ? phase.goal_multiplier * avgMonthlyExpense : null);
 
   async function handlePriceUpdate(assetId) {
     const price = parseFloat(priceValue);
@@ -185,7 +232,7 @@ export default function Overview() {
       )}
 
       {/* KPI Row */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi">
           <span className="kpi-label">Tổng dòng tiền</span>
           <p className="kpi-value text-slate-800">{formatVND(totalInflow)}</p>
@@ -212,11 +259,11 @@ export default function Overview() {
         </div>
       </div>
 
-      {/* Portfolio Table + Pie Chart */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 card p-0 overflow-hidden">
+      {/* Portfolio Table + Allocation */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2 card p-0 overflow-hidden">
           <div className="px-5 py-4 border-b border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-700">Danh mục đầu tư</h3>
+            <h3 className="text-sm font-semibold text-slate-700">Danh mục giao dịch</h3>
             <p className="text-xs text-slate-400 mt-0.5">Click vào giá hiện tại để cập nhật</p>
           </div>
           {portfolio.length === 0 ? (
@@ -300,35 +347,137 @@ export default function Overview() {
         </div>
 
         <div className="space-y-4">
+          {/* Merged Allocation Card */}
           <div className="card">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Phân bổ</h3>
-            <AllocationPie current={{
-              st_balance: byCategory['Dự Phòng']?.currentTotal || 0,
-              etf_plan: byCategory['Chứng Khoán']?.currentTotal || 0,
-              sniper_balance: byCategory['Bắn Tỉa']?.currentTotal || 0,
-            }} />
-          </div>
-          <div className="card">
-            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Theo danh mục</h3>
-            <div className="space-y-3">
-              {Object.entries(byCategory).map(([cat, data]) => {
-                const gain = data.currentTotal - data.total;
-                const gainPct = data.total > 0 ? (gain / data.total) * 100 : 0;
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Phân Bổ Danh Mục</h3>
+
+            {/* Pie chart */}
+            <div className="mb-4">
+              <AllocationPie data={allocPieData} />
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-slate-100 mb-3" />
+
+            {/* Category list with target VND progress */}
+            <div className="space-y-1">
+              {CATEGORY_META.filter(c => (byCategory[c.name]?.currentTotal || 0) > 0).map(c => {
+                const catData = byCategory[c.name];
+                const actual = catData?.currentTotal || 0;
+                const invested = catData?.total || 0;
+                const gain = actual - invested;
+                const gainPct = invested > 0 ? (gain / invested) * 100 : 0;
+                const catTarget = targetLookup[c.name] || null; // already VND
+                const targetPct = catTarget && catTarget > 0 ? Math.min((actual / catTarget) * 100, 100) : null;
+                const diff = catTarget ? actual - catTarget : null;
+                const items = catData?.items || [];
+                const isExpanded = expandedCategory === c.name;
+
                 return (
-                  <div key={cat}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-700">{cat}</span>
-                      <span className="text-sm font-bold text-slate-800">{formatVND(data.currentTotal)}</span>
+                  <div key={c.name} className="py-2.5 border-b border-slate-50 last:border-0">
+                    {/* Category header */}
+                    <div
+                      className="flex items-center justify-between cursor-pointer hover:bg-slate-50 -mx-1 px-1 py-1 rounded-lg transition-colors"
+                      onClick={() => setExpandedCategory(isExpanded ? null : c.name)}
+                    >
+                      <span className="text-sm font-medium text-slate-700 flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: c.color }}></span>
+                        {c.name}
+                        {items.length > 0 && (
+                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                        )}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-sm font-bold text-slate-800">{formatVND(actual)}</span>
+                        {items.length > 0 && (
+                          isExpanded
+                            ? <CaretUp size={14} className="text-slate-400" weight="bold" />
+                            : <CaretDown size={14} className="text-slate-400" weight="bold" />
+                        )}
+                      </span>
                     </div>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>Vốn: {formatVND(data.total)}</span>
-                      <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>{gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%</span>
-                    </div>
+
+                    {/* Progress bar: actual / target VND */}
+                    {catTarget !== null && (
+                      <div className="ml-[18px] mt-1.5">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-[10px] text-slate-400">
+                            {formatVND(actual)} / {formatVND(catTarget)}
+                          </span>
+                          {diff !== null && diff !== 0 && (
+                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-500' : 'text-blue-500'}`}>
+                              {diff > 0 ? '+' : ''}{formatVND(diff)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="relative h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{
+                              width: `${targetPct}%`,
+                              background: diff > 0 ? '#10b981' : c.color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Gain info (no target) */}
+                    {catTarget === null && invested > 0 && (
+                      <div className="flex items-center justify-between text-xs text-slate-400 mt-1 ml-[18px]">
+                        <span>Vốn: {formatVND(invested)}</span>
+                        <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>
+                          {gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Expanded: individual assets */}
+                    {isExpanded && items.length > 0 && (
+                      <div className="mt-2.5 ml-[18px] space-y-1.5 bg-slate-50 rounded-lg p-2.5">
+                        {items.map((item, idx) => {
+                          const isSavings = item.type === 'savings' || item.type === 'term' || item.type === 'liquid';
+                          const itemInvested = isSavings ? (item.principal || 0) : (item.total_invested || 0);
+                          const itemValue = isSavings ? (item.current_balance || item.principal || 0) : (item.current_value || 0);
+                          const itemGain = itemValue - itemInvested;
+                          const itemGainPct = itemInvested > 0 ? (itemGain / itemInvested) * 100 : 0;
+                          const isPositive = itemGain >= 0;
+                          return (
+                            <div key={idx} className="flex items-center justify-between py-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <AppIcon name={item.icon} size={14} />
+                                <span className="text-xs text-slate-700 truncate">
+                                  {item.ticker || item.name}
+                                </span>
+                                {item.total_quantity > 0 && (
+                                  <span className="text-[10px] text-slate-400">{item.total_quantity} {item.unit || 'cp'}</span>
+                                )}
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <span className="text-xs font-semibold text-slate-800">
+                                  {formatVND(itemValue)}
+                                </span>
+                                {itemInvested > 0 && itemGain !== 0 && (
+                                  <span className={`text-[10px] ml-1 ${isPositive ? 'text-emerald-500' : 'text-red-400'}`}>
+                                    {isPositive ? '+' : ''}{itemGainPct.toFixed(1)}%
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
+              {CATEGORY_META.filter(c => (byCategory[c.name]?.currentTotal || 0) > 0).length === 0 && (
+                <p className="text-xs text-slate-400 text-center py-4">Chưa có dữ liệu phân bổ</p>
+              )}
             </div>
           </div>
+
+          {/* Quick Actions */}
           <div className="card">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Thao tác</h3>
             <div className="space-y-2">
