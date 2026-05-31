@@ -222,15 +222,9 @@ export default function CashFlowPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
-              <div className="flex gap-5 text-xs">
-                <span className="flex items-center gap-1.5 text-blue-500">
-                  <span className="w-3 h-0.5 rounded-full bg-blue-500 inline-block" />
-                  Thực tế
-                </span>
-                <span className="flex items-center gap-1.5 text-emerald-600">
-                  <span className="inline-block w-3 h-0.5 rounded-full" style={{ background: 'repeating-linear-gradient(90deg, #10b981 0, #10b981 4px, transparent 4px, transparent 7px)' }} />
-                  Mục tiêu
-                </span>
+              <div className="flex gap-4 text-xs text-slate-400">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Thực tế</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Mục tiêu</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
