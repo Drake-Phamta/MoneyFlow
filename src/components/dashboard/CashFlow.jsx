@@ -134,7 +134,10 @@ export default function CashFlow() {
           <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
           <div className="flex gap-4 text-xs text-slate-400">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
-            <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-emerald-500 inline-block" /> Mục tiêu</span>
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block w-5 h-0" style={{ borderTop: '2px dashed #10b981' }} />
+              Mục tiêu
+            </span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={200}>
@@ -144,7 +147,7 @@ export default function CashFlow() {
             <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} />
             <Tooltip formatter={v => `${v.toFixed(1)}%`} />
             <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
-            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} strokeDasharray="6 4" dot={false} name="Mục tiêu" />
+            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} strokeDasharray="8 4" dot={false} name="Mục tiêu" />
           </LineChart>
         </ResponsiveContainer>
       </div>

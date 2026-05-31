@@ -161,9 +161,8 @@ export default function CashFlowPage() {
           <p className="kpi-value text-emerald-600">{formatVND(totalIncome)}</p>
           {(() => {
             const totalBonus = filled.reduce((s, m) => s + (m.bonus || 0), 0);
-            const totalMain = totalIncome - totalBonus;
             return totalBonus > 0
-              ? <p className="text-xs text-slate-400">Chính: {formatVND(totalMain)} · Thưởng: {formatVND(totalBonus)}</p>
+              ? <p className="text-xs text-slate-400">+{formatVND(totalBonus)} thưởng</p>
               : <p className="text-xs text-slate-400">{filled.length} tháng</p>;
           })()}
         </div>
@@ -182,7 +181,7 @@ export default function CashFlowPage() {
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
-          <p className="text-xs text-slate-400">Mục tiêu: ≥ {savingsTargetPct.toFixed(0)}% · {streak} tháng dương liên tục</p>
+          <p className="text-xs text-slate-400">≥ {savingsTargetPct}% · {streak}T liên tục</p>
         </div>
       </div>
 
@@ -218,7 +217,10 @@ export default function CashFlowPage() {
               <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
-                <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-emerald-500 inline-block" /> Mục tiêu</span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block w-5 h-0" style={{ borderTop: '2px dashed #10b981' }} />
+                  Mục tiêu
+                </span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
@@ -228,7 +230,7 @@ export default function CashFlowPage() {
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} domain={[0, 100]} />
                 <Tooltip formatter={(v, name) => [`${v.toFixed(1)}%`, name]} />
                 <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
-                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="6 4" dot={false} name="Mục tiêu" />
+                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="8 4" dot={false} name="Mục tiêu" />
               </LineChart>
             </ResponsiveContainer>
           </div>
