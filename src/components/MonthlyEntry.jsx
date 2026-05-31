@@ -269,7 +269,7 @@ export default function MonthlyEntry() {
           <div key={s.id} className="flex items-center flex-1">
             <div className="flex items-center gap-2">
               <div className={step > s.id ? 'step-dot-done' : step === s.id ? 'step-dot-active' : 'step-dot-pending'}>
-                {step > s.id ? '✓' : s.id}
+                {step > s.id ? <Check size={14} className="text-emerald-500" /> : s.id}
               </div>
               <div className="hidden sm:block">
                 <p className={`text-xs font-semibold ${step >= s.id ? 'text-slate-700' : 'text-slate-400'}`}>{s.label}</p>
@@ -416,7 +416,7 @@ export default function MonthlyEntry() {
                               : '—'}
                           </span>
                           <button onClick={() => removeTrade(t.id)} className="text-slate-400 hover:text-red-500 p-1">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                            <X size={14} />
                           </button>
                         </div>
                       ))}
@@ -451,7 +451,7 @@ export default function MonthlyEntry() {
         {step === 4 && (
           <div className="text-center py-8 animate-fade-in">
             <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+              <CheckCircle size={32} className="text-emerald-500" weight="bold" />
             </div>
             <h2 className="text-xl font-bold text-slate-800 mb-2">
               {editMode ? `Đã cập nhật ${editMonth?.month_label}!` : `Đã lưu ${nextMonth?.month_label}!`}

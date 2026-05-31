@@ -225,7 +225,7 @@ export default function ExecutionLog({ embedded }) {
       {hasDiscrepancy && !isConfirmed && (
         <div className="card bg-gradient-to-r from-amber-50 to-orange-50 border-amber-300 animate-fade-in">
           <div className="flex items-start gap-3">
-            <span className="text-2xl mt-0.5">⚠️</span>
+            <span className="mt-0.5"><Warning size={24} className="text-amber-500" weight="fill" /></span>
             <div className="flex-1">
               <p className="text-sm font-semibold text-amber-800">Phát hiện chênh lệch phân bổ</p>
               <p className="text-xs text-amber-600 mt-1">
@@ -246,7 +246,7 @@ export default function ExecutionLog({ embedded }) {
                     ✓ Xác nhận đúng
                   </button>
                   <button onClick={() => { document.getElementById('transaction-table')?.scrollIntoView({ behavior: 'smooth' }); }} className="btn-ghost text-xs px-3 py-1.5">
-                    🔍 Rà soát thủ công
+                    <MagnifyingGlass size={12} className="inline mr-1" /> Rà soát thủ công
                   </button>
                 </div>
               ) : (
@@ -274,7 +274,7 @@ export default function ExecutionLog({ embedded }) {
         <div className="card bg-gradient-to-r from-green-50 to-emerald-50 border-green-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-lg">✅</span>
+              <CheckCircle size={20} className="text-emerald-500" weight="fill" />
               <div>
                 <p className="text-xs text-green-700 font-medium">Chênh lệch đã xác nhận</p>
                 <p className="text-[11px] text-green-600">

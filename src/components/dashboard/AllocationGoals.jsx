@@ -249,7 +249,7 @@ export default function AllocationGoals() {
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
                     <span className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${reached ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
-                      {reached ? '✓' : m.label}
+                      {reached ? <CheckCircle size={16} weight="fill" /> : m.label}
                     </span>
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.name}</p>

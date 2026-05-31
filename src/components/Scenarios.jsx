@@ -345,7 +345,7 @@ export default function Scenarios() {
                   className={`w-full flex items-center gap-3 p-4 text-left ${isActive ? 'bg-primary-50' : isDone ? 'bg-emerald-50' : 'bg-white'}`}
                 >
                   <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-primary-600 text-white' : 'bg-slate-200 text-slate-500'}`}>
-                    {isDone ? '✓' : p.sort_order}
+                    {isDone ? <Check size={16} className="text-white" /> : p.sort_order}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-semibold ${isActive ? 'text-primary-700' : 'text-slate-700'}`}>{p.name}</p>
@@ -364,9 +364,7 @@ export default function Scenarios() {
                       <p className="text-[10px] text-slate-400">{progress.toFixed(0)}% đạt</p>
                     )}
                   </div>
-                  <svg className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <CaretDown size={16} className={`text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isExpanded && (
@@ -419,9 +417,7 @@ export default function Scenarios() {
                 >
                   <span className="text-lg"><AppIcon emoji={section.icon} size={20} /></span>
                   <span className="flex-1 text-sm font-medium text-slate-700">{section.title}</span>
-                  <svg className={`w-4 h-4 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
+                  <CaretDown size={16} className={`text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isOpen && (
                   <div className="px-4 pb-4">

@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { formatVND, formatPercent } from '../utils/formatters';
+import { apiClient } from '../utils/apiClient';
+import { Gear, Warning } from '../utils/iconMap';
 
 const PARAM_GROUPS = [
   {
@@ -37,7 +39,7 @@ export default function Parameters() {
   useEffect(() => { loadParams(); }, []);
 
   async function loadParams() {
-    const data = await window.api.getParameters();
+    const data = await apiClient.params.get();
     setParams(data);
   }
 
@@ -54,7 +56,7 @@ export default function Parameters() {
       setSaving(false);
       return;
     }
-    await window.api.updateParameter(editingKey, value);
+    await apiClient.params.update(editingKey, value);
     setEditingKey(null);
     await loadParams();
     setSaving(false);
@@ -81,14 +83,14 @@ export default function Parameters() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">⚙️ Tham Số Hệ Thống</h1>
-        <p className="text-xs text-dark-400">Click vào giá trị để chỉnh sửa. Tự động tính lại toàn bộ khi lưu.</p>
+        <h1 className="text-2xl font-bold flex items-center gap-2"><Gear size={28} /> Tham Số Hệ Thống</h1>
+        <p className="text-xs text-slate-400">Click vào giá trị để chỉnh sửa. Tự động tính lại toàn bộ khi lưu.</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         {PARAM_GROUPS.map((group) => (
-          <div key={group.title} className="kpi-card">
-            <h3 className="text-sm font-semibold text-primary-400 mb-3">{group.title}</h3>
+          <div key={group.title} className="card">
+            <h3 className="text-sm font-semibold text-primary-600 mb-3">{group.title}</h3>
             <div className="space-y-2">
               {group.keys.map((key) => {
                 const p = paramMap[key];
@@ -96,10 +98,10 @@ export default function Parameters() {
                 const isEditing = editingKey === key;
 
                 return (
-                  <div key={key} className="flex items-center justify-between py-1 border-b border-dark-700/50">
+                  <div key={key} className="flex items-center justify-between py-1 border-b border-slate-100">
                     <div className="flex-1">
-                      <div className="text-sm font-mono text-dark-200">{key}</div>
-                      <div className="text-xs text-dark-500">{p.description}</div>
+                      <div className="text-sm font-mono text-slate-700">{key}</div>
+                      <div className="text-xs text-slate-400">{p.description}</div>
                     </div>
                     <div className="w-32 text-right">
                       {isEditing ? (
@@ -109,12 +111,12 @@ export default function Parameters() {
                           onChange={(e) => setEditValue(e.target.value)}
                           onBlur={saveEdit}
                           onKeyDown={handleKeyDown}
-                          className="w-full bg-dark-700 border border-primary-500 rounded px-2 py-1 text-sm text-right focus:outline-none"
+                          className="input text-sm py-1 text-right"
                           disabled={saving}
                         />
                       ) : (
                         <span
-                          className="text-sm font-medium text-dark-100 cursor-pointer hover:text-primary-400"
+                          className="text-sm font-medium text-slate-800 cursor-pointer hover:text-primary-600"
                           onClick={() => startEdit(key, p.value)}
                         >
                           {formatValue(key, p.value)}
@@ -129,9 +131,9 @@ export default function Parameters() {
         ))}
       </div>
 
-      <div className="kpi-card bg-amber-500/5 border-amber-500/20">
-        <p className="text-sm text-amber-300">
-          ⚠️ Chỉ chỉnh sửa các tham số trên. Toàn bộ 120 tháng sẽ tự động cập nhật khi bạn thay đổi giá trị.
+      <div className="card bg-amber-50 border-amber-200">
+        <p className="text-sm text-amber-700 flex items-center gap-1">
+          <Warning size={16} weight="fill" /> Chỉ chỉnh sửa các tham số trên. Toàn bộ 120 tháng sẽ tự động cập nhật khi bạn thay đổi giá trị.
         </p>
       </div>
     </div>

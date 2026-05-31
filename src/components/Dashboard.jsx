@@ -14,11 +14,11 @@ const CATEGORY_LABELS = {
 
 // Category metadata (matching database seed order)
 const CATEGORY_META = [
-  { name: 'Dự Phòng', color: '#10b981', icon: '🛡️' },
-  { name: 'Chứng Khoán', color: '#3b82f6', icon: '📈' },
-  { name: 'Vàng', color: '#f59e0b', icon: '🥇' },
-  { name: 'Bắn Tỉa', color: '#ef4444', icon: '🎯' },
-  { name: 'Tiết kiệm & Trái phiếu', color: '#8b5cf6', icon: '🏦' },
+  { name: 'Dự Phòng', color: '#10b981', icon: 'shield-check' },
+  { name: 'Chứng Khoán', color: '#3b82f6', icon: 'trend-up' },
+  { name: 'Vàng', color: '#f59e0b', icon: 'gem' },
+  { name: 'Bắn Tỉa', color: '#ef4444', icon: 'crosshair' },
+  { name: 'Tiết kiệm & Trái phiếu', color: '#8b5cf6', icon: 'bank' },
 ];
 
 export default function Dashboard() {
@@ -473,7 +473,7 @@ export default function Dashboard() {
                 <BarChart data={miniChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={50} />
+                  <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={55} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="income" fill="#10b981" name="Thu nhập" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="expense" fill="#f87171" name="Chi tiêu" radius={[3, 3, 0, 0]} />
@@ -524,8 +524,8 @@ export default function Dashboard() {
                   return (
                     <div key={a.category_id}>
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-600">
-                          {meta?.icon} {a.category_name}
+                        <span className="text-xs text-slate-600 flex items-center gap-1">
+                          <AppIcon name={meta?.icon} size={14} /> {a.category_name}
                         </span>
                         <span className="text-xs text-slate-400">Mục tiêu: {targetPct.toFixed(0)}%</span>
                       </div>
