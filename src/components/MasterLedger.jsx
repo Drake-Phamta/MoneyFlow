@@ -98,7 +98,7 @@ export default function MasterLedger() {
     { key: 'income', label: 'Thu nhập', width: 'w-28', editable: true, format: v => formatVND(v) },
     { key: 'expense', label: 'Chi tiêu', width: 'w-28', editable: true, format: v => formatVND(v) },
     { key: 'bonus', label: 'Thưởng', width: 'w-24', editable: true, format: v => v ? formatVND(v) : '—' },
-    { key: 'total_inflow', label: 'Nhàn rỗi', width: 'w-28', format: v => formatVND(v) },
+    { key: 'total_inflow', label: 'Tiền nhàn rỗi', width: 'w-28', format: v => formatVND(v) },
     { key: 'phase_id', label: 'Giai đoạn', width: 'w-32', format: (v) => getPhaseName(v) },
     { key: 'note', label: 'Ghi chú', width: 'w-40' },
     { key: 'status', label: 'Trạng thái', width: 'w-16', format: v => v === 'confirmed' ? <CheckCircle size={16} className="text-emerald-500" weight="regular" /> : <span className="text-slate-300">—</span> },

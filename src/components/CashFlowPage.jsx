@@ -12,19 +12,29 @@ export default function CashFlowPage() {
   const [filled, setFilled] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [activeSection, setActiveSection] = useState('charts'); // 'charts' | 'ledger'
+  const [phase, setPhase] = useState(null);
+  const [phaseAllocs, setPhaseAllocs] = useState([]);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     try {
-      const [f, params] = await Promise.all([
+      const [f, params, p] = await Promise.all([
         apiClient.monthly.filled(),
         apiClient.params.get(),
+        apiClient.phases.active().catch(() => null),
       ]);
       setFilled(f);
+      setPhase(p);
       const paramMap = {};
-      for (const p of params) paramMap[p.key] = p.value;
+      for (const param of params) paramMap[param.key] = param.value;
       setTotalMonths(paramMap.TOTAL_MONTHS || 120);
+      if (p?.id) {
+        try {
+          const pa = await apiClient.phases.allocations(p.id);
+          setPhaseAllocs(pa || []);
+        } catch { setPhaseAllocs([]); }
+      }
     } catch (err) {
       console.error('CashFlowPage load error:', err);
     }
@@ -56,6 +66,10 @@ export default function CashFlowPage() {
   const totalNet = cashFlowData.reduce((s, d) => s + d.net, 0);
   const avgSavingsRate = totalIncome > 0 ? (totalNet / totalIncome) * 100 : 0;
   const avgMonthly = filled.length > 0 ? totalNet / filled.length : 0;
+
+  // Savings target from phase (Dự Phòng ratio), default 30%
+  const duPhongRatio = phaseAllocs.find(a => a.category_name === 'Dự Phòng')?.ratio;
+  const savingsTargetPct = duPhongRatio ? duPhongRatio * 100 : 30;
 
   // Streak — consecutive months with positive net cash flow
   let streak = 0;
@@ -114,7 +128,7 @@ export default function CashFlowPage() {
         <div>
           <h1 className="page-title">Dòng tiền</h1>
           <p className="page-subtitle">
-            {filled.length} tháng đã ghi nhận · TB nhàn rỗi {formatVND(avgMonthly)}/tháng
+            {filled.length} tháng đã ghi nhận · TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng
           </p>
         </div>
         <button onClick={() => setShowWizard(!showWizard)} className="btn-primary">
@@ -146,7 +160,13 @@ export default function CashFlowPage() {
         <div className="kpi">
           <span className="kpi-label">Tổng thu nhập</span>
           <p className="kpi-value text-emerald-600">{formatVND(totalIncome)}</p>
-          <p className="text-xs text-slate-400">{filled.length} tháng</p>
+          {(() => {
+            const totalBonus = filled.reduce((s, m) => s + (m.bonus || 0), 0);
+            const totalMain = totalIncome - totalBonus;
+            return totalBonus > 0
+              ? <p className="text-xs text-slate-400">Chính: {formatVND(totalMain)} · Thưởng: {formatVND(totalBonus)}</p>
+              : <p className="text-xs text-slate-400">{filled.length} tháng</p>;
+          })()}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tổng chi tiêu</span>
@@ -163,7 +183,7 @@ export default function CashFlowPage() {
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
-          <p className="text-xs text-slate-400">Mục tiêu: ≥ 30% · {streak} tháng dương liên tục</p>
+          <p className="text-xs text-slate-400">Mục tiêu: ≥ {savingsTargetPct.toFixed(0)}% · {streak} tháng dương liên tục</p>
         </div>
       </div>
 
@@ -177,7 +197,7 @@ export default function CashFlowPage() {
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Thu nhập</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Chi tiêu</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Nhàn rỗi</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={300}>
@@ -199,11 +219,11 @@ export default function CashFlowPage() {
               <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-emerald-500 border-dashed" /> Mục tiêu 30%</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-emerald-500 border-dashed" /> Mục tiêu {savingsTargetPct.toFixed(0)}%</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={cashFlowData.map(d => ({ ...d, target: 30 }))} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+              <LineChart data={cashFlowData.map(d => ({ ...d, target: savingsTargetPct }))} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                 <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                 <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} domain={[0, 100]} />
@@ -223,6 +243,31 @@ export default function CashFlowPage() {
                   <span className="text-sm text-slate-500">Đã tích lũy</span>
                   <span className="text-sm font-bold text-slate-800">{formatVND(totalNet)}</span>
                 </div>
+                {phase?.goal_amount > 0 && (() => {
+                  const goal = phase.goal_amount;
+                  const reached = totalNet >= goal;
+                  const pct = Math.min((totalNet / goal) * 100, 100);
+                  const gap = Math.max(0, goal - totalNet);
+                  const monthsToGoal = avgMonthly > 0 ? Math.ceil(gap / avgMonthly) : null;
+                  return (
+                    <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-primary-700">{phase.name}</span>
+                        <span className="text-xs font-bold text-primary-600">{pct.toFixed(0)}%</span>
+                      </div>
+                      <div className="h-2 bg-primary-100 rounded-full overflow-hidden mb-2">
+                        <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-primary-600">{formatVND(totalNet)} / {formatVND(goal)}</span>
+                        {!reached && monthsToGoal && (
+                          <span className="text-primary-500">~{monthsToGoal} tháng nữa</span>
+                        )}
+                        {reached && <span className="text-emerald-600 font-medium">✓ Đã đạt</span>}
+                      </div>
+                    </div>
+                  );
+                })()}
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-slate-500">Còn lại {Math.max(0, totalMonths - filled.length)} tháng</span>
                   <span className="text-sm font-bold text-primary-600">+{formatVND(avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
@@ -231,7 +276,7 @@ export default function CashFlowPage() {
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-[10px] text-slate-400">Dựa trên TB nhàn rỗi {formatVND(avgMonthly)}/tháng</p>
+                <p className="text-[10px] text-slate-400">Dựa trên TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
                     <p className="text-xs text-slate-500 mb-1">Xu hướng 3 tháng gần nhất</p>
@@ -263,13 +308,13 @@ export default function CashFlowPage() {
               <div className="space-y-3">
                 {bestMonth && (
                   <div className="p-3 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">Tháng nhàn rỗi cao nhất</p>
+                    <p className="text-xs text-emerald-600 mb-1">Tháng tiền nhàn rỗi cao nhất</p>
                     <p className="text-sm font-bold text-emerald-700">{bestMonth.month}: {formatVND(bestMonth.net)}</p>
                   </div>
                 )}
                 {worstMonth && (
                   <div className="p-3 bg-red-50 rounded-xl">
-                    <p className="text-xs text-red-600 mb-1">Tháng nhàn rỗi thấp nhất</p>
+                    <p className="text-xs text-red-600 mb-1">Tháng tiền nhàn rỗi thấp nhất</p>
                     <p className="text-sm font-bold text-red-700">{worstMonth.month}: {formatVND(worstMonth.net)}</p>
                   </div>
                 )}
