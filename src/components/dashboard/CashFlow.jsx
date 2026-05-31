@@ -112,7 +112,7 @@ export default function CashFlow() {
           <div className="flex gap-4 text-xs text-slate-400">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Thu nhập</span>
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Chi tiêu</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Tiết kiệm</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={300}>
@@ -123,23 +123,28 @@ export default function CashFlow() {
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="income" fill="#10b981" name="Thu nhập" radius={[4, 4, 0, 0]} />
             <Bar dataKey="expense" fill="#f87171" name="Chi tiêu" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="net" fill="#3b82f6" name="Tiết kiệm" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="net" fill="#3b82f6" name="Tiền nhàn rỗi" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
 
       {/* Savings Rate Chart */}
       <div className="card">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">Tỷ lệ tiết kiệm theo tháng</h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
+          <div className="flex gap-4 text-xs text-slate-400">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
+            <span className="flex items-center gap-1.5"><span className="w-5 border-t-2 border-dashed border-emerald-500 inline-block" /> Mục tiêu</span>
+          </div>
+        </div>
         <ResponsiveContainer width="100%" height={200}>
           <LineChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
             <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
             <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} />
             <Tooltip formatter={v => `${v.toFixed(1)}%`} />
-            <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Tỷ lệ tiết kiệm" />
-            {/* 30% target line */}
-            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={1} strokeDasharray="5 5" dot={false} name="Mục tiêu 30%" />
+            <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
+            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} strokeDasharray="6 4" dot={false} name="Mục tiêu" />
           </LineChart>
         </ResponsiveContainer>
       </div>
