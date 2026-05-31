@@ -4,6 +4,10 @@ import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AllocationPie from '../charts/AllocationPie';
 
+const CATEGORY_LABELS = {
+  'Chứng Khoán': 'Đầu Tư',
+};
+
 export default function Overview() {
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
@@ -264,7 +268,7 @@ export default function Overview() {
                 return (
                   <div key={cat}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-slate-700">{cat}</span>
+                      <span className="text-sm font-medium text-slate-700">{CATEGORY_LABELS[cat] || cat}</span>
                       <span className="text-sm font-bold text-slate-800">{formatVND(data.currentTotal)}</span>
                     </div>
                     <div className="flex items-center justify-between text-xs text-slate-400">

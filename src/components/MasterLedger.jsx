@@ -52,12 +52,21 @@ export default function MasterLedger() {
     try {
       const row = filtered[editingCell.rowIndex];
       const value = parseFloat(editValue) || 0;
+      const updated = { ...row, [editingCell.field]: value };
+      const income = Number(updated.income) || 0;
+      const expense = Number(updated.expense) || 0;
+      const bonus = Number(updated.bonus) || 0;
+      const recalculated = Math.max(0, income + bonus - expense);
       await apiClient.monthly.save({
         month_index: row.month_index,
         month_label: row.month_label,
-        [editingCell.field]: value,
-        total_inflow: editingCell.field === 'total_inflow' ? value : row.total_inflow,
+        income,
+        expense,
+        bonus,
+        total_inflow: editingCell.field === 'total_inflow' ? value : recalculated,
+        note: row.note || '',
         phase_id: row.phase_id,
+        status: row.status || 'confirmed',
       });
       setEditingCell(null);
       loadData();

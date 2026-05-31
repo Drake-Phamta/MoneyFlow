@@ -89,7 +89,7 @@ export default function CashFlowPage() {
         <div>
           <h1 className="page-title">Dòng Tiền</h1>
           <p className="page-subtitle">
-            {filled.length} tháng đã ghi nhận · Trung bình {formatVND(avgMonthly)}/tháng
+            {filled.length} tháng đã ghi nhận · TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng
           </p>
         </div>
         <button onClick={() => setShowWizard(!showWizard)} className="btn-primary">
@@ -138,9 +138,9 @@ export default function CashFlowPage() {
           <p className="text-xs text-slate-400">Mục tiêu: ≥ 30%</p>
         </div>
         <div className="kpi">
-          <span className="kpi-label">Trung bình/tháng</span>
+          <span className="kpi-label">TB tiền nhàn rỗi</span>
           <p className="kpi-value text-blue-600">{formatVND(avgMonthly)}</p>
-          <p className="text-xs text-slate-400">{streak} tháng liên tục</p>
+          <p className="text-xs text-slate-400">{streak} tháng liên tục dương</p>
         </div>
       </div>
 
@@ -150,7 +150,7 @@ export default function CashFlowPage() {
           {/* Cash Flow Chart */}
           <div className="card">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-700">Dòng tiền theo tháng</h3>
+              <h3 className="text-sm font-semibold text-slate-700">Phân bổ thu chi theo tháng</h3>
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Thu nhập</span>
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Chi tiêu</span>
@@ -202,7 +202,7 @@ export default function CashFlowPage() {
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-[10px] text-slate-400">Dựa trên dòng tiền trung bình {formatVND(avgMonthly)}/tháng</p>
+                <p className="text-[10px] text-slate-400">Dựa trên tiền nhàn rỗi TB {formatVND(avgMonthly)}/tháng</p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
                     <p className="text-xs text-slate-500 mb-1">Xu hướng gần đây (3 tháng)</p>

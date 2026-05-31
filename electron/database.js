@@ -1138,12 +1138,30 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const totalCurrentValue = portfolio.reduce((s, p) => s + p.current_value, 0);
     const totalGain = totalCurrentValue - totalInvested;
     const byCategory = {};
+
+    // Investment assets (stocks, ETFs, gold, etc.)
     for (const p of portfolio) {
       if (!byCategory[p.category]) byCategory[p.category] = { total: 0, currentTotal: 0, items: [] };
       byCategory[p.category].total += p.total_invested;
       byCategory[p.category].currentTotal += p.current_value;
       byCategory[p.category].items.push(p);
     }
+
+    // Savings accounts — group by their assigned category
+    try {
+      const savingsAccounts = this.getSavingsAccounts().filter(a => a.status === 'active');
+      for (const a of savingsAccounts) {
+        const catName = a.category_name || 'Tiết kiệm & Trái phiếu';
+        const balance = a.current_balance || a.principal;
+        if (!byCategory[catName]) byCategory[catName] = { total: 0, currentTotal: 0, items: [] };
+        byCategory[catName].total += a.principal;
+        byCategory[catName].currentTotal += balance;
+        byCategory[catName].items.push({ name: a.name, type: 'savings', ...a });
+      }
+    } catch (e) {
+      console.error('getPortfolioSummary: savings error:', e.message);
+    }
+
     return { portfolio, totalInvested, totalCurrentValue, totalGain, byCategory };
   }
 

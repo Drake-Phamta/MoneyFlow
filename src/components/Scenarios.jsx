@@ -320,7 +320,7 @@ export default function Scenarios() {
           <p className="text-xs text-slate-400">Mục tiêu: {formatVNDShort(fiNumber)}</p>
         </div>
         <div className="kpi">
-          <span className="kpi-label">Dòng tiền TB/tháng</span>
+          <span className="kpi-label">TB dòng tiền/tháng</span>
           <p className="kpi-value text-blue-600">{formatVND(avgInflow)}</p>
           <p className="text-xs text-slate-400">{filled.length} tháng ghi nhận</p>
         </div>

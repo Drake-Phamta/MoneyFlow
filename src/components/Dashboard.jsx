@@ -7,6 +7,11 @@ import AllocationPie from './charts/AllocationPie';
 import AppIcon from '../utils/iconMap';
 import { ArrowClockwise, Bell, Calendar, Warning, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, BookmarkSimple, Lightbulb, CheckCircle, PiggyBank } from '@phosphor-icons/react';
 
+// Display labels (DB name → user-facing label)
+const CATEGORY_LABELS = {
+  'Chứng Khoán': 'Đầu Tư',
+};
+
 // Category metadata (matching database seed order)
 const CATEGORY_META = [
   { name: 'Dự Phòng', color: '#10b981', icon: '🛡️' },
@@ -35,13 +40,17 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-    handleRefreshPrices(false);
+    const lastRefreshTime = localStorage.getItem('lastPriceRefresh');
+    const oneHour = 60 * 60 * 1000;
+    if (!lastRefreshTime || (Date.now() - parseInt(lastRefreshTime)) > oneHour) {
+      handleRefreshPrices(true);
+    }
   }, []);
 
   async function loadData() {
     try {
       const [s, p, f, a, n, ac, ss, mats, phases] = await Promise.all([
-        apiClient.portfolio.summary(),
+        apiClient.portfolio.summary().catch(e => { console.error('portfolio.summary error:', e); return null; }),
         apiClient.phases.active(),
         apiClient.monthly.filled(),
         apiClient.activity.get(10),
@@ -86,14 +95,18 @@ export default function Dashboard() {
       month: m.month_label,
       income: m.income || 0,
       expense: m.expense || 0,
-      net: m.total_inflow || 0,
+      net: (m.income || 0) + (m.bonus || 0) - (m.expense || 0),
     }));
   }, [filled]);
 
-  // Savings rate (for KPI)
+  // Savings rate (for KPI) — calculate from income/expense directly
   const totalIncome = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
-  const totalNet = filled.reduce((s, m) => s + (m.total_inflow || 0), 0);
-  const savingsRate = totalIncome > 0 ? (totalNet / totalIncome) * 100 : 0;
+  const totalExpense = filled.reduce((s, m) => s + (Number(m.expense) || 0), 0);
+  const totalNet = totalIncome - totalExpense;
+  const hasExpenseData = filled.some(m => Number(m.expense) > 0);
+  const savingsRate = totalIncome > 0 && hasExpenseData
+    ? (totalNet / totalIncome) * 100
+    : null;
 
   // Total assets = investments + savings
   const totalSavingsBalance = savingsSummary?.totalBalance || 0;
@@ -142,7 +155,7 @@ export default function Dashboard() {
   // Allocation pie data (all 5 categories)
   const allocPieData = useMemo(() => {
     return CATEGORY_META.map(c => ({
-      name: c.name,
+      name: CATEGORY_LABELS[c.name] || c.name,
       value: byCategory[c.name]?.currentTotal || 0,
       color: c.color,
       icon: c.icon,
@@ -168,6 +181,7 @@ export default function Dashboard() {
     try {
       const result = await apiClient.prices.refresh();
       setLastRefresh(new Date());
+      localStorage.setItem('lastPriceRefresh', Date.now().toString());
       await loadData();
       if (!silent && result?.results) {
         const failed = result.results.filter(r => r.status !== 'ok');
@@ -178,6 +192,7 @@ export default function Dashboard() {
     } catch (err) {
       console.error('Refresh error:', err);
       if (!silent) alert('Lỗi đồng bộ giá: ' + err.message);
+      localStorage.setItem('lastPriceRefresh', Date.now().toString());
     } finally {
       setRefreshing(false);
     }
@@ -309,7 +324,7 @@ export default function Dashboard() {
       )}
 
       {/* KPI Row — 6 cards */}
-      <div className="grid grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
         <div className="kpi">
           <span className="kpi-label">Tổng tài sản</span>
           <p className="kpi-value text-slate-800">{formatVND(grandTotal)}</p>
@@ -336,10 +351,19 @@ export default function Dashboard() {
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
-          <p className={`kpi-value ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
-            {savingsRate.toFixed(1)}%
-          </p>
-          <p className="text-xs text-slate-400">Tiết kiệm / Thu nhập</p>
+          {savingsRate !== null ? (
+            <>
+              <p className={`kpi-value ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+                {savingsRate.toFixed(1)}%
+              </p>
+              <p className="text-xs text-slate-400">Tiết kiệm / Thu nhập</p>
+            </>
+          ) : (
+            <>
+              <p className="kpi-value text-slate-300">--</p>
+              <p className="text-xs text-slate-400">Nhập chi tiêu để tính</p>
+            </>
+          )}
         </div>
         <div className="kpi">
           <span className="kpi-label">Thanh khoản</span>
@@ -349,9 +373,9 @@ export default function Dashboard() {
       </div>
 
       {/* Main content grid */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Left: Portfolio table (2 cols) */}
-        <div className="col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4">
           {/* Portfolio Table */}
           <div className="card p-0 overflow-hidden">
             <div className="px-5 py-4 border-b border-slate-100">
@@ -364,12 +388,12 @@ export default function Dashboard() {
                 <button onClick={() => navigate('/cashflow')} className="btn-primary mt-3 text-sm">Nhập liệu tháng đầu tiên</button>
               </div>
             ) : (
-              <div className="overflow-auto max-h-[400px]">
-                <table className="table">
+              <div className="overflow-x-auto">
+                <table className="table min-w-[640px]">
                   <thead>
                     <tr>
                       <th>Tài sản</th>
-                      <th className="text-right">Khối lượng</th>
+                      <th className="text-right">KL</th>
                       <th className="text-right">Giá vốn</th>
                       <th className="text-right">Giá hiện tại</th>
                       <th className="text-right">Giá trị</th>
@@ -442,11 +466,11 @@ export default function Dashboard() {
           {miniChartData.length > 0 && (
             <div className="card">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-700">Dòng tiền 6 tháng gần nhất</h3>
+                <h3 className="text-sm font-semibold text-slate-700">Thu chi 6 tháng gần nhất</h3>
                 <button onClick={() => navigate('/cashflow')} className="text-xs text-primary-600 hover:underline">Xem tất cả</button>
               </div>
               <ResponsiveContainer width="100%" height={200}>
-                <BarChart data={miniChartData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
+                <BarChart data={miniChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                   <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={50} />

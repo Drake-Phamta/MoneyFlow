@@ -148,9 +148,9 @@ export default function AllocationGoals() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Allocation: Current vs Target */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 xl:grid-cols-5 gap-4">
         {/* Current allocation pie */}
-        <div className="card">
+        <div className="card xl:col-span-2">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Phân bổ hiện tại</h3>
           {pieData.length === 0 ? (
             <div className="text-center py-12 text-slate-400 text-sm">Chưa có dữ liệu</div>
@@ -180,7 +180,7 @@ export default function AllocationGoals() {
         </div>
 
         {/* Target allocation */}
-        <div className="card">
+        <div className="card xl:col-span-3">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">
             Phân bổ mục tiêu
             {phase && <span className="text-xs text-slate-400 ml-2">({phase.name})</span>}
