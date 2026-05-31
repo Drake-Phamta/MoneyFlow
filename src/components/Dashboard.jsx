@@ -523,7 +523,7 @@ export default function Dashboard() {
         <div className="kpi">
           <span className="kpi-label">Tổng tài sản</span>
           <p className="kpi-value text-slate-800">{formatVND(grandTotal)}</p>
-          <p className="text-xs text-slate-400">Đầu tư + Tiết kiệm + Tiền mặt</p>
+          <p className="text-xs text-slate-400">ĐT · TK · Tiền mặt</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Vốn đầu tư</span>
@@ -555,7 +555,7 @@ export default function Dashboard() {
               <p className={`kpi-value ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
                 {savingsRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-slate-400">Tiết kiệm / Thu nhập</p>
+              <p className="text-xs text-slate-400">TK / Thu nhập</p>
             </>
           ) : (
             <>
@@ -572,7 +572,7 @@ export default function Dashboard() {
         <div className="kpi">
           <span className="kpi-label">Tiền mặt</span>
           <p className="kpi-value text-amber-600">{formatVND(totalCashOnHand)}</p>
-          <p className="text-xs text-slate-400">Chưa phân bổ</p>
+          <p className="text-xs text-slate-400">Tiền mặt nhàn rỗi</p>
         </div>
       </div>
 
@@ -585,7 +585,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h3 className="text-sm font-semibold text-slate-700">Danh mục giao dịch</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Click vào giá hiện tại để cập nhật</p>
+                <p className="text-xs text-slate-400 mt-0.5">Click giá để cập nhật</p>
               </div>
               {portfolio.length > 0 && (
                 <span className="text-xs text-slate-400">{portfolio.length} tài sản</span>

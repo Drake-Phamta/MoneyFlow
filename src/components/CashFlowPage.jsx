@@ -67,9 +67,8 @@ export default function CashFlowPage() {
   const avgSavingsRate = totalIncome > 0 ? (totalNet / totalIncome) * 100 : 0;
   const avgMonthly = filled.length > 0 ? totalNet / filled.length : 0;
 
-  // Savings target from phase (Dự Phòng ratio), default 30%
-  const duPhongRatio = phaseAllocs.find(a => a.category_name === 'Dự Phòng')?.ratio;
-  const savingsTargetPct = duPhongRatio ? duPhongRatio * 100 : 30;
+  // Savings rate target (% of income) — default 30%
+  const savingsTargetPct = 30;
 
   // Streak — consecutive months with positive net cash flow
   let streak = 0;
@@ -219,7 +218,7 @@ export default function CashFlowPage() {
               <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
               <div className="flex gap-4 text-xs text-slate-400">
                 <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full border border-emerald-500 border-dashed" /> Mục tiêu {savingsTargetPct.toFixed(0)}%</span>
+                <span className="flex items-center gap-1.5"><span className="w-4 h-0 border-t-2 border-dashed border-emerald-500" /> Mục tiêu</span>
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
