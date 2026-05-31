@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatVND, formatCompact } from '../utils/formatters';
+import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AllocationPie from './charts/AllocationPie';
 import AppIcon from '../utils/iconMap';
@@ -389,15 +390,15 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="table min-w-[640px]">
+                <table className="w-full" style={{ tableLayout: 'fixed' }}>
                   <thead>
-                    <tr>
-                      <th>Tài sản</th>
-                      <th className="text-right">KL</th>
-                      <th className="text-right">Giá vốn</th>
-                      <th className="text-right">Giá hiện tại</th>
-                      <th className="text-right">Giá trị</th>
-                      <th className="text-right">Lãi/Lỗ</th>
+                    <tr className="bg-slate-50 border-b border-slate-200">
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase">Tài sản</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" style={{ width: '80px' }}>KL</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" style={{ width: '110px' }}>Giá vốn</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" style={{ width: '130px' }}>Giá hiện tại</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" style={{ width: '120px' }}>Giá trị</th>
+                      <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase" style={{ width: '110px' }}>Lãi/Lỗ</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -406,34 +407,35 @@ export default function Dashboard() {
                       const gainPct = p.total_invested > 0 ? (gain / p.total_invested) * 100 : 0;
                       const isEditing = editingPrice === p.asset_type_id;
                       return (
-                        <tr key={p.asset_type_id}>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <span className="text-base"><AppIcon emoji={p.icon} size={18} /></span>
-                              <div>
-                                <p className="text-sm font-medium text-slate-800">{p.name}</p>
+                        <tr key={p.asset_type_id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <AppIcon name={p.icon} size={18} />
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-slate-800 truncate">{p.name}</p>
                                 <p className="text-[10px] text-slate-400">{p.category}</p>
                               </div>
                             </div>
                           </td>
-                          <td className="text-right font-mono text-sm">{p.total_quantity} {p.unit}</td>
-                          <td className="text-right text-sm text-slate-500">{formatVND(p.avg_cost)}</td>
-                          <td className="text-right">
+                          <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{p.total_quantity}</td>
+                          <td className="px-4 py-3 text-right text-sm text-slate-500 font-mono">{formatVND(p.avg_cost)}</td>
+                          <td className="px-4 py-3 text-right">
                             {isEditing ? (
-                              <input autoFocus type="number" value={priceValue} onChange={e => setPriceValue(e.target.value)}
+                              <input autoFocus type="text" inputMode="numeric" value={priceValue ? formatNumberInput(priceValue) : ''}
+                                onChange={e => setPriceValue(e.target.value.replace(/\D/g, ''))}
                                 onBlur={() => handlePriceUpdate(p.asset_type_id)}
                                 onKeyDown={e => { if (e.key === 'Enter') handlePriceUpdate(p.asset_type_id); if (e.key === 'Escape') setEditingPrice(null); }}
-                                className="input text-xs py-1 w-24 text-right" />
+                                className="input text-sm py-1 w-28 text-right font-mono" />
                             ) : (
                               <button onClick={() => { setEditingPrice(p.asset_type_id); setPriceValue(p.current_price?.toString() || ''); }}
-                                className="text-sm font-medium text-primary-600 hover:bg-primary-50 px-2 py-0.5 rounded cursor-pointer"
+                                className="text-sm font-medium text-primary-600 hover:bg-primary-50 px-2 py-1 rounded cursor-pointer font-mono"
                                 title="Click để cập nhật giá">
                                 {p.current_price > 0 ? formatVND(p.current_price) : 'Cập nhật'}
                               </button>
                             )}
                           </td>
-                          <td className="text-right font-semibold text-sm">{formatVND(p.current_value)}</td>
-                          <td className="text-right">
+                          <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">{formatVND(p.current_value)}</td>
+                          <td className="px-4 py-3 text-right">
                             <div className={gain >= 0 ? 'text-emerald-600' : 'text-red-500'}>
                               <p className="text-sm font-semibold">{gain >= 0 ? '+' : ''}{formatVND(gain)}</p>
                               <p className="text-[10px]">{gain >= 0 ? '+' : ''}{gainPct.toFixed(2)}%</p>
@@ -444,12 +446,13 @@ export default function Dashboard() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-slate-50 font-semibold">
-                      <td colSpan={2}>Tổng</td>
-                      <td className="text-right text-sm text-slate-600">{formatVND(totalInvested)}</td>
-                      <td></td>
-                      <td className="text-right text-sm">{formatVND(totalCurrentValue)}</td>
-                      <td className="text-right">
+                    <tr className="bg-slate-50 font-semibold border-t border-slate-200">
+                      <td className="px-4 py-3 text-sm text-slate-700">Tổng</td>
+                      <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3 text-right text-sm text-slate-600">{formatVND(totalInvested)}</td>
+                      <td className="px-4 py-3"></td>
+                      <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">{formatVND(totalCurrentValue)}</td>
+                      <td className="px-4 py-3 text-right">
                         <div className={totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}>
                           <p className="text-sm font-bold">{totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}</p>
                           <p className="text-[10px]">{totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%</p>

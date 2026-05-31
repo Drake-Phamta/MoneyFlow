@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatVND, formatDate } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
-import AppIcon from '../utils/iconMap';
+import AppIcon, { Bell, X } from '../utils/iconMap';
 
 export default function SniperPlaybook({ embedded }) {
   const [phase, setPhase] = useState(null);

@@ -36,6 +36,11 @@ app.get('/api/params/avg-expense', (req, res) => {
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.post('/api/params/recalc-goals', (req, res) => {
+  try { db.recalculateAllPhaseGoals(); res.json(true); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== TIMELINE =====
 app.post('/api/timeline/regenerate', (req, res) => {
   try {
@@ -53,6 +58,11 @@ app.get('/api/assets', (req, res) => {
 
 app.post('/api/assets', (req, res) => {
   try { res.json(db.addAssetType(req.body)); }
+  catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/assets/:id', (req, res) => {
+  try { db.updateAssetType(parseInt(req.params.id), req.body); res.json(true); }
   catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -110,8 +120,15 @@ app.get('/api/monthly/:index', (req, res) => {
 });
 
 app.post('/api/monthly', (req, res) => {
-  try { db.saveMonthlyEntry(req.body); res.json(true); }
-  catch (e) { res.status(500).json({ error: e.message }); }
+  try {
+    const data = { ...req.body };
+    if (data.total_inflow === undefined || data.total_inflow === null) {
+      data.total_inflow = Math.max(0, (data.income || 0) + (data.bonus || 0) - (data.expense || 0));
+    }
+    db.saveMonthlyEntry(data);
+    const entry = db.getMonthlyEntry(data.month_index);
+    res.json(entry || true);
+  } catch (e) { console.error('[POST /api/monthly] Error:', e); res.status(500).json({ error: e.message || String(e) }); }
 });
 
 app.delete('/api/monthly/:index', (req, res) => {

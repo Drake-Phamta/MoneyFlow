@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatVND, formatDate } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
-import AppIcon from '../utils/iconMap';
+import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
 
 export default function ExecutionLog({ embedded }) {
   const [transactions, setTransactions] = useState([]);
@@ -377,24 +377,40 @@ export default function ExecutionLog({ embedded }) {
           <div className="table-wrap border-0 rounded-none">
             <table className="table">
               <thead>
-                <tr>
-                  <th>#</th><th>Ngày</th><th>Tài sản</th><th>Loại</th>
-                  <th className="text-right">Khối lượng</th><th className="text-right">Giá</th>
-                  <th className="text-right">Thành tiền</th><th></th>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '40px' }}>#</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '100px' }}>Ngày</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Tài sản</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '70px' }}>Loại</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>KL</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '120px' }}>Giá</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Thành tiền</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '50px' }}></th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((t, i) => (
-                  <tr key={t.id}>
-                    <td className="text-slate-400 text-xs">{i + 1}</td>
-                    <td className="font-medium">{formatDate(t.date)}</td>
-                    <td><span className="text-sm flex items-center gap-1.5"><AppIcon emoji={t.icon} size={16} /> {t.display_name || t.asset_type_name}</span></td>
-                    <td><span className={t.type === 'BUY' ? 'badge-success' : 'badge-danger'}>{t.type === 'BUY' ? 'MUA' : 'BÁN'}</span></td>
-                    <td className="text-right">{t.quantity} {t.unit}</td>
-                    <td className="text-right">{formatVND(t.price)}</td>
-                    <td className="text-right font-semibold">{formatVND(t.total_amount)}</td>
-                    <td className="text-right">
-                      <button onClick={() => handleDelete(t.id)} className="btn-ghost text-xs text-red-500 px-2 py-1">Xóa</button>
+                  <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                    <td className="px-4 py-3 text-slate-400 text-sm">{i + 1}</td>
+                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(t.date)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <AppIcon name={t.icon} size={18} />
+                        <span className="text-sm font-medium text-slate-700 truncate">{t.display_name || t.asset_type_name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.type === 'BUY' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+                        {t.type === 'BUY' ? 'MUA' : 'BÁN'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{t.quantity}</td>
+                    <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">{formatVND(t.total_amount)}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition" title="Xóa">
+                        <Trash size={16} />
+                      </button>
                     </td>
                   </tr>
                 ))}

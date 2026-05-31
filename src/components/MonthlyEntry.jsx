@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import AppIcon from '../utils/iconMap';
+import AppIcon, { Check, X, CheckCircle } from '../utils/iconMap';
 
 const CATEGORY_LABELS = {
   'Chứng Khoán': 'Đầu tư',
@@ -96,18 +96,33 @@ export default function MonthlyEntry() {
   }
 
   const totalInflow = Math.max(0, parseNumberInput(income) - parseNumberInput(expense) + parseNumberInput(bonus));
+  const allocsInitialized = useRef(false);
 
   useEffect(() => {
     if (totalInflow > 0 && phaseAllocs.length > 0) {
-      setAllocs(phaseAllocs.map(pa => ({
-        category_id: pa.category_id,
-        category_name: pa.category_name,
-        color: pa.color,
-        icon: pa.icon,
-        ratio: pa.ratio,
-        planned_amount: Math.round(totalInflow * pa.ratio),
-        actual_amount: 0,
-      })));
+      setAllocs(prev => {
+        if (prev.length === 0) {
+          // First time: create allocs from phaseAllocs
+          allocsInitialized.current = true;
+          return phaseAllocs.map(pa => {
+            const planned = Math.round(totalInflow * pa.ratio);
+            return {
+              category_id: pa.category_id,
+              category_name: pa.category_name,
+              color: pa.color,
+              icon: pa.icon,
+              ratio: pa.ratio,
+              planned_amount: planned,
+              actual_amount: planned,
+            };
+          });
+        }
+        // Update existing allocs' planned_amount (preserve actual_amount edits)
+        return prev.map(a => ({
+          ...a,
+          planned_amount: Math.round(totalInflow * (a.ratio || 0)),
+        }));
+      });
     }
   }, [totalInflow, phaseAllocs]);
 
@@ -127,12 +142,13 @@ export default function MonthlyEntry() {
       setStep(1);
 
       if (allocData.length > 0) {
+        allocsInitialized.current = true;
         setAllocs(allocData.map(a => ({
           category_id: a.category_id,
           category_name: a.category_name,
           color: a.color,
           icon: a.icon,
-          ratio: 0,
+          ratio: phaseAllocs.find(pa => pa.category_id === a.category_id)?.ratio || 0,
           planned_amount: a.planned_amount,
           actual_amount: a.actual_amount,
         })));
@@ -148,6 +164,7 @@ export default function MonthlyEntry() {
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
     setAllocs([]); setTrades([]);
+    allocsInitialized.current = false;
     setStep(1);
     loadAll();
   }
@@ -246,6 +263,7 @@ export default function MonthlyEntry() {
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
     setAllocs([]); setTrades([]);
+    allocsInitialized.current = false;
     setStep(1);
     loadAll();
   }

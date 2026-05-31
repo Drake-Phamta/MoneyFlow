@@ -872,8 +872,23 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     this.save();
     return this.lastId();
   }
+  updateAssetType(id, data) {
+    const fields = [];
+    const vals = [];
+    for (const [k, v] of Object.entries(data)) {
+      if (['name', 'category', 'ticker', 'unit', 'color', 'icon', 'sort_order', 'asset_class'].includes(k)) {
+        fields.push(`${k} = ?`);
+        vals.push(v);
+      }
+    }
+    if (fields.length) {
+      vals.push(id);
+      this.run(`UPDATE asset_types SET ${fields.join(', ')} WHERE id = ?`, vals);
+      this.save();
+    }
+  }
   deleteAsset(id) {
-    this.run('DELETE FROM asset_types WHERE id = ?', [id]);
+    this.run('UPDATE asset_types SET active = 0 WHERE id = ?', [id]);
     this.save();
   }
 
@@ -906,9 +921,9 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const phases = this.query('SELECT * FROM phases ORDER BY sort_order');
     if (!phases.length) return null;
 
-    // Calculate total Dự Phòng balance
+    // Calculate total Dự Phòng balance (use actual_amount if > 0, else planned_amount)
     const duPhongAllocs = this.query(`
-      SELECT COALESCE(SUM(a.actual_amount), 0) as total
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
       FROM allocations a
       JOIN categories c ON c.id = a.category_id
       WHERE c.name LIKE '%Dự Phòng%'
@@ -941,12 +956,20 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       break;
     }
 
-    // Update is_active flags
-    this.run('UPDATE phases SET is_active = 0');
-    this.run('UPDATE phases SET is_active = 1 WHERE id = ?', [activePhase.id]);
-    this.save();
+    // Update is_active flags only if changed
+    const currentActive = this.queryOne('SELECT id FROM phases WHERE is_active = 1');
+    if (!currentActive || currentActive.id !== activePhase.id) {
+      this.run('UPDATE phases SET is_active = 0');
+      this.run('UPDATE phases SET is_active = 1 WHERE id = ?', [activePhase.id]);
+      this.save();
+    }
 
     return activePhase;
+  }
+  setActivePhase(phaseId) {
+    this.run('UPDATE phases SET is_active = 0');
+    this.run('UPDATE phases SET is_active = 1 WHERE id = ?', [phaseId]);
+    this.save();
   }
   getPhaseAllocations(phaseId) {
     return this.query(`
@@ -1014,18 +1037,18 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       this.run(`UPDATE monthly_entries SET
         income = ?, expense = ?, bonus = ?, total_inflow = ?, note = ?, phase_id = ?, status = ?
         WHERE month_index = ?`,
-        [data.income || 0, data.expense || 0, data.bonus || 0, data.total_inflow,
-         data.note, data.phase_id, data.status || 'confirmed', data.month_index]);
+        [data.income || 0, data.expense || 0, data.bonus || 0, data.total_inflow || 0,
+         data.note || null, data.phase_id || null, data.status || 'confirmed', data.month_index]);
     } else {
       this.run(`INSERT INTO monthly_entries (month_index, month_label, income, expense, bonus, total_inflow, note, phase_id, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [data.month_index, data.month_label, data.income || 0, data.expense || 0, data.bonus || 0,
-         data.total_inflow, data.note, data.phase_id, data.status || 'confirmed']);
+         data.total_inflow || 0, data.note || null, data.phase_id || null, data.status || 'confirmed']);
     }
     // Log activity
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
       [new Date().toISOString().split('T')[0], 'MONTHLY_ENTRY',
-       `Nhập liệu ${data.month_label}: ${formatVND(data.total_inflow)}`, data.total_inflow]);
+       `Nhập liệu ${data.month_label || ''}: ${formatVND(data.total_inflow)}`, data.total_inflow || 0]);
     this.save();
   }
 
@@ -1597,7 +1620,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     // Total allocated to savings-related categories across all months
     const allocRows = this.query(`
       SELECT c.name as category_name, c.icon, c.color,
-             SUM(a.actual_amount) as total_allocated
+             SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END) as total_allocated
       FROM allocations a
       JOIN categories c ON c.id = a.category_id
       WHERE c.name LIKE '%Dự Phòng%' OR c.name LIKE '%Tiết kiệm%'
@@ -1617,7 +1640,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
 
     // Total allocated to other categories (stocks, sniper, gold)
     const otherAllocResult = this.query(`
-      SELECT COALESCE(SUM(a.actual_amount), 0) as total
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
       FROM allocations a
       JOIN categories c ON c.id = a.category_id
       WHERE c.name NOT LIKE '%Dự Phòng%' AND c.name NOT LIKE '%Tiết kiệm%'

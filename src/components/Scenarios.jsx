@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import AppIcon from '../utils/iconMap';
+import AppIcon, { Check, CaretDown } from '../utils/iconMap';
 
 const CATEGORY_LABELS = {
   'Chứng Khoán': 'Đầu tư',
@@ -166,6 +166,7 @@ export default function Scenarios() {
   const [expandedKnowledge, setExpandedKnowledge] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [allocsByCategory, setAllocsByCategory] = useState({});
+  const [savingsSummary, setSavingsSummary] = useState(null);
 
   useEffect(() => {
     loadData();
@@ -173,15 +174,17 @@ export default function Scenarios() {
 
   async function loadData() {
     try {
-      const [f, p, ph, allPhases, params, avg] = await Promise.all([
+      const [f, p, ph, allPhases, params, avg, ss] = await Promise.all([
         apiClient.monthly.filled(),
         apiClient.portfolio.summary(),
         apiClient.phases.active(),
         apiClient.phases.get(),
         apiClient.params.get(),
         apiClient.params.avgExpense(),
+        apiClient.savings.summary().catch(() => null),
       ]);
       setFilled(f);
+      setSavingsSummary(ss);
       setPortfolio(p);
       setPhase(ph);
       setPhases(allPhases);
@@ -218,7 +221,8 @@ export default function Scenarios() {
   const avgInflow = filled.length > 0 ? totalInflow / filled.length : 0;
   const byCategory = portfolio?.byCategory || {};
   const totalAllocated = Object.values(allocsByCategory).reduce((s, c) => s + c.total, 0);
-  const totalCurrentValue = portfolio?.totalCurrentValue || totalAllocated;
+  const totalSavingsBalance = savingsSummary?.totalBalance || 0;
+  const totalCurrentValue = (portfolio?.totalCurrentValue || totalAllocated) + totalSavingsBalance;
 
   // FI calculation (4% rule)
   const fiNumber = avgExpense * 12 / 0.04;

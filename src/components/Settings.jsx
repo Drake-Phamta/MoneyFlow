@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { formatVND, formatPercent } from '../utils/formatters';
 import { apiClient, isElectron } from '../utils/apiClient';
 import FormattedInput from './FormattedInput';
-import AppIcon, { Spinner, DownloadSimple, UploadSimple, CheckCircle, XCircle } from '../utils/iconMap';
+import AppIcon, { Spinner, DownloadSimple, UploadSimple, CheckCircle, XCircle, Trash, Eye, EyeSlash, PencilSimple } from '../utils/iconMap';
 
 export default function Settings() {
   const [phases, setPhases] = useState([]);
@@ -11,7 +11,14 @@ export default function Settings() {
   const [params, setParams] = useState({});
   const [importStatus, setImportStatus] = useState(null);
   const [showAddAsset, setShowAddAsset] = useState(false);
-  const [newAsset, setNewAsset] = useState({ name: '', category: 'Cổ phiếu', ticker: '', unit: 'CP' });
+  const [editingAsset, setEditingAsset] = useState(null);
+  const [editAssetForm, setEditAssetForm] = useState({});
+  const [newAsset, setNewAsset] = useState({ name: '', category: 'Cổ phiếu', ticker: '', unit: 'CP', asset_class: 'stock' });
+  const [assetSearch, setAssetSearch] = useState('');
+  const [assetFilter, setAssetFilter] = useState('all');
+  const [selectedAssets, setSelectedAssets] = useState(new Set());
+  const [parentAssets, setParentAssets] = useState([]);
+  const [childAssets, setChildAssets] = useState([]);
 
   // Timeline form
   const [totalMonths, setTotalMonths] = useState(120);
@@ -36,6 +43,8 @@ export default function Settings() {
     setPhases(ph);
     setCategories(c);
     setAssetTypes(a);
+    setParentAssets(a.filter(x => !x.ticker));
+    setChildAssets(a.filter(x => x.ticker));
 
     try {
       const [s, avg] = await Promise.all([
@@ -133,16 +142,105 @@ export default function Settings() {
     }
   }
 
+  const CATEGORY_TO_CLASS = {
+    'Cổ phiếu': 'stock', 'Quỹ đầu tư': 'etf', 'Vàng': 'gold',
+    'Tiết kiệm': 'savings', 'Trái phiếu': 'bond', 'Khác': 'other',
+  };
+
+  const ASSET_CLASS_TABS = [
+    { value: 'all', label: 'Tất cả' },
+    { value: 'stock', label: 'Cổ phiếu' },
+    { value: 'etf', label: 'ETF' },
+    { value: 'gold', label: 'Vàng' },
+    { value: 'crypto', label: 'Crypto' },
+    { value: 'savings', label: 'Tiết kiệm' },
+    { value: 'bond', label: 'Trái phiếu' },
+    { value: 'other', label: 'Khác' },
+  ];
+
+  const filteredAssets = childAssets.filter(a => {
+    if (assetFilter !== 'all' && a.asset_class !== assetFilter) return false;
+    if (assetSearch) {
+      const q = assetSearch.toLowerCase();
+      return a.name.toLowerCase().includes(q) || (a.ticker || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   async function handleAddAsset() {
     if (!newAsset.name) return;
     try {
-      await apiClient.assets.add(newAsset);
-      setNewAsset({ name: '', category: 'Cổ phiếu', ticker: '', unit: 'CP' });
+      const data = { ...newAsset, asset_class: CATEGORY_TO_CLASS[newAsset.category] || 'other' };
+      await apiClient.assets.add(data);
+      setNewAsset({ name: '', category: 'Cổ phiếu', ticker: '', unit: 'CP', asset_class: 'stock' });
       setShowAddAsset(false);
       loadData();
     } catch (err) {
       console.error('Add asset error:', err);
       alert('Lỗi khi thêm tài sản: ' + err.message);
+    }
+  }
+
+  function startEditAsset(asset) {
+    setEditingAsset(asset.id);
+    setEditAssetForm({ name: asset.name, category: asset.category, ticker: asset.ticker || '', unit: asset.unit });
+  }
+
+  async function handleSaveEditAsset() {
+    if (!editAssetForm.name) return;
+    try {
+      await apiClient.assets.update(editingAsset, { ...editAssetForm, asset_class: CATEGORY_TO_CLASS[editAssetForm.category] || 'other' });
+      setEditingAsset(null);
+      setEditAssetForm({});
+      loadData();
+    } catch (err) {
+      console.error('Edit asset error:', err);
+      alert('Lỗi khi sửa tài sản: ' + err.message);
+    }
+  }
+
+  async function handleDeleteAsset(id) {
+    if (!confirm('Xóa loại tài sản này? Các giao dịch liên quan sẽ được giữ nguyên.')) return;
+    try {
+      await apiClient.assets.delete(id);
+      loadData();
+    } catch (err) {
+      console.error('Delete asset error:', err);
+      alert('Lỗi khi xóa tài sản: ' + err.message);
+    }
+  }
+
+  async function handleToggleTrack(id, currentTracked) {
+    try {
+      await apiClient.assets.setTracked(id, !currentTracked);
+      loadData();
+    } catch (err) {
+      console.error('Toggle track error:', err);
+    }
+  }
+
+  function toggleSelectAsset(id) {
+    setSelectedAssets(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAllFiltered() {
+    const allSelected = filteredAssets.every(a => selectedAssets.has(a.id));
+    setSelectedAssets(allSelected ? new Set() : new Set(filteredAssets.map(a => a.id)));
+  }
+
+  async function handleDeleteSelected() {
+    if (selectedAssets.size === 0) return;
+    if (!confirm(`Xóa ${selectedAssets.size} tài sản đã chọn?`)) return;
+    try {
+      await Promise.all([...selectedAssets].map(id => apiClient.assets.delete(id)));
+      setSelectedAssets(new Set());
+      loadData();
+    } catch (err) {
+      console.error('Bulk delete error:', err);
     }
   }
 
@@ -373,21 +471,66 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Asset Types */}
+      {/* Danh mục phân loại (Parent Assets) */}
       <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-slate-700">Loại tài sản</h3>
-          <button onClick={() => setShowAddAsset(!showAddAsset)} className="btn-ghost text-xs">+ Thêm</button>
+        <h3 className="text-sm font-semibold text-slate-700 mb-3">Danh mục phân loại</h3>
+        <p className="text-[10px] text-slate-400 mb-3">Các nhóm tài sản lớn. Tài sản cụ thể thuộc về một trong các danh mục này.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+          {parentAssets.map(a => (
+            <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50">
+              <AppIcon name={a.icon} size={16} />
+              <div>
+                <p className="text-xs font-medium text-slate-700">{a.name}</p>
+                <p className="text-[10px] text-slate-400">{a.unit}</p>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
+
+      {/* Tài sản cụ thể (Child Assets) */}
+      <div className="card">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-700">Tài sản cụ thể</h3>
+            <p className="text-[10px] text-slate-400">{childAssets.length} tài sản · {selectedAssets.size} đã chọn</p>
+          </div>
+          <div className="flex gap-2">
+            {selectedAssets.size > 0 && (
+              <button onClick={handleDeleteSelected} className="btn-danger text-xs">
+                <Trash size={14} className="inline mr-1" /> Xóa {selectedAssets.size} mục
+              </button>
+            )}
+            <button onClick={() => { setShowAddAsset(!showAddAsset); setEditingAsset(null); }} className="btn-primary text-xs">+ Thêm tài sản</button>
+          </div>
+        </div>
+
+        {/* Search + Filter */}
+        <div className="flex items-center gap-3 mb-3">
+          <input value={assetSearch} onChange={e => setAssetSearch(e.target.value)} placeholder="Tìm theo tên hoặc mã..." className="input text-sm flex-1" />
+        </div>
+        <div className="flex gap-1 mb-3 flex-wrap">
+          {ASSET_CLASS_TABS.map(tab => {
+            const count = tab.value === 'all' ? childAssets.length : childAssets.filter(a => a.asset_class === tab.value).length;
+            return (
+              <button key={tab.value} onClick={() => { setAssetFilter(tab.value); setSelectedAssets(new Set()); }}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition ${assetFilter === tab.value ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                {tab.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Add Form */}
         {showAddAsset && (
-          <div className="mb-4 p-4 bg-slate-50 rounded-xl space-y-3">
+          <div className="mb-3 p-4 bg-slate-50 rounded-xl space-y-3">
             <div className="grid grid-cols-4 gap-3">
               <input value={newAsset.name} onChange={e => setNewAsset({ ...newAsset, name: e.target.value })} placeholder="Tên tài sản" className="input text-sm" />
               <select value={newAsset.category} onChange={e => setNewAsset({ ...newAsset, category: e.target.value })} className="input text-sm">
                 <option>Cổ phiếu</option><option>Quỹ đầu tư</option><option>Vàng</option><option>Tiết kiệm</option><option>Trái phiếu</option><option>Khác</option>
               </select>
-              <input value={newAsset.ticker} onChange={e => setNewAsset({ ...newAsset, ticker: e.target.value })} placeholder="Mã (tùy chọn)" className="input text-sm" />
-              <input value={newAsset.unit} onChange={e => setNewAsset({ ...newAsset, unit: e.target.value })} placeholder="Đơn vị" className="input text-sm" />
+              <input value={newAsset.ticker} onChange={e => setNewAsset({ ...newAsset, ticker: e.target.value })} placeholder="Mã (VD: FPT)" className="input text-sm" />
+              <input value={newAsset.unit} onChange={e => setNewAsset({ ...newAsset, unit: e.target.value })} placeholder="Đơn vị (VD: CP)" className="input text-sm" />
             </div>
             <div className="flex justify-end gap-2">
               <button onClick={() => setShowAddAsset(false)} className="btn-ghost text-sm">Hủy</button>
@@ -395,16 +538,69 @@ export default function Settings() {
             </div>
           </div>
         )}
-        <div className="grid grid-cols-3 gap-2">
-          {assetTypes.map(a => (
-            <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg border border-slate-100">
-              <span className="text-lg"><AppIcon emoji={a.icon} size={20} /></span>
-              <div>
-                <p className="text-xs font-medium text-slate-700">{a.name}</p>
-                <p className="text-[10px] text-slate-400">{a.category} · {a.unit}</p>
-              </div>
+
+        {/* Edit Form */}
+        {editingAsset && (
+          <div className="mb-3 p-4 bg-blue-50 rounded-xl border border-blue-200 space-y-3">
+            <h4 className="text-sm font-medium text-blue-700">Chỉnh sửa tài sản</h4>
+            <div className="grid grid-cols-4 gap-3">
+              <input value={editAssetForm.name || ''} onChange={e => setEditAssetForm({ ...editAssetForm, name: e.target.value })} placeholder="Tên" className="input text-sm" />
+              <select value={editAssetForm.category || 'Cổ phiếu'} onChange={e => setEditAssetForm({ ...editAssetForm, category: e.target.value })} className="input text-sm">
+                <option>Cổ phiếu</option><option>Quỹ đầu tư</option><option>Vàng</option><option>Tiết kiệm</option><option>Trái phiếu</option><option>Khác</option>
+              </select>
+              <input value={editAssetForm.ticker || ''} onChange={e => setEditAssetForm({ ...editAssetForm, ticker: e.target.value })} placeholder="Mã" className="input text-sm" />
+              <input value={editAssetForm.unit || ''} onChange={e => setEditAssetForm({ ...editAssetForm, unit: e.target.value })} placeholder="Đơn vị" className="input text-sm" />
             </div>
-          ))}
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setEditingAsset(null)} className="btn-ghost text-sm">Hủy</button>
+              <button onClick={handleSaveEditAsset} className="btn-primary text-sm">Lưu</button>
+            </div>
+          </div>
+        )}
+
+        {/* Asset Table */}
+        <div className="overflow-auto max-h-[400px] rounded-xl border border-slate-200">
+          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="px-3 py-2 text-left w-8"><input type="checkbox" checked={filteredAssets.length > 0 && filteredAssets.every(a => selectedAssets.has(a.id))} onChange={selectAllFiltered} className="rounded" /></th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Tài sản</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Mã</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Danh mục</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500">Đơn vị</th>
+                <th className="px-3 py-2 text-center text-xs font-semibold text-slate-500 w-20">Theo dõi</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold text-slate-500 w-20">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredAssets.length === 0 ? (
+                <tr><td colSpan={7} className="px-3 py-12 text-center text-slate-400 text-xs">{assetSearch ? 'Không tìm thấy' : 'Chưa có tài sản cụ thể nào'}</td></tr>
+              ) : (
+                filteredAssets.map(a => (
+                  <tr key={a.id} className={`border-t border-slate-100 hover:bg-slate-50 ${selectedAssets.has(a.id) ? 'bg-primary-50' : ''}`}>
+                    <td className="px-3 py-2"><input type="checkbox" checked={selectedAssets.has(a.id)} onChange={() => toggleSelectAsset(a.id)} className="rounded" /></td>
+                    <td className="px-3 py-2"><div className="flex items-center gap-2"><AppIcon name={a.icon} size={16} /><span className="font-medium text-slate-700">{a.name}</span></div></td>
+                    <td className="px-3 py-2 font-mono text-xs text-slate-500">{a.ticker}</td>
+                    <td className="px-3 py-2"><span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{a.category}</span></td>
+                    <td className="px-3 py-2 text-xs text-slate-500">{a.unit}</td>
+                    <td className="px-3 py-2 text-center">
+                      <button onClick={() => handleToggleTrack(a.id, a.is_tracked)} className={`p-1 rounded-lg transition ${a.is_tracked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-300 hover:bg-slate-100'}`} title={a.is_tracked ? 'Đang theo dõi' : 'Chưa theo dõi'}>
+                        {a.is_tracked ? <Eye size={16} /> : <EyeSlash size={16} />}
+                      </button>
+                    </td>
+                    <td className="px-3 py-2 text-right">
+                      <button onClick={() => startEditAsset(a)} className="text-slate-400 hover:text-primary-600 p-1" title="Sửa"><PencilSimple size={14} /></button>
+                      <button onClick={() => handleDeleteAsset(a.id)} className="text-slate-300 hover:text-red-500 p-1" title="Xóa"><Trash size={14} /></button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+          <span>{filteredAssets.length} / {childAssets.length} tài sản</span>
+          {selectedAssets.size > 0 && <button onClick={() => setSelectedAssets(new Set())} className="text-primary-600 hover:underline">Bỏ chọn tất cả</button>}
         </div>
       </div>
 

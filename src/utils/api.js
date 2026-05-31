@@ -33,6 +33,7 @@ export const api = {
   assets: {
     get: () => get('/assets'),
     add: (data) => post('/assets', data),
+    update: (id, data) => put(`/assets/${id}`, data),
     updatePrice: (id, price) => put(`/assets/${id}/price`, { price }),
     setTracked: (id, tracked) => put(`/assets/${id}/tracked`, { tracked }),
     delete: (id) => del(`/assets/${id}`),
