@@ -110,9 +110,9 @@ export default function CashFlow() {
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-slate-700">Dòng tiền theo tháng</h3>
           <div className="flex gap-4 text-xs text-slate-400">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Thu nhập</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Chi tiêu</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Thu nhập</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Chi tiêu</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
           </div>
         </div>
         <ResponsiveContainer width="100%" height={300}>
@@ -135,7 +135,7 @@ export default function CashFlow() {
           <div className="flex gap-4 text-xs text-slate-400">
             <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500" /> Thực tế</span>
             <span className="flex items-center gap-1.5">
-              <span className="inline-block w-5 h-0" style={{ borderTop: '2px dashed #10b981' }} />
+              <svg width="20" height="2" className="flex-shrink-0"><line x1="0" y1="1" x2="20" y2="1" stroke="#10b981" strokeWidth="2" strokeDasharray="4 2" /></svg>
               Mục tiêu
             </span>
           </div>
@@ -147,7 +147,7 @@ export default function CashFlow() {
             <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} />
             <Tooltip formatter={v => `${v.toFixed(1)}%`} />
             <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
-            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} strokeDasharray="8 4" dot={false} name="Mục tiêu" />
+            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} strokeDasharray="4 2" dot={false} name="Mục tiêu" />
           </LineChart>
         </ResponsiveContainer>
       </div>
