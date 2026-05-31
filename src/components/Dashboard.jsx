@@ -523,7 +523,7 @@ export default function Dashboard() {
         <div className="kpi">
           <span className="kpi-label">Tổng tài sản</span>
           <p className="kpi-value text-slate-800">{formatVND(grandTotal)}</p>
-          <p className="text-xs text-slate-400">ĐT · TK · Tiền mặt</p>
+          <p className="text-xs text-slate-400">Đầu tư · Tiết kiệm · Tiền mặt</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Vốn đầu tư</span>
@@ -555,7 +555,7 @@ export default function Dashboard() {
               <p className={`kpi-value ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
                 {savingsRate.toFixed(1)}%
               </p>
-              <p className="text-xs text-slate-400">TK / Thu nhập</p>
+              <p className="text-xs text-slate-400">Tiết kiệm / Thu nhập</p>
             </>
           ) : (
             <>
@@ -627,7 +627,7 @@ export default function Dashboard() {
                         {/* Details grid */}
                         <div className="grid grid-cols-3 gap-2 mb-3">
                           <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">KL</p>
+                            <p className="text-[10px] text-slate-400 mb-0.5">Khối lượng</p>
                             <p className="text-xs font-semibold text-slate-700 font-mono">{p.total_quantity}</p>
                           </div>
                           <div>

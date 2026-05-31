@@ -127,7 +127,7 @@ export default function CashFlowPage() {
         <div>
           <h1 className="page-title">Dòng tiền</h1>
           <p className="page-subtitle">
-            {filled.length} tháng đã ghi nhận · TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng
+            {filled.length} tháng đã ghi nhận · Trung bình {formatVND(avgMonthly)}/tháng
           </p>
         </div>
         <button onClick={() => setShowWizard(!showWizard)} className="btn-primary">
@@ -291,7 +291,7 @@ export default function CashFlowPage() {
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-[10px] text-slate-400">Dựa trên TB tiền nhàn rỗi {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
+                <p className="text-[10px] text-slate-400">Dựa trên trung bình {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
                     <p className="text-xs text-slate-500 mb-1">Xu hướng 3 tháng gần nhất</p>
@@ -307,7 +307,7 @@ export default function CashFlowPage() {
                             <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
                             {diff !== 0 && (
                               <p className={`text-[10px] ${diff > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với TB
+                                {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với trung bình
                               </p>
                             )}
                           </div>

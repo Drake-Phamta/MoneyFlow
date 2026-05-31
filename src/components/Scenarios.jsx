@@ -104,14 +104,14 @@ Quy tắc cơ bản:
 • Tuổi cao → ưu tiên ổn định → nhiều trái phiếu/tiết kiệm
 
 Phổ rủi ro từ thấp đến cao:
-TK&TP (3-7%/năm) → Dự Phòng (3-5%) → Vàng (5-10%) → CK (8-15%) → Bắn Tỉa (15-30%+)
+Tiết kiệm & Trái phiếu (3-7%/năm) → Dự Phòng (3-5%) → Vàng (5-10%) → Chứng Khoán (8-15%) → Bắn Tỉa (15-30%+)
 
 Tại sao 5 danh mục?
 • Dự Phòng: thanh khoản cao, không rủi ro
 • Chứng Khoán: tăng trưởng dài hạn
 • Vàng: hedge chống lạm phát, trú ẩn an toàn
 • Bắn Tỉa: lợi nhuận cao khi thị trường sụt giảm
-• TK&TP: ổn định, thu nhập thụ động
+• Tiết kiệm & Trái phiếu: ổn định, thu nhập thụ động
 
 Rebalance: Mỗi quý, kiểm tra tỷ lệ thực tế vs mục tiêu. Chênh lệch >5% → điều chỉnh.`,
   },

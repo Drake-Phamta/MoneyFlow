@@ -514,7 +514,7 @@ export default function SniperPlaybook({ embedded }) {
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '90px' }}>Ngày</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3">Tài sản</th>
                   <th className="text-center text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '70px' }}>Loại</th>
-                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '80px' }}>KL</th>
+                  <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '80px' }}>Khối lượng</th>
                   <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '100px' }}>Giá</th>
                   <th className="text-right text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '120px' }}>Thành tiền</th>
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '200px' }}>Ghi chú</th>

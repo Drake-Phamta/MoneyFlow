@@ -426,7 +426,7 @@ export default function ExecutionLog({ embedded }) {
                   <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Tài sản</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '70px' }}>Loại</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>Chiến lược</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>KL</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '80px' }}>Khối lượng</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '120px' }}>Giá</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Thành tiền</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '50px' }}></th>
