@@ -1,65 +1,65 @@
 # Money Flow
 
-Quan ly tai chinh ca nhan — theo doi thu chi, dau tu, tiet kiem va dat muc tieu tai chinh.
+Quản lý tài chính cá nhân — theo dõi thu chi, đầu tư, tiết kiệm và đạt mục tiêu tài chính.
 
 ![Platform](https://img.shields.io/badge/platform-Windows-blue)
 ![Electron](https://img.shields.io/badge/electron-25.x-47848F)
 ![React](https://img.shields.io/badge/react-18.x-61DAFB)
 ![SQLite](https://img.shields.io/badge/sqlite-3.x-003B57)
 
-## Tinh nang
+## Tính năng
 
-- **Dashboard** — Tong quan tai chinh, KPI, portfolio
-- **Quan ly thu chi** — Nhap lieu hang thang, phan bo tu dong
-- **Theo doi dau tu** — Portfolio chung khoan, ETF, vang
-- **Tiet kiem** — So tiet kiem, lai suat, dao han
-- **Muc tieu** — Thiet lap va theo doi tien do
-- **Scenario Planning** — Mo phong cac kich ban tai chinh
-- **Sniper Playbook** — Chien luoc dau tu, watchlist, canh bao gia
-- **Import Excel** — Nhap du lieu tu file Excel
+- **Dashboard** — Tổng quan tài chính, KPI, portfolio
+- **Quản lý thu chi** — Nhập liệu hàng tháng, phân bổ tự động
+- **Theo dõi đầu tư** — Portfolio chứng khoán, ETF, vàng
+- **Tiết kiệm** — Sổ tiết kiệm, lãi suất, đáo hạn
+- **Mục tiêu** — Thiết lập và theo dõi tiến độ
+- **Scenario Planning** — Mô phỏng các kịch bản tài chính
+- **Sniper Playbook** — Chiến lược đầu tư, watchlist, cảnh báo giá
+- **Import Excel** — Nhập dữ liệu từ file Excel
 
-## Cai dat
+## Cài đặt
 
-### Yeu cau
+### Yêu cầu
 - Node.js >= 18.x
 - npm >= 9.x
 - Windows 10/11
 
-### Buoc 1: Clone repository
+### Bước 1: Clone repository
 ```bash
-git clone https://github.com/your-username/money-flow.git
-cd money-flow
+git clone https://github.com/Drake-Phamta/MoneyFlow.git
+cd MoneyFlow
 ```
 
-### Buoc 2: Cai dat dependencies
+### Bước 2: Cài đặt dependencies
 ```bash
 npm install
 ```
 
-### Buoc 3: Chay ung dung
+### Bước 3: Chạy ứng dụng
 
 **Desktop (Electron):**
 ```bash
 npm run dev
 ```
-Hoac chay file `MoneyFlow_Desktop.bat`
+Hoặc chạy file `MoneyFlow_Desktop.bat`
 
 **Web (Browser):**
 ```bash
 npm run dev:web
 ```
-Hoac chay file `MoneyFlow_Web.bat`
+Hoặc chạy file `MoneyFlow_Web.bat`
 
-## Cau truc thu muc
+## Cấu trúc thư mục
 
 ```
 Money_Flow/
 ├── data/                    SQLite databases
-├── docs/                    Tai lieu du an
+├── docs/                    Tài liệu dự án
 ├── electron/                Electron main process
 │   ├── main.js              Entry point
 │   ├── database.js          Database operations
-│   ├── priceService.js      Gia vang/tien te
+│   ├── priceService.js      Giá vàng/tiền tệ
 │   ├── routes.js            API routes
 │   └── preload.js           Preload script
 ├── public/                  Static assets
@@ -78,7 +78,7 @@ Money_Flow/
 └── tailwind.config.js       Tailwind config
 ```
 
-## Cong nghe su dung
+## Công nghệ sử dụng
 
 | Layer | Technology |
 |-------|------------|
@@ -91,32 +91,32 @@ Money_Flow/
 
 ## Scripts
 
-| Script | Mo ta |
+| Script | Mô tả |
 |--------|-------|
-| `npm run dev` | Chay day du (Vite + Server + Electron) |
-| `npm run dev:web` | Chay web mode (Vite + Server) |
-| `npm run dev:server` | Chi chay server |
+| `npm run dev` | Chạy đầy đủ (Vite + Server + Electron) |
+| `npm run dev:web` | Chạy web mode (Vite + Server) |
+| `npm run dev:server` | Chỉ chạy server |
 | `npm run build` | Build cho production |
 
-## Tai lieu
+## Tài liệu
 
 - [API Documentation](docs/API.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Database Schema](docs/DATABASE.md)
 - [Project Structure](docs/STRUCTURE.md)
 
-## Dong gop
+## Đóng góp
 
 1. Fork repository
-2. Tao feature branch (`git checkout -b feature/AmazingFeature`)
+2. Tạo feature branch (`git checkout -b feature/AmazingFeature`)
 3. Commit changes (`git commit -m 'Add AmazingFeature'`)
 4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Tao Pull Request
+5. Tạo Pull Request
 
 ## License
 
-Du an nay danh cho muc dich su dung ca nhan.
+Dự án này dành cho mục đích sử dụng cá nhân.
 
 ---
 
-Phat trien boi Drake-Phamta
+Phát triển bởi Drake-Phamta

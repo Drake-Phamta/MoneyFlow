@@ -1,11 +1,11 @@
-# Cau truc thu muc
+# Cấu trúc thư mục
 
 ## Root
 
 ```
 Money_Flow/
 ├── package.json          Dependencies, scripts, electron-builder config
-├── index.html            SPA entry point (Vite mount vao day)
+├── index.html            SPA entry point (Vite mount vào đây)
 ├── vite.config.js        Vite: React plugin, proxy /api → localhost:3001
 ├── tailwind.config.js    Tailwind: primary palette, Inter font
 ├── postcss.config.js     PostCSS: tailwind + autoprefixer
@@ -14,8 +14,8 @@ Money_Flow/
 ├── public/               Static assets (icon.ico, icon.png)
 ├── src/                  Frontend React
 ├── electron/             Electron backend
-├── docs/                 Tai lieu
-├── scripts/              Utility scripts (tao icon, shortcut)
+├── docs/                 Tài liệu dự án
+├── scripts/              Utility scripts (tạo icon, shortcut)
 ├── tests/                Test files
 └── release/              electron-builder output (gitignored)
 ```
@@ -36,24 +36,24 @@ src/
 │   └── iconMap.jsx       Emoji/name → Phosphor icon mapping + AppIcon component
 ├── components/
 │   ├── Layout.jsx        Sidebar nav (5 items) + main content area
-│   ├── Dashboard.jsx     Trang tong quan: KPI, portfolio, pie, phase, activity
-│   ├── CashFlowPage.jsx  Dong tien: bieu do + so cai
-│   ├── InvestmentsPage.jsx Dau tu: 4 tabs (Portfolio / Savings / Sniper / Allocation)
-│   ├── MonthlyEntry.jsx  Wizard nhap lieu 4 buoc
-│   ├── MasterLedger.jsx  Bang toan bo monthly entries
-│   ├── ExecutionLog.jsx  Nhat ky giao dich mua/ban + canh bao chenh lech
-│   ├── SniperPlaybook.jsx Chien luoc Ban Tia: watchlist, alerts, deploy
-│   ├── SavingsSection.jsx Tiet kiem: so, bom von, dao han, tich luy vang
-│   ├── Scenarios.jsx     Lo trinh tai chinh, kien thuc, du phong FI
-│   ├── Settings.jsx      Cai dat: chi tieu, import/export, quan ly du lieu
-│   ├── FormattedInput.jsx Input so co dau cham (reusable)
+│   ├── Dashboard.jsx     Trang tổng quan: KPI, portfolio, pie, phase, activity
+│   ├── CashFlowPage.jsx  Dòng tiền: biểu đồ + sổ cái
+│   ├── InvestmentsPage.jsx Đầu tư: 4 tabs (Portfolio / Savings / Sniper / Allocation)
+│   ├── MonthlyEntry.jsx  Wizard nhập liệu 4 bước
+│   ├── MasterLedger.jsx  Bảng toàn bộ monthly entries
+│   ├── ExecutionLog.jsx  Nhật ký giao dịch mua/bán + cảnh báo chênh lệch
+│   ├── SniperPlaybook.jsx Chiến lược Bắn Tỉa: watchlist, alerts, deploy
+│   ├── SavingsSection.jsx Tiết kiệm: sổ, bơm vốn, đáo hạn, tích lũy vàng
+│   ├── Scenarios.jsx     Lộ trình tài chính, kiến thức, dự phóng FI
+│   ├── Settings.jsx      Cài đặt: chi tiêu, import/export, quản lý dữ liệu
+│   ├── FormattedInput.jsx Input số có dấu chấm (reusable)
 │   ├── charts/
-│   │   ├── AllocationPie.jsx Bieu do tron phan bo
-│   │   └── AssetGrowth.jsx   Bieu do tang truong tai san (bear/base/bull)
+│   │   ├── AllocationPie.jsx Biểu đồ tròn phân bổ
+│   │   └── AssetGrowth.jsx   Biểu đồ tăng trưởng tài sản (bear/base/bull)
 │   └── dashboard/
-│       ├── AllocationGoals.jsx Phan bo hien tai vs muc tieu + risk metrics
-│       ├── CashFlow.jsx        Bieu do dong tien (standalone, cu)
-│       └── Overview.jsx        Tong quan standalone (cu, khong dung)
+│       ├── AllocationGoals.jsx Phân bổ hiện tại vs mục tiêu + risk metrics
+│       ├── CashFlow.jsx        Biểu đồ dòng tiền (standalone, cũ)
+│       └── Overview.jsx        Tổng quan standalone (cũ, không dùng)
 ```
 
 ## `electron/` — Backend
@@ -69,13 +69,13 @@ electron/
 
 ## Routes (App.jsx)
 
-| Path | Component | Mo ta |
+| Path | Component | Mô tả |
 |------|-----------|-------|
-| `/` | Dashboard | Tong quan tai chinh |
-| `/cashflow` | CashFlowPage | Phan tich dong tien |
-| `/investments` | InvestmentsPage | Danh muc dau tu (4 tabs) |
-| `/scenarios` | Scenarios | Lo trinh & du phong |
-| `/settings` | Settings | Cai dat he thong |
+| `/` | Dashboard | Tổng quan tài chính |
+| `/cashflow` | CashFlowPage | Phân tích dòng tiền |
+| `/investments` | InvestmentsPage | Danh mục đầu tư (4 tabs) |
+| `/scenarios` | Scenarios | Lộ trình & dự phóng |
+| `/settings` | Settings | Cài đặt hệ thống |
 
 ## Page → Component tree
 
