@@ -174,7 +174,7 @@ export default function CashFlowPage() {
           )}
         </div>
         <div className="kpi">
-          <span className="kpi-label">Tiền nhàn rỗi</span>
+          <span className="kpi-label">Tổng tiền nhàn rỗi</span>
           <p className={`kpi-value ${totalNet >= 0 ? 'text-primary-600' : 'text-red-500'}`}>{formatVND(totalNet)}</p>
           {filled.length > 1 && (
             <p className="text-xs text-slate-500">Trung bình {formatVND(avgMonthly)}/tháng</p>
