@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatVND, formatCompact } from '../utils/formatters';
@@ -110,16 +110,17 @@ export default function Dashboard() {
   }, []);
 
   // Poll activity every 30s (only when tab visible)
+  const lastActivityIdRef = useRef(0);
+
   useEffect(() => {
-    let lastActivityId = activity.length > 0 ? activity[0].id : 0;
     const POLL_INTERVAL = 30000;
 
     const poll = async () => {
       if (document.hidden) return;
       try {
         const latest = await apiClient.activity.get(1);
-        if (latest.length > 0 && latest[0].id !== lastActivityId) {
-          lastActivityId = latest[0].id;
+        if (latest.length > 0 && latest[0].id !== lastActivityIdRef.current) {
+          lastActivityIdRef.current = latest[0].id;
           const fresh = await apiClient.activity.get(10);
           setActivity(fresh);
           // Also refresh alert count
@@ -137,7 +138,7 @@ export default function Dashboard() {
       clearInterval(interval);
       document.removeEventListener('visibilitychange', onVisibility);
     };
-  }, [activity]);
+  }, []);
 
   async function loadData() {
     try {
@@ -164,6 +165,11 @@ export default function Dashboard() {
       setMaturities(mats);
       setAllPhases(phases);
       setAlerts(alertsData || []);
+
+      // Update last activity ID for polling
+      if (a.length > 0) {
+        lastActivityIdRef.current = a[0].id;
+      }
 
       // Fetch phase allocations for active phase
       if (p?.id) {
@@ -205,9 +211,10 @@ export default function Dashboard() {
     ? (totalNet / totalIncome) * 100
     : null;
 
-  // Total assets = investments + savings
+  // Total assets = investments + savings + cash
   const totalSavingsBalance = savingsSummary?.totalBalance || 0;
-  const grandTotal = totalCurrentValue + totalSavingsBalance;
+  const totalCashOnHand = Math.max(0, totalNet - totalCurrentValue - totalSavingsBalance);
+  const grandTotal = totalCurrentValue + totalSavingsBalance + totalCashOnHand;
 
   // Phase progress calculation
   const phaseProgress = useMemo(() => {
@@ -217,11 +224,18 @@ export default function Dashboard() {
       : 4000000;
     const goal = phase.goal_amount || (phase.goal_multiplier * monthlyExpense);
 
+    // Calculate allocated amounts from allocations table
+    const duPhongAlloc = phaseAllocs.find(a => a.category_name === 'Dự Phòng');
+    const allocatedToDuPhong = duPhongAlloc ? filled.reduce((s, m) => {
+      const alloc = m.allocations?.find(a => a.category_id === duPhongAlloc.category_id);
+      return s + (alloc?.planned_amount || duPhongAlloc.ratio * (m.total_inflow || 0));
+    }, 0) : 0;
+
     let current = 0;
     let label = '';
     if (phase.sort_order === 1) {
-      // Phase 1: Savings balance (Dự Phòng) vs 3× expense
-      current = totalSavingsBalance;
+      // Phase 1: Savings balance + cash allocated to Dự Phòng vs 3× expense
+      current = totalSavingsBalance + Math.max(0, totalCashOnHand * (duPhongAlloc?.ratio || 0.7));
       label = `Dự phòng: ${formatVND(current)} / ${formatVND(goal)}`;
     } else if (phase.sort_order === 2) {
       // Phase 2: Total assets vs 6× expense
@@ -239,7 +253,7 @@ export default function Dashboard() {
 
     const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 100;
     return { current, goal, pct, label };
-  }, [phase, byCategory, grandTotal, filled]);
+  }, [phase, byCategory, grandTotal, filled, phaseAllocs, totalCashOnHand, totalSavingsBalance]);
 
   // Next phase info
   const nextPhase = useMemo(() => {
@@ -490,12 +504,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPI Row — 6 cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+      {/* KPI Row 1 — Overview */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="kpi">
           <span className="kpi-label">Tổng tài sản</span>
           <p className="kpi-value text-slate-800">{formatVND(grandTotal)}</p>
-          <p className="text-xs text-slate-400">Đầu tư + Thanh khoản</p>
+          <p className="text-xs text-slate-400">Đầu tư + Tiết kiệm + Tiền mặt</p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Vốn đầu tư</span>
@@ -516,6 +530,10 @@ export default function Dashboard() {
             </p>
           )}
         </div>
+      </div>
+
+      {/* KPI Row 2 — Savings & Cash */}
+      <div className="grid grid-cols-3 gap-3">
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
           {savingsRate !== null ? (
@@ -536,6 +554,11 @@ export default function Dashboard() {
           <span className="kpi-label">Thanh khoản</span>
           <p className="kpi-value text-violet-600">{formatVND(totalSavingsBalance)}</p>
           {savingsSummary && <p className="text-xs text-slate-400">{savingsSummary.accountCount} sổ tiết kiệm</p>}
+        </div>
+        <div className="kpi">
+          <span className="kpi-label">Tiền mặt</span>
+          <p className="kpi-value text-amber-600">{formatVND(totalCashOnHand)}</p>
+          <p className="text-xs text-slate-400">Chưa phân bổ</p>
         </div>
       </div>
 

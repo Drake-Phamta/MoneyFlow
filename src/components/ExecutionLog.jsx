@@ -3,6 +3,7 @@ import { formatVND, formatDate } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
+import FormattedInput from './FormattedInput';
 
 export default function ExecutionLog({ embedded }) {
   const [loading, setLoading] = useState(true);
@@ -93,17 +94,17 @@ export default function ExecutionLog({ embedded }) {
     : [];
 
   const selectedAsset = assetTypes.find(a => a.id === parseInt(form.asset_type_id));
-  const totalAmount = (parseFloat(form.quantity) || 0) * (parseFloat(form.price) || 0);
+  const totalAmount = (Number(form.quantity) || 0) * (Number(form.price) || 0);
 
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.asset_type_id) return;
 
-    const qty = parseFloat(form.quantity) || 0;
-    const price = parseFloat(form.price) || 0;
+    const qty = Number(form.quantity) || 0;
+    const price = Number(form.price) || 0;
     const total = qty * price;
 
-    if (!form.quantity || !form.price) return;
+    if (!qty || !price) return;
 
     try {
       await apiClient.transactions.add({
@@ -377,13 +378,21 @@ export default function ExecutionLog({ embedded }) {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Số lượng</label>
-                <input type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })}
-                  placeholder="VD: 100" className="input" />
+                <FormattedInput
+                  value={form.quantity}
+                  onChange={val => setForm({ ...form, quantity: val })}
+                  placeholder="VD: 100"
+                  className="input"
+                />
               </div>
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Giá (₫)</label>
-                <input type="number" step="0.01" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-                  placeholder="VD: 36,000" className="input" />
+                <FormattedInput
+                  value={form.price}
+                  onChange={val => setForm({ ...form, price: val })}
+                  placeholder="VD: 36.000"
+                  className="input"
+                />
               </div>
             </div>
             {totalAmount > 0 && (

@@ -13,8 +13,8 @@ class FinancialDB {
       this.dbPath = dbPath;
     } else {
       this.dbPath = (app && app.isPackaged)
-        ? path.join(app.getPath('userData'), 'money_flow.sqlite')
-        : path.join(__dirname, '../data/money_flow.sqlite');
+        ? path.join(app.getPath('userData'), 'financial.sqlite')
+        : path.join(__dirname, '../data/financial.sqlite');
     }
     this.ready = this.init();
   }
@@ -759,9 +759,13 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     for (let i = 0; i < totalMonths; i++) {
       const m = ((startMonth - 1 + i) % 12) + 1;
       const y = startYear + Math.floor((startMonth - 1 + i) / 12);
+      const label = `T${m}/${y}`;
+      // Skip if this month already has data (from an existing entry with any month_index)
+      const existing = this.queryOne('SELECT id FROM monthly_entries WHERE month_label = ? AND total_inflow > 0', [label]);
+      if (existing) continue;
       this.db.run(
         'INSERT OR IGNORE INTO monthly_entries (month_index, month_label, phase_id) VALUES (?, ?, ?)',
-        [i + 1, `T${m}/${y}`, i < 12 ? 1 : 2]
+        [i + 1, label, i < 12 ? 1 : 2]
       );
     }
   }
@@ -1081,19 +1085,42 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const y = now.getFullYear();
     const currentLabel = `T${m}/${y}`;
 
-    // Check if current month exists and is unfilled
-    const current = this.queryOne('SELECT * FROM monthly_entries WHERE month_label = ? AND total_inflow = 0', [currentLabel]);
-    if (current) return current;
+    // Check if current month already has data (any month_index)
+    const hasFilledCurrent = this.queryOne('SELECT id FROM monthly_entries WHERE month_label = ? AND total_inflow > 0', [currentLabel]);
+    if (!hasFilledCurrent) {
+      // Current month not filled yet — return empty entry for it
+      const current = this.queryOne('SELECT * FROM monthly_entries WHERE month_label = ? AND total_inflow = 0 ORDER BY month_index LIMIT 1', [currentLabel]);
+      if (current) return current;
+    }
 
     // Otherwise find next unfilled after last filled
     const lastFilled = this.queryOne('SELECT * FROM monthly_entries WHERE total_inflow > 0 ORDER BY month_index DESC LIMIT 1');
     if (lastFilled) {
-      const next = this.queryOne('SELECT * FROM monthly_entries WHERE month_index > ? AND total_inflow = 0 ORDER BY month_index LIMIT 1', [lastFilled.month_index]);
-      if (next) return next;
+      // Find next month label after last filled
+      const parts = lastFilled.month_label.match(/T(\d+)\/(\d+)/);
+      if (parts) {
+        let nextM = parseInt(parts[1]) + 1;
+        let nextY = parseInt(parts[2]);
+        if (nextM > 12) { nextM = 1; nextY++; }
+        const nextLabel = `T${nextM}/${nextY}`;
+        // Return empty entry for next month (or create one)
+        let next = this.queryOne('SELECT * FROM monthly_entries WHERE month_label = ? AND total_inflow = 0 ORDER BY month_index LIMIT 1', [nextLabel]);
+        if (!next) {
+          // Create entry for next month
+          const maxIdx = this.queryOne('SELECT MAX(month_index) as max_idx FROM monthly_entries');
+          const newIdx = (maxIdx?.max_idx || 0) + 1;
+          this.run('INSERT INTO monthly_entries (month_index, month_label, phase_id) VALUES (?, ?, ?)', [newIdx, nextLabel, lastFilled.phase_id || 1]);
+          next = this.queryOne('SELECT * FROM monthly_entries WHERE month_index = ?', [newIdx]);
+          this.save();
+        }
+        if (next) return next;
+      }
     }
 
-    // Fallback: first unfilled
-    return this.queryOne('SELECT * FROM monthly_entries WHERE total_inflow = 0 ORDER BY month_index LIMIT 1');
+    // Fallback: first unfilled that has no filled duplicate
+    return this.queryOne(`SELECT * FROM monthly_entries WHERE total_inflow = 0
+      AND month_label NOT IN (SELECT month_label FROM monthly_entries WHERE total_inflow > 0)
+      ORDER BY month_index LIMIT 1`);
   }
 
   deleteMonthlyEntry(monthIndex) {
@@ -1200,11 +1227,11 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       [data.date, data.asset_type_id, data.asset_name || '', data.type, data.quantity, data.price,
        data.total_amount, data.fee || 0, data.note || '', data.monthly_entry_id || null, data.strategy || '']);
     // Log activity
-    const asset = this.queryOne('SELECT name, icon FROM asset_types WHERE id = ?', [data.asset_type_id]);
-    const displayName = data.asset_name || asset?.name || '';
+    const asset = this.queryOne('SELECT name, ticker FROM asset_types WHERE id = ?', [data.asset_type_id]);
+    const displayName = data.asset_name || asset?.ticker || asset?.name || '';
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
       [data.date, data.type === 'BUY' ? 'BUY' : 'SELL',
-       `${data.type === 'BUY' ? 'Mua' : 'Bán'} ${asset?.icon || ''} ${displayName} × ${data.quantity}`, data.total_amount]);
+       `${data.type === 'BUY' ? 'Mua' : 'Bán'} ${displayName} × ${data.quantity}`, data.total_amount]);
     this.save();
     return this.lastId();
   }
@@ -1217,7 +1244,9 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   getPortfolio() {
     return this.query(`
       SELECT
-        a.id as asset_type_id, a.name, a.category, a.ticker, a.unit, a.color, a.icon,
+        a.id as asset_type_id,
+        CASE WHEN a.ticker IS NOT NULL AND a.ticker != '' THEN a.ticker ELSE a.name END as name,
+        a.category, a.ticker, a.unit, a.color, a.icon,
         a.current_price, a.asset_class,
         COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) as total_quantity,
         COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount ELSE -t.total_amount END), 0) as total_invested,

@@ -19,8 +19,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'dist')));
 
 async function start() {
-  const dbPath = path.join(__dirname, 'data', 'financial.sqlite');
-  db = new FinancialDB(dbPath);
+  db = new FinancialDB();
   await db.ready;
   priceService = new PriceService(db);
 
