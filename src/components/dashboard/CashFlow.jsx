@@ -144,7 +144,7 @@ export default function CashFlow() {
             <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} />
             <Tooltip formatter={v => `${v.toFixed(1)}%`} />
             <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
-            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3, strokeWidth: 0 }} name="Mục tiêu" />
+            <Line type="monotone" dataKey={() => 30} stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Mục tiêu" />
           </LineChart>
         </ResponsiveContainer>
       </div>
