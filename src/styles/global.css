@@ -240,6 +240,37 @@ select.input {
   @apply text-sm text-slate-500 mt-1;
 }
 
+/* Portfolio card */
+.portfolio-card {
+  @apply bg-white rounded-xl border border-slate-100 p-4 transition-all duration-200 cursor-default;
+}
+
+.portfolio-card:hover {
+  @apply border-slate-200 shadow-md -translate-y-0.5;
+}
+
+/* Gain/Loss mini bar */
+.gain-bar {
+  @apply h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2;
+}
+
+.gain-bar-fill {
+  @apply h-full rounded-full transition-all duration-500;
+}
+
+.gain-bar-fill.positive {
+  @apply bg-gradient-to-r from-emerald-400 to-emerald-500;
+}
+
+.gain-bar-fill.negative {
+  @apply bg-gradient-to-r from-red-400 to-red-500;
+}
+
+/* Asset icon circle */
+.asset-icon-circle {
+  @apply w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0;
+}
+
 /* Utility */
 .text-gradient {
   @apply bg-gradient-to-r from-primary-600 to-violet-600 bg-clip-text text-transparent;
