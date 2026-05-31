@@ -162,26 +162,33 @@ export default function CashFlowPage() {
           {(() => {
             const totalBonus = filled.reduce((s, m) => s + (m.bonus || 0), 0);
             return totalBonus > 0
-              ? <p className="text-xs text-slate-400">+{formatVND(totalBonus)} thưởng</p>
+              ? <p className="text-xs text-emerald-500 font-medium">+{formatVND(totalBonus)} thưởng</p>
               : <p className="text-xs text-slate-400">{filled.length} tháng</p>;
           })()}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tổng chi tiêu</span>
           <p className="kpi-value text-red-500">{formatVND(totalExpense)}</p>
-          <p className="text-xs text-slate-400">TB {formatVND(totalExpense / filled.length)}/tháng</p>
+          <p className="text-xs text-slate-500">{formatVND(totalExpense / filled.length)}<span className="text-slate-300">/tháng</span></p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Tiền nhàn rỗi</span>
           <p className={`kpi-value ${totalNet >= 0 ? 'text-primary-600' : 'text-red-500'}`}>{formatVND(totalNet)}</p>
-          <p className="text-xs text-slate-400">TB {formatVND(avgMonthly)}/tháng</p>
+          <p className="text-xs text-slate-500">{formatVND(avgMonthly)}<span className="text-slate-300">/tháng</span></p>
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
-          <p className="text-xs text-slate-400">≥ {savingsTargetPct}% · {streak}T liên tục</p>
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${avgSavingsRate >= savingsTargetPct ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+              ≥ {savingsTargetPct}%
+            </span>
+            {streak > 0 && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium">{streak}T 🔥</span>
+            )}
+          </div>
         </div>
       </div>
 
@@ -215,13 +222,13 @@ export default function CashFlowPage() {
           <div className="card">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
-              <div className="flex gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+              <div className="flex gap-5 text-xs">
+                <span className="flex items-center gap-1.5 text-blue-500">
+                  <span className="w-3 h-0.5 rounded-full bg-blue-500 inline-block" />
                   Thực tế
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <svg width="20" height="2" className="flex-shrink-0"><line x1="0" y1="1" x2="20" y2="1" stroke="#10b981" strokeWidth="2" strokeDasharray="4 2" /></svg>
+                <span className="flex items-center gap-1.5 text-emerald-600">
+                  <span className="inline-block w-3 h-0.5 rounded-full" style={{ background: 'repeating-linear-gradient(90deg, #10b981 0, #10b981 4px, transparent 4px, transparent 7px)' }} />
                   Mục tiêu
                 </span>
               </div>
