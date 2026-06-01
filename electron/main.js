@@ -18,7 +18,7 @@ function createWindow() {
     width: 1400, height: 900, minWidth: 1000, minHeight: 700,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     title: 'Money Flow',
-    icon: path.join(__dirname, '..', 'public', 'icon.ico'),
+    icon: path.join(__dirname, '..', 'icon.ico'),
   });
   if (!app.isPackaged) {
     mainWindow.loadURL('http://localhost:5173');
