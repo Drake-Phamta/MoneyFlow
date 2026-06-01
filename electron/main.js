@@ -7,6 +7,7 @@ const cron = require('node-cron');
 const Database = require('./database');
 const PriceService = require('./priceService');
 const setupRoutes = require('./routes');
+const { ensureShortcuts } = require('../scripts/ensure-shortcuts');
 
 let mainWindow;
 let db;
@@ -49,6 +50,9 @@ app.whenReady().then(async () => {
   db = new Database();
   await db.ready;
   priceService = new PriceService(db);
+
+  // Auto-repair desktop shortcuts (Windows only, non-blocking)
+  ensureShortcuts().catch(() => {});
 
   // Auto-fetch prices every 30 min during VN trading hours (Mon-Fri, 9:00-15:00)
   cron.schedule('*/30 9-14 * * 1-5', async () => {

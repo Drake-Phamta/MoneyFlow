@@ -1,24 +1,37 @@
 Set WshShell = CreateObject("WScript.Shell")
+Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set objShell = CreateObject("Shell.Application")
 Set objFolder = objShell.Namespace(&H10) ' Desktop folder
 strDesktop = objFolder.Self.Path
 
-' Create Web shortcut
-Set oLink = WshShell.CreateShortcut(strDesktop & "\Money Flow - Web.lnk")
-oLink.TargetPath = "wscript.exe"
-oLink.Arguments = Chr(34) & "D:\New_era\Money_Flow\MoneyFlow_Web.vbs" & Chr(34)
-oLink.WorkingDirectory = "D:\New_era\Money_Flow"
-oLink.IconLocation = "D:\New_era\Money_Flow\icon.ico,0"
-oLink.Description = "Money Flow - Web Version"
-oLink.Save
+' Determine project root from this script's location (scripts/ -> project root)
+strScriptDir = objFSO.GetParentFolderName(WScript.ScriptFullName)
+strProjectRoot = objFSO.GetParentFolderName(strScriptDir)
 
-' Create Desktop shortcut
-Set oLink = WshShell.CreateShortcut(strDesktop & "\Money Flow - Desktop.lnk")
-oLink.TargetPath = "wscript.exe"
-oLink.Arguments = Chr(34) & "D:\New_era\Money_Flow\MoneyFlow_Desktop.vbs" & Chr(34)
-oLink.WorkingDirectory = "D:\New_era\Money_Flow"
-oLink.IconLocation = "D:\New_era\Money_Flow\icon.ico,0"
-oLink.Description = "Money Flow - Desktop Version"
-oLink.Save
+strIconPath = strProjectRoot & "\icon.ico"
+strWebVBS = strProjectRoot & "\MoneyFlow_Web.vbs"
+strDesktopVBS = strProjectRoot & "\MoneyFlow_Desktop.vbs"
 
-WScript.Echo "Đã tạo 2 shortcuts!"
+' Start Menu folder
+strStartMenu = WshShell.SpecialFolders("Programs") & "\Money Flow"
+If Not objFSO.FolderExists(strStartMenu) Then
+    objFSO.CreateFolder(strStartMenu)
+End If
+
+' Create shortcuts
+Call CreateLink(strDesktop & "\Money Flow - Web.lnk", strWebVBS, "Money Flow - Web Version")
+Call CreateLink(strDesktop & "\Money Flow - Desktop.lnk", strDesktopVBS, "Money Flow - Desktop Version")
+Call CreateLink(strStartMenu & "\Money Flow - Web.lnk", strWebVBS, "Money Flow - Web Version")
+Call CreateLink(strStartMenu & "\Money Flow - Desktop.lnk", strDesktopVBS, "Money Flow - Desktop Version")
+
+WScript.Echo "Da tao 4 shortcuts (Desktop + Start Menu)!"
+
+Sub CreateLink(linkPath, vbsPath, description)
+    Set oLink = WshShell.CreateShortcut(linkPath)
+    oLink.TargetPath = "wscript.exe"
+    oLink.Arguments = Chr(34) & vbsPath & Chr(34)
+    oLink.WorkingDirectory = strProjectRoot
+    If objFSO.FileExists(strIconPath) Then oLink.IconLocation = strIconPath & ",0"
+    oLink.Description = description
+    oLink.Save
+End Sub
