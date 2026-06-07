@@ -70,6 +70,15 @@ export default function CashFlowPage() {
   // Savings rate target (% of income) — default 30%
   const savingsTargetPct = 30;
 
+  // Investment rate from phase allocations (Chứng Khoán + Vàng + Bắn Tỉa)
+  const investRatio = phaseAllocs
+    .filter(pa => !pa.category_name?.includes('Dự Phòng') && !pa.category_name?.includes('Tiết kiệm'))
+    .reduce((s, pa) => s + (pa.ratio || 0), 0);
+  const investTargetPct = Math.round(investRatio * 100);
+  // Actual invested = inflow * invest ratio per month
+  const totalInvested = filled.reduce((s, m) => s + (m.total_inflow || 0) * investRatio, 0);
+  const avgInvestRate = totalIncome > 0 ? (totalInvested / totalIncome) * 100 : 0;
+
   // Streak — consecutive months with positive net cash flow
   let streak = 0;
   for (let i = cashFlowData.length - 1; i >= 0; i--) {
@@ -154,7 +163,6 @@ export default function CashFlowPage() {
         </button>
       </div>
 
-      {/* KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi">
           <span className="kpi-label">Tổng thu nhập</span>
@@ -174,20 +182,13 @@ export default function CashFlowPage() {
           )}
         </div>
         <div className="kpi">
-          <span className="kpi-label">Tổng tiền nhàn rỗi</span>
-          <p className={`kpi-value ${totalNet >= 0 ? 'text-primary-600' : 'text-red-500'}`}>{formatVND(totalNet)}</p>
-          {filled.length > 1 && (
-            <p className="text-xs text-slate-500">Trung bình {formatVND(avgMonthly)}/tháng</p>
-          )}
-        </div>
-        <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${avgSavingsRate >= savingsTargetPct ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
-              ≥ {savingsTargetPct}%
+              Mục tiêu ≥ {savingsTargetPct}%
             </span>
             {streak >= 3 ? (
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700">
@@ -197,10 +198,24 @@ export default function CashFlowPage() {
               <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600">
                 {streak} tháng liên tục
               </span>
-            ) : cashFlowData.length > 0 && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-slate-50 text-slate-400">
-                Bắt đầu lại
+            ) : null}
+          </div>
+        </div>
+        <div className="kpi">
+          <span className="kpi-label">Tỷ lệ đầu tư</span>
+          <p className={`kpi-value ${investTargetPct > 0 && avgInvestRate >= investTargetPct * 0.9 ? 'text-blue-600' : 'text-amber-500'}`}>
+            {avgInvestRate > 0 ? `${avgInvestRate.toFixed(1)}%` : '—'}
+          </p>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {investTargetPct > 0 && (
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                avgInvestRate >= investTargetPct * 0.9 ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
+              }`}>
+                Mục tiêu {investTargetPct}% theo phase
               </span>
+            )}
+            {totalInvested > 0 && (
+              <p className="text-[10px] text-slate-400 w-full">≈ {formatVND(totalInvested)} đã phân bổ</p>
             )}
           </div>
         </div>

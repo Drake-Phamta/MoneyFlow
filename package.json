@@ -2,6 +2,7 @@
   "name": "money-flow",
   "version": "1.0.0",
   "description": "Money Flow — Quản lý tài chính cá nhân",
+  "author": "User",
   "main": "electron/main.js",
   "scripts": {
     "dev": "concurrently \"vite\" \"node server.js\" \"wait-on http://localhost:5173 http://localhost:3001 && env -u ELECTRON_RUN_AS_NODE electron .\"",

@@ -51,8 +51,7 @@ export default function CashFlow() {
   const passiveIncome = useMemo(() => {
     return transactions.filter(t =>
       t.note?.toLowerCase().includes('cổ tức') ||
-      t.note?.toLowerCase().includes('lãi') ||
-      t.type === 'SELL'
+      t.note?.toLowerCase().includes('lãi')
     );
   }, [transactions]);
 

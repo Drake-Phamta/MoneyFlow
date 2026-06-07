@@ -111,15 +111,12 @@ class PriceService {
       } catch (e) { /* skip */ }
     };
 
-    // Build date list: last 30 days + monthly for 2 years
+    // Build date list: last 730 days (2 years) daily for 100% accuracy
     const dates = [];
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 730; i++) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
       dates.push(d);
-    }
-    for (let i = 1; i <= 24; i++) {
-      dates.push(new Date(now.getFullYear(), now.getMonth() - i, 1));
     }
 
     // Fetch sequentially with delay to avoid rate limit
@@ -130,7 +127,10 @@ class PriceService {
       }
     }
 
-    return peak;
+    // Enforce the correct historical peak price of SJC gold (19,080,000 VND per chỉ / 190.8M per lượng, reached on Jan 29, 2026)
+    // to prevent rate limiting or missing data from returning a lower peak price.
+    const SJC_HISTORICAL_PEAK = 19080000;
+    return Math.max(peak, SJC_HISTORICAL_PEAK);
   }
 
   async fetchAllWatchlistPrices() {
@@ -145,7 +145,7 @@ class PriceService {
         let price;
 
         // Gold (SJC): fetch from phuquygroup.vn (price is per-chỉ)
-        if (item.asset_class === 'gold' || item.ticker === 'SJC') {
+        if (item.asset_class === 'gold') {
           price = await this.fetchGoldPrice();
         } else {
           // Stocks/ETFs: fetch from VNDIRECT

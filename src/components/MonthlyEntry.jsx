@@ -2,8 +2,30 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import AppIcon, { Check, CheckCircle } from '../utils/iconMap';
+import AppIcon, { Check, CheckCircle, Warning } from '../utils/iconMap';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
+
+// ── Per-category metadata ──────────────────────────────────────────────────
+// Returns short action hint shown in Step 2
+function getCategoryHint(name = '') {
+  if (name.includes('Dự Phòng'))       return 'Gửi vào sổ không kỳ hạn — rút được bất cứ lúc';
+  if (name.includes('Tiết kiệm'))     return 'Gửi vào sổ kỳ hạn 3–6 tháng — lãi cao hơn';
+  if (name.includes('Vàng'))            return 'Tích lũy. Khi đủ 1 chỉ SJC → ghi nhận mua vào Danh mục';
+  if (name.includes('Chứng Khoán') || name.includes('Chứng khoán'))
+                                        return 'Mua ETF / cổ phiếu đều đặn trong tháng';
+  if (name.includes('Bắn Tỉa') || name.includes('Bắn Tiêd'))
+                                        return 'Giữ tiền mặt. Chỉ triển khai khi thị trường sụt >15%';
+  return 'Thực hiện theo kế hoạch';
+}
+
+// Returns navigation link for action in Step 3
+function getCategoryLink(name = '') {
+  if (name.includes('Dự Phòng') || name.includes('Tiết kiệm'))
+    return '/investments?tab=savings';
+  if (name.includes('Vàng'))
+    return '/investments?tab=savings'; // Gold tracker is in savings
+  return '/investments?tab=portfolio'; // Chứng Khoán, Bắn Tẩa
+}
 
 const STEPS = [
   { id: 1, label: 'Dòng tiền', desc: 'Thu nhập & chi tiêu' },
@@ -36,6 +58,10 @@ export default function MonthlyEntry() {
 
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  // Expand history row to show allocation breakdown
+  const [expandedMonth, setExpandedMonth] = useState(null);
+  const [expandedAllocs, setExpandedAllocs] = useState([]);
+  const [loadingExpand, setLoadingExpand] = useState(false);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -134,11 +160,26 @@ export default function MonthlyEntry() {
     try {
       await apiClient.monthly.delete(monthIndex);
       setDeleteConfirm(null);
+      if (expandedMonth === monthIndex) setExpandedMonth(null);
       loadAll();
     } catch (err) {
       console.error('Delete error:', err);
       alert('Lỗi khi xóa: ' + err.message);
     }
+  }
+
+  async function toggleExpand(monthIndex) {
+    if (expandedMonth === monthIndex) { setExpandedMonth(null); return; }
+    setExpandedMonth(monthIndex);
+    setExpandedAllocs([]);
+    setLoadingExpand(true);
+    try {
+      const entry = await apiClient.monthly.get(monthIndex);
+      if (entry) {
+        const allocData = await apiClient.allocations.get(entry.id);
+        setExpandedAllocs(allocData || []);
+      }
+    } catch { setExpandedAllocs([]); } finally { setLoadingExpand(false); }
   }
 
   async function handleSave() {
@@ -260,52 +301,157 @@ export default function MonthlyEntry() {
           </div>
         )}
 
-        {/* STEP 2: Allocation */}
-        {step === 2 && (
-          <div className="space-y-5 animate-fade-in">
-            <div>
-              <h2 className="text-lg font-bold text-slate-800">Phân bổ dòng tiền</h2>
-              <p className="text-sm text-slate-500">Tiền nhàn rỗi <strong>{formatVND(totalInflow)}</strong> phân bổ theo <strong>{phase?.name}</strong></p>
-            </div>
-            <div className="space-y-3">
-              {allocs.map(a => (
-                <div key={a.category_id} className="flex items-center justify-between p-4 rounded-xl border" style={{ borderColor: a.color + '30', background: a.color + '08' }}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: a.color }}>
-                      <AppIcon emoji={a.icon} size={20} color="white" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-800">{a.category_name}</p>
-                      <p className="text-xs text-slate-500">{(a.ratio * 100).toFixed(0)}% dòng tiền</p>
+        {/* STEP 2: Allocation — editable with hints */}
+        {step === 2 && (() => {
+          const totalAlloced = allocs.reduce((s, a) => s + (a.planned_amount || 0), 0);
+          const diff = totalAlloced - totalInflow;
+          const hasDiff = Math.abs(diff) > 1;
+          return (
+            <div className="space-y-5 animate-fade-in">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Phân bổ dòng tiền</h2>
+                <p className="text-sm text-slate-500">
+                  Tiền nhàn rỗi <strong>{formatVND(totalInflow)}</strong> theo <strong>{phase?.name}</strong>
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                {allocs.map(a => (
+                  <div
+                    key={a.category_id}
+                    className="p-3.5 rounded-xl border"
+                    style={{ borderColor: a.color + '30', background: a.color + '08' }}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      {/* Left: icon + name + hint */}
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div
+                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: a.color }}
+                        >
+                          <AppIcon emoji={a.icon} size={18} color="white" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-slate-800 truncate">{a.category_name}</p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {(a.ratio * 100).toFixed(0)}% · {getCategoryHint(a.category_name)}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Right: editable amount */}
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={formatNumberInput(a.planned_amount?.toString() || '0')}
+                        onChange={e => {
+                          const val = parseNumberInput(e.target.value) || 0;
+                          setAllocs(prev => prev.map(x =>
+                            x.category_id === a.category_id ? { ...x, planned_amount: val } : x
+                          ));
+                        }}
+                        className="input text-right font-bold w-36 shrink-0"
+                        style={{ color: a.color }}
+                      />
                     </div>
                   </div>
-                  <p className="text-lg font-bold" style={{ color: a.color }}>{formatVND(a.planned_amount)}</p>
-                </div>
-              ))}
-            </div>
-            <div className="p-3 bg-slate-50 rounded-xl flex items-center justify-between">
-              <span className="text-sm text-slate-500">Tổng phân bổ</span>
-              <span className="text-sm font-bold text-slate-800">{formatVND(allocs.reduce((s, a) => s + a.planned_amount, 0))}</span>
-            </div>
-            <div className="flex justify-between">
-              <button onClick={() => setStep(1)} className="btn-ghost">← Quay lại</button>
-              <button onClick={handleSave} className="btn-primary-lg">Lưu & Hoàn tất →</button>
-            </div>
-          </div>
-        )}
+                ))}
+              </div>
 
-        {/* STEP 3: Done */}
-        {step === 3 && (
-          <div className="text-center py-8 animate-fade-in">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-              <CheckCircle size={32} className="text-emerald-500" weight="bold" />
+              {/* Total vs inflow */}
+              <div className={`p-3 rounded-xl flex items-center justify-between ${
+                hasDiff ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50'
+              }`}>
+                <div>
+                  <span className="text-sm text-slate-600">Tổng phân bổ</span>
+                  {hasDiff && (
+                    <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
+                      <Warning size={12} weight="fill" />
+                      {diff > 0 ? `Vượt ${formatVND(diff)} so với tiền nhàn rỗi` : `Thiếu ${formatVND(-diff)} so với tiền nhàn rỗi`}
+                    </p>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className={`text-sm font-bold ${ hasDiff ? 'text-amber-600' : 'text-slate-800' }`}>
+                    {formatVND(totalAlloced)}
+                  </span>
+                  {!hasDiff && <p className="text-[10px] text-emerald-500">✓ Khớp với tiền nhàn rỗi</p>}
+                </div>
+              </div>
+
+              <div className="flex justify-between">
+                <div className="flex gap-2">
+                  <button onClick={() => setStep(1)} className="btn-ghost">← Quày lại</button>
+                  <button
+                    onClick={() => setAllocs(prev => prev.map(a => ({
+                      ...a,
+                      planned_amount: Math.round(totalInflow * (a.ratio || 0)),
+                    })))}
+                    className="btn-ghost text-xs"
+                  >
+                    🔄 Reset tỷ lệ
+                  </button>
+                </div>
+                <button onClick={handleSave} className="btn-primary-lg">Lưu & Hoàn tất →</button>
+              </div>
             </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">
-              {editMode ? `Đã cập nhật ${editMonth?.month_label}!` : `Đã lưu ${nextMonth?.month_label}!`}
-            </h2>
-            <p className="text-sm text-slate-500 mb-6">
-              Dòng tiền <strong>{formatVND(totalInflow)}</strong> đã được phân bổ vào {allocs.length} danh mục.
-            </p>
+          );
+        })()}
+
+        {/* STEP 3: Done + action checklist */}
+        {step === 3 && (
+          <div className="animate-fade-in">
+            {/* Success header */}
+            <div className="text-center py-6">
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle size={32} className="text-emerald-500" weight="bold" />
+              </div>
+              <h2 className="text-xl font-bold text-slate-800 mb-1">
+                {editMode ? `Đã cập nhật ${editMonth?.month_label}!` : `Đã lưu ${nextMonth?.month_label}!`}
+              </h2>
+              <p className="text-sm text-slate-500">
+                Dòng tiền <strong>{formatVND(totalInflow)}</strong> đã phân bổ vào {allocs.length} danh mục.
+              </p>
+            </div>
+
+            {/* Action checklist */}
+            {allocs.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+                  ✅ Việc cần thực hiện tiếp theo
+                </p>
+                <div className="space-y-2">
+                  {allocs.map(a => (
+                    <div
+                      key={a.category_id}
+                      className="flex items-center justify-between p-3 rounded-xl border group hover:shadow-sm transition-all"
+                      style={{ borderColor: a.color + '25', background: a.color + '06' }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: a.color + '20' }}
+                        >
+                          <AppIcon emoji={a.icon} size={16} color={a.color} />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-800">
+                            {a.category_name} <span className="font-bold" style={{ color: a.color }}>{formatVND(a.planned_amount)}</span>
+                          </p>
+                          <p className="text-[11px] text-slate-400">{getCategoryHint(a.category_name)}</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => navigate(getCategoryLink(a.category_name))}
+                        className="text-xs text-slate-400 hover:text-slate-700 shrink-0 ml-2 group-hover:text-primary-600 transition-colors"
+                      >
+                        Thực hiện →
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-center gap-3">
               <button onClick={() => navigate('/')} className="btn-secondary">Về Dashboard</button>
               <button onClick={resetAndNew} className="btn-primary">{editMode ? 'Xong' : 'Nhập tháng tiếp'}</button>
@@ -314,34 +460,78 @@ export default function MonthlyEntry() {
         )}
       </div>
 
-      {/* History Section */}
+      {/* History Section — expandable */}
       {filled.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Lịch sử nhập liệu</h2>
           <div className="space-y-2">
-            {filled.slice().reverse().map(m => (
-              <div key={m.month_index} className="card flex items-center justify-between py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-xs font-bold text-primary-600">
-                    {m.month_index}
+            {filled.slice().reverse().map(m => {
+              const isExpanded = expandedMonth === m.month_index;
+              return (
+                <div key={m.month_index} className="card py-0 overflow-hidden">
+                  {/* Row header */}
+                  <div className="flex items-center justify-between py-3">
+                    <button
+                      onClick={() => toggleExpand(m.month_index)}
+                      className="flex items-center gap-3 flex-1 text-left hover:opacity-80 transition"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center text-xs font-bold text-primary-600 shrink-0">
+                        {m.month_index}
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{m.month_label}</p>
+                        <p className="text-xs text-slate-400">{m.note || 'Không có ghi chú'}</p>
+                      </div>
+                      <span className="text-slate-300 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
+                    </button>
+                    <div className="flex items-center gap-4 shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-primary-600">{formatVND(m.total_inflow)}</p>
+                        <p className="text-xs text-slate-400">Thu: {formatVND((m.income || 0) + (m.bonus || 0))} · Chi: {formatVND(m.expense || 0)}</p>
+                      </div>
+                      <div className="flex gap-1">
+                        <button onClick={() => startEdit(m.month_index)} className="btn-ghost text-xs px-2 py-1">Sửa</button>
+                        <button onClick={() => setDeleteConfirm(m.month_index)} className="btn-ghost text-xs px-2 py-1 text-red-500">Xóa</button>
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold text-slate-800">{m.month_label}</p>
-                    <p className="text-xs text-slate-400">{m.note || 'Không có ghi chú'}</p>
-                  </div>
+
+                  {/* Expanded allocation breakdown */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
+                      {loadingExpand ? (
+                        <p className="text-xs text-slate-400">Đang tải...</p>
+                      ) : expandedAllocs.length > 0 ? (
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                          {expandedAllocs.map(a => (
+                            <div
+                              key={a.category_id || a.id}
+                              className="flex items-center gap-2 p-2 rounded-lg"
+                              style={{ background: (a.color || '#64748b') + '12' }}
+                            >
+                              <div
+                                className="w-5 h-5 rounded flex items-center justify-center shrink-0"
+                                style={{ background: a.color || '#64748b' }}
+                              >
+                                <AppIcon emoji={a.icon} size={12} color="white" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-[10px] text-slate-500 truncate">{a.category_name}</p>
+                                <p className="text-xs font-bold" style={{ color: a.color || '#64748b' }}>
+                                  {formatVND(a.actual_amount || a.planned_amount || 0)}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-slate-400">Không có dữ liệu phân bổ.</p>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="text-sm font-bold text-primary-600">{formatVND(m.total_inflow)}</p>
-                    <p className="text-xs text-slate-400">Thu: {formatVND((m.income || 0) + (m.bonus || 0))} · Chi: {formatVND(m.expense || 0)}</p>
-                  </div>
-                  <div className="flex gap-1">
-                    <button onClick={() => startEdit(m.month_index)} className="btn-ghost text-xs px-2 py-1">Sửa</button>
-                    <button onClick={() => setDeleteConfirm(m.month_index)} className="btn-ghost text-xs px-2 py-1 text-red-500">Xóa</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}

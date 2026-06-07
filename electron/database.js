@@ -38,7 +38,20 @@ class FinancialDB {
     this.migrateToV2();
     this.migrateToV3();
     this.migrateToV4();
+    this.migrateToV5();
     this.seedDefaults();
+    
+    // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
+    try {
+      this.run("UPDATE categories SET name = 'Chứng Khoán' WHERE name = 'Đầu Tư'");
+    } catch (e) {}
+
+    // Ensure SJC gold name is "Vàng SJC" instead of "Vàng miếng SJC"
+    try {
+      this.run("UPDATE asset_types SET name = 'Vàng SJC' WHERE ticker = 'SJC'");
+      this.run("UPDATE phases SET guidance = REPLACE(guidance, 'vàng miếng SJC', 'vàng SJC')");
+    } catch (e) {}
+
     // Only save if database didn't exist before (new DB)
     if (!dbExists) {
       this.save();
@@ -374,7 +387,7 @@ class FinancialDB {
       ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
       ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng miếng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -446,7 +459,7 @@ Nguyên tắc:
 
 Phân bổ dòng tiền nhàn rỗi:
 • 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
+• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
 • 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
 • 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
 • 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
@@ -519,6 +532,61 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
 
     // Tables are created in createTables() — just update version
     this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 4, 'Database schema version')");
+  }
+
+  migrateToV5() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 5) return;
+
+    // 1. Update all gold asset types to use "chỉ" as unit
+    this.run("UPDATE asset_types SET unit = 'chỉ' WHERE asset_class = 'gold'");
+
+    // Rename 'Đầu Tư' category to 'Chứng Khoán' for schema consistency
+    this.run("UPDATE categories SET name = 'Chứng Khoán' WHERE name = 'Đầu Tư'");
+
+    // 2. Update existing databases' phase guidance for Phase 2 and Phase 3 to use "chỉ" and unified phrasing
+    const phase2Guidance = `Dự phòng đã đủ. Chuyển trọng tâm sang đầu tư tăng trưởng.
+
+Phân bổ dòng tiền nhàn rỗi:
+• 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
+• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
+• 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
+• 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
+• 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
+
+Hành động cụ thể:
+1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
+2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC (thanh khoản tốt, dễ bán lại)
+3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
+4. Rebalance mỗi 3 tháng
+5. Không bán Đầu Tư để mua khi dip — dùng tiền từ Bắn Tỉa
+
+Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiêu (ví dụ: 24M nếu mục tiêu 4M/tháng)`;
+
+    const phase3Guidance = `Thu nhập đã tăng đáng kể. Bắt đầu đa dạng hóa và xây thu nhập thụ động.
+
+Phân bổ dòng tiền nhàn rỗi:
+• 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
+• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
+• 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
+• 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
+• 5% → Dự Phòng — duy trì, điều chỉnh theo chi tiêu thực tế
+
+Hành động cụ thể:
+1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
+2. Vàng: mua 1-2 chỉ SJC/năm. Có thể đa dạng: vàng miếng + ETF vàng
+3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
+4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
+5. Rebalance mỗi quý
+
+Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục tiêu (ví dụ: 96M nếu mục tiêu 4M/tháng)`;
+
+    this.run('UPDATE phases SET guidance = ? WHERE sort_order = 2', [phase2Guidance]);
+    this.run('UPDATE phases SET guidance = ? WHERE sort_order = 3', [phase3Guidance]);
+
+    // Update schema version
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 5, 'Database schema version')");
+    this.save();
   }
 
   seedDefaults() {
@@ -596,7 +664,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
       ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng miếng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -663,7 +731,7 @@ Nguyên tắc:
 
 Phân bổ dòng tiền nhàn rỗi:
 • 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng miếng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
+• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
 • 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
 • 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
 • 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
@@ -940,9 +1008,8 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const phases = this.query('SELECT * FROM phases ORDER BY sort_order');
     if (!phases.length) return null;
 
-    // Phase 1: Use ACTUAL savings balance assigned to Dự Phòng category
-    // (Not allocations — user may allocate to Dự Phòng but spend on investments)
-    let duPhongActual = 0;
+    // Phase 1: Use ACTUAL savings balance assigned to Dự Phòng category or fallback to allocations
+    let duPhongSavingsVal = 0;
     try {
       const duPhongSavings = this.query(`
         SELECT COALESCE(SUM(sa.principal + COALESCE(
@@ -953,10 +1020,19 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         JOIN categories c ON c.id = sa.category_id
         WHERE c.name LIKE '%Dự Phòng%' AND sa.status = 'active'
       `);
-      duPhongActual = duPhongSavings[0]?.total || 0;
+      duPhongSavingsVal = duPhongSavings[0]?.total || 0;
     } catch (e) { /* savings table may not exist yet */ }
 
-    // Phase 2+: Use total assets = portfolio value + all savings
+    const duPhongAllocations = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN actual_amount > 0 THEN actual_amount ELSE planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Dự Phòng%'
+    `)?.total || 0;
+
+    const duPhongActual = Math.max(duPhongSavingsVal, duPhongAllocations);
+
+    // Phase 2+: Use total assets = portfolio value + all savings, fallback to total allocations
     const portfolio = this.query(`
       SELECT COALESCE(SUM(CASE WHEN type='BUY' THEN total_amount ELSE -total_amount END), 0) as total
       FROM transactions
@@ -971,7 +1047,12 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       totalSavings = savingsResult[0]?.total || 0;
     } catch (e) { /* savings table may not exist yet */ }
 
-    const totalAssets = portfolioTotal + totalSavings;
+    const allocationsTotal = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN actual_amount > 0 THEN actual_amount ELSE planned_amount END), 0) as total
+      FROM allocations
+    `)?.total || 0;
+
+    const totalAssets = Math.max(portfolioTotal + totalSavings, allocationsTotal);
 
     // Use TARGET expense (FI_MONTHLY_EXPENSE) — this is the lifestyle user is building toward
     const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
@@ -1027,6 +1108,46 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const diversified = (stockAssets.length + etfAssets.length) >= 3;
     const hasGold = goldAssets.length > 0;
 
+    // Phase 2: gold_fund = đã phân bổ quỹ vàng (có actual_amount > 0 trong danh mục Vàng)
+    const goldAllocated = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Vàng%'
+    `)?.total > 0;
+
+    // Phase 2: sniper_ammo = đã thực sự phân bổ tiền vào quỹ Bắn Tỉa (không chỉ cấu hình tỷ lệ)
+    const sniperAllocated = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Bắn Tỉa%'
+    `)?.total > 0;
+
+    // Phase 3: gov_bonds = sở hữu trái phiếu hoặc sổ tiết kiệm loại bond
+    const hasBonds = (this.queryOne(`
+      SELECT COUNT(*) as cnt FROM transactions t
+      JOIN asset_types a ON a.id = t.asset_type_id
+      WHERE a.asset_class = 'bond'
+    `)?.cnt || 0) > 0 || savings.some(s => s.product_type === 'bond');
+
+    // Phase 4: passive_income = lãi tiết kiệm/tháng + cổ tức trung bình/tháng >= chi tiêu mục tiêu
+    const monthlySavingsInterest = savings.reduce((sum, s) => {
+      return sum + (s.principal * (s.interest_rate / 100) / 12);
+    }, 0);
+    const filledMonths = this.query('SELECT COUNT(*) as cnt FROM monthly_entries WHERE total_inflow > 0')[0]?.cnt || 1;
+    const totalDividends = this.queryOne(`
+      SELECT COALESCE(SUM(total_amount), 0) as total FROM transactions
+      WHERE LOWER(note) LIKE '%cổ tức%' OR LOWER(note) LIKE '%lãi%'
+    `)?.total || 0;
+    const monthlyPassive = monthlySavingsInterest + (totalDividends / Math.max(1, filledMonths));
+    const hasPassiveIncome = monthlyPassive >= monthlyExpense;
+
+    // Phase 4: rebalance_quarterly = có giao dịch tái cơ cấu trong 90 ngày gần nhất
+    const hasRecentRebalance = (this.queryOne(
+      "SELECT COUNT(*) as cnt FROM transactions WHERE date >= date('now', '-90 days')"
+    )?.cnt || 0) > 0;
+
     return {
       1: {
         savings_acc: hasAnySavings,
@@ -1038,22 +1159,22 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       2: {
         emergency_done: duPhongSavings >= 3 * monthlyExpense,
         diversify_stocks: diversified,
-        gold_fund: hasGold,
-        sniper_ammo: this.queryOne("SELECT COALESCE(SUM(ratio), 0) as total FROM phase_allocations pa JOIN categories c ON c.id = pa.category_id WHERE c.name LIKE '%Bắn Tỉa%'")?.total > 0,
+        gold_fund: goldAllocated,
+        sniper_ammo: sniperAllocated,
         start_tktp: hasTermSavings,
       },
       3: {
-        gold_1luong: goldAssets.some(g => g.total_quantity >= 1),
+        gold_1chi: goldAssets.some(g => g.total_quantity >= 1),
         dividend_stocks: stockAssets.length >= 3,
         tktp_1so: hasTermSavings,
         sniper_deploy: sniperDeployed,
-        gov_bonds: false,
+        gov_bonds: hasBonds,
       },
       4: {
-        passive_income: false,
+        passive_income: hasPassiveIncome,
         balanced_portfolio: diversified && hasGold && hasTermSavings,
         emergency_6x: duPhongSavings >= 6 * monthlyExpense,
-        rebalance_quarterly: false,
+        rebalance_quarterly: hasRecentRebalance,
       },
     };
   }
@@ -1079,48 +1200,27 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   getMonthlyEntry(monthIndex) { return this.queryOne('SELECT * FROM monthly_entries WHERE month_index = ?', [monthIndex]); }
   getFilledMonths() { return this.query('SELECT * FROM monthly_entries WHERE total_inflow > 0 ORDER BY month_index'); }
   getNextUnfilledMonth() {
-    // Find current calendar month
-    const now = new Date();
-    const m = now.getMonth() + 1;
-    const y = now.getFullYear();
-    const currentLabel = `T${m}/${y}`;
+    // 1. Find the first month in chronological order that is not confirmed (unfilled)
+    const firstUnfilled = this.queryOne("SELECT * FROM monthly_entries WHERE status IS NULL OR status != 'confirmed' ORDER BY month_index ASC LIMIT 1");
+    if (firstUnfilled) return firstUnfilled;
 
-    // Check if current month already has data (any month_index)
-    const hasFilledCurrent = this.queryOne('SELECT id FROM monthly_entries WHERE month_label = ? AND total_inflow > 0', [currentLabel]);
-    if (!hasFilledCurrent) {
-      // Current month not filled yet — return empty entry for it
-      const current = this.queryOne('SELECT * FROM monthly_entries WHERE month_label = ? AND total_inflow = 0 ORDER BY month_index LIMIT 1', [currentLabel]);
-      if (current) return current;
-    }
-
-    // Otherwise find next unfilled after last filled
-    const lastFilled = this.queryOne('SELECT * FROM monthly_entries WHERE total_inflow > 0 ORDER BY month_index DESC LIMIT 1');
-    if (lastFilled) {
-      // Find next month label after last filled
-      const parts = lastFilled.month_label.match(/T(\d+)\/(\d+)/);
+    // 2. If all generated timeline months are filled, create and return the next chronological month
+    const lastMonth = this.queryOne("SELECT * FROM monthly_entries ORDER BY month_index DESC LIMIT 1");
+    if (lastMonth) {
+      const parts = lastMonth.month_label.match(/T(\d+)\/(\d+)/);
       if (parts) {
         let nextM = parseInt(parts[1]) + 1;
         let nextY = parseInt(parts[2]);
         if (nextM > 12) { nextM = 1; nextY++; }
         const nextLabel = `T${nextM}/${nextY}`;
-        // Return empty entry for next month (or create one)
-        let next = this.queryOne('SELECT * FROM monthly_entries WHERE month_label = ? AND total_inflow = 0 ORDER BY month_index LIMIT 1', [nextLabel]);
-        if (!next) {
-          // Create entry for next month
-          const maxIdx = this.queryOne('SELECT MAX(month_index) as max_idx FROM monthly_entries');
-          const newIdx = (maxIdx?.max_idx || 0) + 1;
-          this.run('INSERT INTO monthly_entries (month_index, month_label, phase_id) VALUES (?, ?, ?)', [newIdx, nextLabel, lastFilled.phase_id || 1]);
-          next = this.queryOne('SELECT * FROM monthly_entries WHERE month_index = ?', [newIdx]);
-          this.save();
-        }
-        if (next) return next;
+        const newIdx = lastMonth.month_index + 1;
+        this.run('INSERT INTO monthly_entries (month_index, month_label, phase_id) VALUES (?, ?, ?)', [newIdx, nextLabel, lastMonth.phase_id || 1]);
+        this.save();
+        return this.queryOne('SELECT * FROM monthly_entries WHERE month_index = ?', [newIdx]);
       }
     }
 
-    // Fallback: first unfilled that has no filled duplicate
-    return this.queryOne(`SELECT * FROM monthly_entries WHERE total_inflow = 0
-      AND month_label NOT IN (SELECT month_label FROM monthly_entries WHERE total_inflow > 0)
-      ORDER BY month_index LIMIT 1`);
+    return null;
   }
 
   deleteMonthlyEntry(monthIndex) {
@@ -1761,7 +1861,91 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   getSavingsOverview() {
-    // Total allocated to savings-related categories across all months
+    // ── Bucket 1: Dự Phòng ──────────────────────────────────────────────────
+    const duPhongRow = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Dự Phòng%'
+    `);
+    const duPhongAllocated = duPhongRow?.total || 0;
+
+    // ── Bucket 2: Tiết kiệm & Trái phiếu ────────────────────────────────────
+    const tktpRow = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Tiết kiệm%'
+    `);
+    const tktpAllocated = tktpRow?.total || 0;
+
+    const totalAllocated = duPhongAllocated + tktpAllocated;
+
+    // ── Savings accounts (split by category) ────────────────────────────────
+    const accounts = this.getSavingsAccounts().filter(a => a.status === 'active');
+    const totalInSavings = accounts.reduce((s, a) => s + a.principal, 0);
+    const totalAccrued   = accounts.reduce((s, a) => s + a.accrued_interest, 0);
+
+    // Accounts linked to Dự Phòng category
+    const duPhongCat = this.queryOne("SELECT id FROM categories WHERE name LIKE '%Dự Phòng%'");
+    const duPhongInSavings = accounts
+      .filter(a => duPhongCat && a.category_id === duPhongCat.id)
+      .reduce((s, a) => s + a.principal, 0);
+
+    // Accounts linked to TKTP category
+    const tktpCat = this.queryOne("SELECT id FROM categories WHERE name LIKE '%Tiết kiệm%'");
+    const tktpInSavings = accounts
+      .filter(a => tktpCat && a.category_id === tktpCat.id)
+      .reduce((s, a) => s + a.principal, 0);
+
+    // Accounts not linked to any category — track separately, do NOT subtract from DP
+    const unassignedInSavings = accounts
+      .filter(a => !a.category_id)
+      .reduce((s, a) => s + a.principal, 0);
+
+    // Available = what's been allocated but not yet put into the correct-category account
+    const availableForDuPhong = Math.max(0, duPhongAllocated - duPhongInSavings);
+    const availableForTKTP    = Math.max(0, tktpAllocated - tktpInSavings);
+    const availableForSavings = Math.max(0, totalAllocated - totalInSavings);
+
+    // ── Bucket 3: Vàng (gold accumulation) ──────────────────────────────────
+    const goldAllocRow = this.queryOne(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name LIKE '%Vàng%'
+    `);
+    const goldAllocated = goldAllocRow?.total || 0;
+
+    // Gold already spent (BUY transactions for gold asset class)
+    const goldSpentRow = this.queryOne(`
+      SELECT COALESCE(SUM(t.total_amount), 0) as total
+      FROM transactions t
+      JOIN asset_types a ON a.id = t.asset_type_id
+      WHERE a.asset_class = 'gold' AND t.type = 'BUY'
+    `);
+    const goldSpent = goldSpentRow?.total || 0;
+    const availableGoldFund = Math.max(0, goldAllocated - goldSpent);
+
+    // ── Overall inflow & unallocated ─────────────────────────────────────────
+    const inflowResult = this.query('SELECT COALESCE(SUM(total_inflow), 0) as total FROM monthly_entries WHERE total_inflow > 0');
+    const totalInflow = inflowResult[0]?.total || 0;
+
+    const otherAllocResult = this.query(`
+      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
+      FROM allocations a
+      JOIN categories c ON c.id = a.category_id
+      WHERE c.name NOT LIKE '%Dự Phòng%' AND c.name NOT LIKE '%Tiết kiệm%'
+    `);
+    const totalOtherAllocated = otherAllocResult[0]?.total || 0;
+    const totalUnallocated = Math.max(0, totalInflow - totalAllocated - totalOtherAllocated);
+
+    // ── Phase info ────────────────────────────────────────────────────────────
+    const phase = this.getActivePhase();
+    let phaseAllocs = [];
+    if (phase) phaseAllocs = this.getPhaseAllocations(phase.id);
+
+    // ── Alloc breakdown for display ───────────────────────────────────────────
     const allocRows = this.query(`
       SELECT c.name as category_name, c.icon, c.color,
              SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END) as total_allocated
@@ -1771,39 +1955,6 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       GROUP BY c.id
     `);
 
-    const totalAllocated = allocRows.reduce((s, r) => s + r.total_allocated, 0);
-
-    // Total in savings accounts
-    const accounts = this.getSavingsAccounts().filter(a => a.status === 'active');
-    const totalInSavings = accounts.reduce((s, a) => s + a.principal, 0);
-    const totalAccrued = accounts.reduce((s, a) => s + a.accrued_interest, 0);
-
-    // Total inflow across all months
-    const inflowResult = this.query('SELECT COALESCE(SUM(total_inflow), 0) as total FROM monthly_entries WHERE total_inflow > 0');
-    const totalInflow = inflowResult[0]?.total || 0;
-
-    // Total allocated to other categories (stocks, sniper, gold)
-    const otherAllocResult = this.query(`
-      SELECT COALESCE(SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END), 0) as total
-      FROM allocations a
-      JOIN categories c ON c.id = a.category_id
-      WHERE c.name NOT LIKE '%Dự Phòng%' AND c.name NOT LIKE '%Tiết kiệm%'
-    `);
-    const totalOtherAllocated = otherAllocResult[0]?.total || 0;
-
-    // Unallocated = total inflow - all allocations
-    const totalUnallocated = Math.max(0, totalInflow - totalAllocated - totalOtherAllocated);
-
-    // Available for savings = allocated to savings categories - already in savings accounts
-    const availableForSavings = Math.max(0, totalAllocated - totalInSavings);
-
-    // Phase info
-    const phase = this.getActivePhase();
-    let phaseAllocs = [];
-    if (phase) {
-      phaseAllocs = this.getPhaseAllocations(phase.id);
-    }
-
     return {
       totalInflow,
       totalAllocated,
@@ -1812,6 +1963,19 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       totalInSavings,
       totalAccrued,
       availableForSavings,
+      // ── Separate buckets ──
+      duPhongAllocated,
+      duPhongInSavings,
+      availableForDuPhong,
+      tktpAllocated,
+      tktpInSavings,
+      availableForTKTP,
+      unassignedInSavings,  // sổ chưa gán danh mục
+      // ── Gold fund ──
+      goldAllocated,
+      goldSpent,
+      availableGoldFund,
+      // ── Meta ──
       accountCount: accounts.length,
       allocByCategory: allocRows,
       phase,

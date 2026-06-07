@@ -7,7 +7,7 @@ import AllocationGoals from './dashboard/AllocationGoals';
 import { ChartLineUp, Bank, CrosshairSimple, ListChecks } from '../utils/iconMap';
 
 const TABS = [
-  { id: 'portfolio', label: 'Danh mục', Icon: ChartLineUp },
+  { id: 'portfolio', label: 'Giao dịch', Icon: ChartLineUp },
   { id: 'savings', label: 'Tiết kiệm', Icon: Bank },
   { id: 'sniper', label: 'Bắn Tỉa', Icon: CrosshairSimple },
   { id: 'allocation', label: 'Phân bổ', Icon: ListChecks },

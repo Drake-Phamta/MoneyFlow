@@ -94,9 +94,19 @@ export default function AllocationGoals() {
   // Target allocation from phase — VND based on phase.goal_amount
   const targetAlloc = useMemo(() => {
     if (!phaseAllocs.length || !phase?.goal_amount) return [];
-    const maxRatio = Math.max(...phaseAllocs.map(pa => pa.ratio));
-    if (maxRatio <= 0) return [];
-    const totalGoal = phase.goal_amount / maxRatio;
+    
+    // In Phase 1, goal_amount is strictly the target for "Dự Phòng".
+    // In Phase 2+, goal_amount is the target for "Tổng tài sản" (Total Assets).
+    const isPhase1 = phase.sort_order === 1;
+    let totalGoal;
+    
+    if (isPhase1) {
+      const dpRatio = phaseAllocs.find(pa => pa.category_name?.toLowerCase().includes('dự phòng'))?.ratio || 1;
+      totalGoal = phase.goal_amount / dpRatio;
+    } else {
+      totalGoal = phase.goal_amount;
+    }
+
     return phaseAllocs.map(pa => ({
       name: pa.category_name,
       label: pa.category_name,

@@ -441,7 +441,7 @@ export default function Dashboard() {
               {maturities.length > 3 && ` +${maturities.length - 3} sổ khác`}
             </p>
           </div>
-          <button onClick={() => navigate('/investments')} className="btn-ghost text-sm text-amber-700">Xem</button>
+          <button onClick={() => navigate('/investments?tab=savings')} className="btn-ghost text-sm text-amber-700">Xem</button>
         </div>
       )}
 

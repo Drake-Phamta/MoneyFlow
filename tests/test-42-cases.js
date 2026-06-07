@@ -97,6 +97,7 @@ async function runAllTests() {
   // ═══════════════════════════════════════════════════════════
   console.log('🔄 Resetting database for Nhóm 1...');
   await del('/data/all');
+  await put('/params', { key: 'FI_MONTHLY_EXPENSE', value: 4000000 });
   await post('/timeline/regenerate', { totalMonths: 120, startMonth: 5, startYear: 2026 });
 
   console.log('\n━━━ NHÓM 1: NHẬP LIỆU THÁNG ━━━');
@@ -214,6 +215,7 @@ async function runAllTests() {
   // ═══════════════════════════════════════════════════════════
   console.log('\n🔄 Resetting database for Nhóm 2...');
   await del('/data/all');
+  await put('/params', { key: 'FI_MONTHLY_EXPENSE', value: 4000000 });
   await post('/timeline/regenerate', { totalMonths: 120, startMonth: 5, startYear: 2026 });
 
   console.log('\n━━━ NHÓM 2: HỆ THỐNG GIAI ĐOẠN ━━━');
@@ -317,6 +319,7 @@ async function runAllTests() {
   // 2.5: Phase regression
   {
     await del('/data/all');
+    await put('/params', { key: 'FI_MONTHLY_EXPENSE', value: 4000000 });
     await post('/timeline/regenerate', { totalMonths: 120, startMonth: 5, startYear: 2026 });
     const phase = await get('/phases/active');
     assert(phase.data.sort_order === 1, '2.5', 'Phase regresses to 1 when no data');
@@ -348,6 +351,7 @@ async function runAllTests() {
   // ═══════════════════════════════════════════════════════════
   console.log('\n🔄 Setting up data for Nhóm 3-8...');
   await del('/data/all');
+  await put('/params', { key: 'FI_MONTHLY_EXPENSE', value: 4000000 });
   await post('/timeline/regenerate', { totalMonths: 120, startMonth: 5, startYear: 2026 });
 
   const cats = await getCategoryIds();

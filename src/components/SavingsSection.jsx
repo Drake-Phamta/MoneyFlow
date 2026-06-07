@@ -5,7 +5,7 @@ import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
 import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '../utils/iconMap';
 
-const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (1 lượng = 10 chỉ)
+const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (giá định mức)
 
 export default function SavingsSection() {
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,11 @@ export default function SavingsSection() {
   const [depositForm, setDepositForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], note: '' });
   const [categories, setCategories] = useState([]);
   const [sjcPrice, setSjcPrice] = useState(SJC_FALLBACK_PRICE);
+  const [sjcAssetId, setSjcAssetId] = useState(null);
+  const [goldBought, setGoldBought] = useState(0); // total chỉ vàng SJC đã mua
+  const [showGoldBuyModal, setShowGoldBuyModal] = useState(false);
+  const [goldBuying, setGoldBuying] = useState(false);
+  const [goldBuyDate, setGoldBuyDate] = useState(new Date().toISOString().split('T')[0]);
   const [savingsForm, setSavingsForm] = useState({
     name: '', bank: '', type: 'term', product_type: 'savings', principal: '', interest_rate: '',
     term_months: '', start_date: new Date().toISOString().split('T')[0],
@@ -30,13 +35,14 @@ export default function SavingsSection() {
 
   async function loadData() {
     try {
-      const [ov, sum, mats, cats, accounts, assets] = await Promise.all([
+      const [ov, sum, mats, cats, accounts, assets, txns] = await Promise.all([
         apiClient.savings.overview().catch(() => null),
         apiClient.savings.summary().catch(() => null),
         apiClient.savings.maturities(30).catch(() => []),
         apiClient.categories.get().catch(() => []),
         apiClient.savings.get().catch(() => []),
         apiClient.assets.get().catch(() => []),
+        apiClient.transactions.get().catch(() => []),
       ]);
       setOverview(ov);
       setSavingsSummary(sum);
@@ -44,12 +50,48 @@ export default function SavingsSection() {
       setCategories(cats);
       setSavingsAccounts(accounts);
 
-      const sjc = assets.find(a => a.ticker === 'SJC');
+      const sjc = assets.find(a => a.ticker === 'SJC' && a.asset_class === 'gold');
       if (sjc && sjc.current_price > 0) setSjcPrice(sjc.current_price);
+      if (sjc) setSjcAssetId(sjc.id);
+
+      // Count total chỉ vàng SJC đã mua (BUY - SELL)
+      const goldTxns = txns.filter(t => {
+        const name = (t.asset_type_name || t.display_name || t.asset_name || '').toLowerCase();
+        return name.includes('sjc') || name.includes('vàng sjc');
+      });
+      const bought = goldTxns.reduce((sum, t) => sum + (t.type === 'BUY' ? t.quantity : -t.quantity), 0);
+      setGoldBought(Math.max(0, bought));
     } catch (err) {
       console.error('Savings load error:', err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleBuyGold() {
+    if (!sjcAssetId) {
+      alert('Không tìm thấy tài sản Vàng SJC trong hệ thống. Vui lòng kiểm tra mục Cài đặt > Tài sản.');
+      return;
+    }
+    setGoldBuying(true);
+    try {
+      await apiClient.transactions.add({
+        date: goldBuyDate,
+        asset_type_id: sjcAssetId,
+        asset_name: 'SJC',
+        type: 'BUY',
+        quantity: 1,
+        price: sjcPrice,
+        total_amount: sjcPrice,
+        note: 'Tích luỹ vàng — mua 1 chỉ SJC',
+        strategy: 'DCA',
+      });
+      setShowGoldBuyModal(false);
+      loadData(); // refresh gold count + savings
+    } catch (err) {
+      alert('Lỗi khi ghi nhận mua vàng: ' + err.message);
+    } finally {
+      setGoldBuying(false);
     }
   }
 
@@ -132,10 +174,22 @@ export default function SavingsSection() {
   async function handleDeposit(id) {
     const amount = parseNumberInput(depositForm.amount);
     if (!amount || amount <= 0) return;
-    if (amount > availableForSavings) {
-      alert(`Số tiền bơm (${formatVND(amount)}) vượt quá số tiền sẵn sàng (${formatVND(availableForSavings)}). Rút tiền hoặc nhập thêm phân bổ trước.`);
-      return;
+
+    // Find the account to check its category
+    const acc = savingsAccounts.find(a => a.id === id);
+    const isDP   = acc?.category_name?.includes('Dự Phòng');
+    const isTKTP = acc?.category_name?.includes('Tiết kiệm');
+    const bucketAvail = isDP ? availableForDuPhong : isTKTP ? availableForTKTP : null;
+
+    // Warn if exceeding the bucket pool — but do NOT hard-block (user may be adding fresh cash)
+    if (bucketAvail !== null && amount > bucketAvail && bucketAvail > 0) {
+      const ok = window.confirm(
+        `Số tiền bơm (${formatVND(amount)}) vượt quá quỹ phân bổ còn lại (${formatVND(bucketAvail)}).\n` +
+        `Bạn có muốn tiếp tục không? (Ví dụ: bạn đang bơm thêm tiền từ nguồn khác)`
+      );
+      if (!ok) return;
     }
+
     try {
       await apiClient.savings.addTransaction(id, 'deposit', amount, depositForm.date, depositForm.note || 'Bơm vốn');
       setDepositingId(null);
@@ -168,55 +222,84 @@ export default function SavingsSection() {
     return `${days} ngày`;
   }
 
-  // Derived data
-  const totalInflow = overview?.totalInflow || 0;
-  const totalAllocated = overview?.totalAllocated || 0;
-  const totalInSavings = overview?.totalInSavings || 0;
-  const totalAccrued = overview?.totalAccrued || 0;
+  // ── Derived data ─────────────────────────────────────────────────────────
+  const totalInflow        = overview?.totalInflow        || 0;
+  const totalAllocated     = overview?.totalAllocated     || 0;
+  const totalInSavings     = overview?.totalInSavings     || 0;
+  const totalAccrued       = overview?.totalAccrued       || 0;
   const availableForSavings = overview?.availableForSavings || 0;
-  const totalUnallocated = overview?.totalUnallocated || 0;
-  const phase = overview?.phase;
-  const phaseAllocs = overview?.phaseAllocs || [];
+  const totalUnallocated   = overview?.totalUnallocated   || 0;
+  const phase              = overview?.phase;
+  const phaseAllocs        = overview?.phaseAllocs        || [];
 
-  // Phase-based savings ratio
-  const savingsRatio = phaseAllocs.find(pa => pa.category_name?.includes('Dự Phòng'))?.ratio || 0;
-  const tktpRatio = phaseAllocs.find(pa => pa.category_name?.includes('Tiết kiệm'))?.ratio || 0;
+  // ── Bucket breakdown (from backend) ──────────────────────────────────────
+  const duPhongAllocated   = overview?.duPhongAllocated   || 0;
+  const duPhongInSavings   = overview?.duPhongInSavings   || 0;
+  const availableForDuPhong = overview?.availableForDuPhong || 0;
+  const tktpAllocated      = overview?.tktpAllocated      || 0;
+  const tktpInSavings      = overview?.tktpInSavings      || 0;
+  const availableForTKTP   = overview?.availableForTKTP   || 0;
+  const unassignedInSavings = overview?.unassignedInSavings || 0;
+
+  // ── Gold fund (15% Vàng allocation - amount already spent on gold) ───────
+  const goldAllocated      = overview?.goldAllocated      || 0;
+  const goldSpent          = overview?.goldSpent          || 0;
+  const availableGoldFund  = overview?.availableGoldFund  || 0;
+  const goldProgress = sjcPrice > 0 ? Math.min((availableGoldFund / sjcPrice) * 100, 100) : 0;
+  const canBuyGold   = availableGoldFund >= sjcPrice;
+
+  // ── Phase ratios ──────────────────────────────────────────────────────────
+  const savingsRatio    = phaseAllocs.find(pa => pa.category_name?.includes('Dự Phòng'))?.ratio || 0;
+  const tktpRatio       = phaseAllocs.find(pa => pa.category_name?.includes('Tiết kiệm'))?.ratio || 0;
+  const goldRatio       = phaseAllocs.find(pa => pa.category_name?.includes('Vàng'))?.ratio || 0;
   const totalSavingsRatio = savingsRatio + tktpRatio;
 
-  // Gold accumulation
-  const liquidBalance = savingsSummary?.byType?.liquid?.principal || 0;
-  const goldProgress = sjcPrice > 0 ? Math.min((liquidBalance / sjcPrice) * 100, 100) : 0;
-  const canBuyGold = liquidBalance >= sjcPrice;
-
-  // Guidance text based on phase
+  // ── Guidance text — rõ ràng từng bucket ─────────────────────────────────
   function getSavingsGuidance() {
     if (!phase) return null;
-    const ratio = Math.round(totalSavingsRatio * 100);
+    const dpPct   = Math.round(savingsRatio * 100);
+    const tktpPct = Math.round(tktpRatio * 100);
+    const goldPct = Math.round(goldRatio * 100);
+    
     if (phase.sort_order === 1) {
       return {
-        title: 'Giai đoạn Nền tảng',
-        text: `Gửi ${ratio}% tiền nhàn rỗi vào 1 sổ tiết kiệm không kỳ hạn hoặc ngắn hạn (1-3 tháng). Mục tiêu: xây quỹ dự phòng ≥ 3× chi tiêu.`,
-        tip: 'Ưu tiên thanh khoản — gửi không kỳ hạn hoặc 1 tháng để rút bất cứ lúc nào.',
+        title: phase.name,
+        buckets: [
+          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Sổ Không kỳ hạn, hoặc sổ Có kỳ hạn 1 tháng xoay vòng (tối ưu lãi suất, vẫn đảm bảo thanh khoản). Mục tiêu: ≥ 3× chi tiêu/tháng.', type: 'duPhong' },
+        ],
+        tip: 'Ưu tiên thanh khoản — dùng sổ kỳ hạn 1 tháng xoay vòng gốc lẫn lãi là một chiến thuật rất khôn ngoan.',
       };
     }
     if (phase.sort_order === 2) {
       return {
-        title: 'Giai đoạn Đa dạng',
-        text: `Gửi ${ratio}% tiền nhàn rỗi. Tách thành 2-3 sổ: 1 sổ không kỳ hạn (dự phòng), 1-2 sổ kỳ hạn 3-6 tháng (lãi cao hơn).`,
-        tip: 'Khi sổ đáo hạn → gửi lại kỳ hạn dài hơn để lãi suất cao hơn.',
+        title: phase.name,
+        buckets: [
+          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Sổ Không kỳ hạn hoặc Có kỳ hạn 1 tháng xoay vòng. Duy trì ≥ 3× chi tiêu mục tiêu.', type: 'duPhong' },
+          { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: 'Sổ Có kỳ hạn 3–6 tháng — lãi cao hơn. Khi đáo hạn → gửi lại kỳ hạn dài hơn.', type: 'tktp' },
+          { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Tạo sổ Có kỳ hạn gom tiền (ví dụ 3-6 tháng), căn lúc đáo hạn khớp với lúc gom đủ tiền để mua 1 chỉ SJC.', type: 'gold' },
+        ],
+        tip: 'Tận dụng sổ Có kỳ hạn ngắn để gom tiền mua vàng sẽ giúp bạn ăn thêm lãi suất trong lúc chờ đợi.',
       };
     }
     if (phase.sort_order === 3) {
       return {
-        title: 'Giai đoạn Tăng trưởng',
-        text: `Gửi ${ratio}% tiền nhàn rỗi. Áp dụng chiến lược "Thang bậc": chia thành nhiều sổ kỳ hạn khác nhau (3, 6, 12 tháng).`,
-        tip: 'Sổ ngắn hạn đáo hạn → chuyển sang dài hạn. Luôn có tiền đáo hạn mỗi quý.',
+        title: phase.name,
+        buckets: [
+          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Duy trì sổ Không kỳ hạn hoặc 1 tháng xoay vòng. Mục tiêu ≥ 6× chi tiêu.', type: 'duPhong' },
+          { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: '"Thang bậc": nhiều sổ kỳ hạn 3, 6, 12 tháng. Luôn có sổ đáo hạn mỗi quý.', type: 'tktp' },
+          { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Tiếp tục gom tiền qua sổ kỳ hạn ngắn. Mua 1–2 chỉ SJC/năm tích trữ.', type: 'gold' },
+        ],
+        tip: 'Sổ ngắn hạn đáo hạn → chuyển ngay sang kỳ hạn dài hơn để tối đa lãi suất.',
       };
     }
     return {
-      title: 'Giai đoạn Tự do',
-      text: `Gửi ${ratio}% tiền nhàn rỗi. Ưu tiên trái phiếu chính phủ hoặc tiết kiệm kỳ hạn dài (12+ tháng) để lãi suất tối đa.`,
-      tip: 'Rebalance mỗi quý. Duy trì 6× chi tiêu trong dự phòng.',
+      title: phase.name,
+      buckets: [
+        { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Duy trì sổ Không kỳ hạn hoặc 1 tháng xoay vòng. Mục tiêu ≥ 6× chi tiêu.', type: 'duPhong' },
+        { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: 'Trái phiếu chính phủ hoặc sổ kỳ hạn 12+ tháng. Tập trung thu nhập thụ động.', type: 'tktp' },
+        { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Duy trì tỷ lệ vàng. Mua đều đặn, không đầu cơ.', type: 'gold' },
+      ],
+      tip: 'An toàn vốn và tạo thu nhập thụ động là ưu tiên số một ở giai đoạn này.',
     };
   }
 
@@ -226,64 +309,120 @@ export default function SavingsSection() {
 
   return (
     <div className="space-y-6">
-      {/* ===== Money_Flow Overview ===== */}
+      {/* ===== Dòng tiền Tiết kiệm — split by bucket ===== */}
       {overview && (
         <div className="card bg-gradient-to-r from-blue-50 to-violet-50 border-blue-200">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Dòng tiền Tiết kiệm</h3>
 
-          {/* Visual flow */}
-          <div className="grid grid-cols-4 gap-4 mb-4">
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase">Tổng tiền nhàn rỗi</p>
-              <p className="text-lg font-bold text-slate-800">{formatVND(totalInflow)}</p>
-              <p className="text-xs text-slate-400">Từ {overview.allocByCategory?.length || 0} tháng nhập liệu</p>
+          {/* Visual flow overview (3 cards layout) */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
+            {/* Card 1: Tổng tiền */}
+            <div className="card bg-white/70 border-blue-100 flex flex-col justify-center items-center p-4">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Tổng tiền nhàn rỗi</p>
+              <p className="text-2xl font-bold text-slate-800">{formatVND(totalInflow)}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Từ các tháng nhập liệu</p>
             </div>
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase">Phân bổ Dự phòng & Tiết kiệm</p>
-              <p className="text-lg font-bold text-blue-600">{formatVND(totalAllocated)}</p>
-              <p className="text-xs text-slate-400">{totalSavingsRatio > 0 ? `${Math.round(totalSavingsRatio * 100)}% theo phase` : 'Chưa phân bổ'}</p>
+
+            {/* Card 2: Dự Phòng */}
+            <div className="card bg-white/70 border-blue-100 p-4">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-blue-50">
+                <div className="flex items-center gap-2">
+                  <AppIcon name="wallet" className="text-blue-500" size={18} />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Quỹ Dự phòng</p>
+                    <p className="text-[10px] text-slate-400">Sổ không kỳ hạn</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                    Mục tiêu: {Math.round(savingsRatio * 100)}% dòng tiền
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Phân bổ lịch sử:</span>
+                  <span className="font-semibold text-slate-700">{formatVND(duPhongAllocated)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Đã gửi vào sổ:</span>
+                  <span className="font-bold text-emerald-600">{formatVND(duPhongInSavings)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Chưa gửi:</span>
+                  <span className={`font-semibold ${availableForDuPhong > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                    {formatVND(availableForDuPhong)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{
+                  width: `${duPhongAllocated > 0 ? Math.min((duPhongInSavings / duPhongAllocated) * 100, 100) : 0}%`,
+                  background: duPhongInSavings >= duPhongAllocated ? '#10b981' : '#3b82f6',
+                }} />
+              </div>
+              {availableForDuPhong > 0 && (
+                <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                  <Warning size={10} weight="fill" /> Còn {formatVND(availableForDuPhong)} chưa gửi
+                </p>
+              )}
             </div>
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase">Đã vào sổ tiết kiệm</p>
-              <p className="text-lg font-bold text-emerald-600">{formatVND(totalInSavings)}</p>
-              <p className="text-xs text-slate-400">{savingsSummary?.accountCount || 0} sổ</p>
-            </div>
-            <div className="text-center">
-              <p className="text-[10px] text-slate-400 uppercase">Chưa chuyển vào sổ</p>
-              <p className={`text-lg font-bold ${availableForSavings > 0 ? 'text-amber-600' : 'text-emerald-600'}`}>
-                {formatVND(availableForSavings)}
-              </p>
-              <p className="text-xs text-slate-400">{availableForSavings > 0 ? 'Nên tạo sổ mới' : 'Đã vào sổ hết'}</p>
+
+            {/* Card 3: Tiết kiệm & Trái phiếu */}
+            <div className="card bg-white/70 border-violet-100 p-4">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b border-violet-50">
+                <div className="flex items-center gap-2">
+                  <AppIcon name="bank" className="text-violet-500" size={18} />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Tiết kiệm và Trái phiếu</p>
+                    <p className="text-[10px] text-slate-400">Sổ kỳ hạn 3–12 tháng</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">
+                    Mục tiêu: {Math.round(tktpRatio * 100)}% dòng tiền
+                  </span>
+                </div>
+              </div>
+              
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Phân bổ lịch sử:</span>
+                  <span className="font-semibold text-slate-700">{formatVND(tktpAllocated)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Đã gửi vào sổ:</span>
+                  <span className="font-bold text-emerald-600">{formatVND(tktpInSavings)}</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500">Chưa gửi:</span>
+                  <span className={`font-semibold ${availableForTKTP > 0 ? 'text-amber-600' : 'text-slate-400'}`}>
+                    {formatVND(availableForTKTP)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="h-1.5 bg-violet-100 rounded-full overflow-hidden">
+                <div className="h-full rounded-full transition-all" style={{
+                  width: `${tktpAllocated > 0 ? Math.min((tktpInSavings / tktpAllocated) * 100, 100) : 0}%`,
+                  background: tktpInSavings >= tktpAllocated ? '#10b981' : '#8b5cf6',
+                }} />
+              </div>
+              {availableForTKTP > 0 && (
+                <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                  <Warning size={10} weight="fill" /> Còn {formatVND(availableForTKTP)} chưa gửi
+                </p>
+              )}
             </div>
           </div>
-
-          {/* Progress bar: allocated vs in-savings */}
-          {totalAllocated > 0 && (
-            <div>
-              <div className="flex justify-between text-xs text-slate-500 mb-1">
-                <span>Đã vào sổ: {formatVND(totalInSavings)}</span>
-                <span>Tổng phân bổ: {formatVND(totalAllocated)}</span>
-              </div>
-              <div className="h-3 bg-slate-200 rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-1000"
-                  style={{
-                    width: `${Math.min((totalInSavings / totalAllocated) * 100, 100)}%`,
-                    background: totalInSavings >= totalAllocated ? '#10b981' : '#3b82f6',
-                  }}
-                />
-              </div>
-              <p className="text-[10px] text-slate-400 mt-1">
-                {((totalInSavings / totalAllocated) * 100).toFixed(0)}% đã chuyển vào sổ tiết kiệm
-              </p>
-            </div>
-          )}
 
           {/* Unallocated warning */}
           {totalUnallocated > 0 && (
             <div className="mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
               <p className="text-xs text-amber-700">
-                <Warning size={14} className="inline mr-1" weight="fill" /> Còn <strong>{formatVND(totalUnallocated)}</strong> chưa được phân bổ. Hãy nhập liệu tháng mới để phân bổ tiền nhàn rỗi.
+                <Warning size={14} className="inline mr-1" weight="fill" /> Còn <strong>{formatVND(totalUnallocated)}</strong> chưa được phân bổ. Hãy nhập liệu tháng mới.
               </p>
             </div>
           )}
@@ -297,20 +436,24 @@ export default function SavingsSection() {
             <ClipboardText size={20} weight="regular" />
             <h3 className="text-sm font-semibold text-slate-700">Hướng dẫn — {guidance.title}</h3>
           </div>
-          <p className="text-sm text-slate-600 mb-2">{guidance.text}</p>
-          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded-lg flex items-start gap-1.5"><Lightbulb size={14} className="shrink-0 mt-0.5" weight="regular" /> {guidance.tip}</p>
 
-          {/* Phase allocation breakdown */}
-          {phaseAllocs.length > 0 && (
-            <div className="mt-3 flex gap-2">
-              {phaseAllocs.map(pa => (
-                <div key={pa.category_name} className="flex-1 p-2 rounded-lg border border-slate-200 text-center">
-                  <p className="text-xs text-slate-500 flex items-center justify-center gap-1"><AppIcon emoji={pa.icon} size={14} /> {pa.category_name}</p>
-                  <p className="text-sm font-bold" style={{ color: pa.color }}>{(pa.ratio * 100).toFixed(0)}%</p>
-                </div>
-              ))}
-            </div>
-          )}
+          {/* Per-bucket instructions */}
+          <div className="space-y-2 mb-3">
+            {guidance.buckets?.map(b => (
+              <div key={b.type} className={`p-2.5 rounded-lg text-xs ${
+                b.type === 'duPhong' ? 'bg-blue-50 text-blue-800' :
+                b.type === 'tktp'   ? 'bg-violet-50 text-violet-800' :
+                'bg-amber-50 text-amber-800'
+              }`}>
+                <p className="font-semibold mb-0.5">{b.label}</p>
+                <p className="opacity-80">{b.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded-lg flex items-start gap-1.5">
+            <Lightbulb size={14} className="shrink-0 mt-0.5" weight="regular" /> {guidance.tip}
+          </p>
         </div>
       )}
 
@@ -341,28 +484,48 @@ export default function SavingsSection() {
             <p className="text-xs text-slate-400 mt-1">Lãi suất cao hơn</p>
           </div>
 
-          {/* Gold Tracker */}
+          {/* Gold Tracker — dùng 15% Vàng allocation */}
           <div className="card bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600"><Diamond size={18} weight="regular" /></div>
-              <div>
-                <p className="text-sm font-semibold text-amber-800">Tích lũy Vàng</p>
-                <p className="text-xs text-amber-600">Mục tiêu: 1 chỉ SJC</p>
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-amber-800">Tích lũy Vàng SJC</p>
+                <p className="text-xs text-amber-600">Đã có: <strong>{goldBought} chỉ</strong> · Mục tiêu: {goldBought + 1} chỉ</p>
               </div>
             </div>
-            <p className="text-lg font-bold text-amber-700">{formatVND(liquidBalance)}</p>
-            <p className="text-xs text-amber-600 mt-1">Tiền khả dụng / {formatVND(sjcPrice)}</p>
+            {/* Quỹ vàng = tổng phân bổ danh mục Vàng - đã tiêu */}
+            <p className="text-lg font-bold text-amber-700">{formatVND(availableGoldFund)}</p>
+            <p className="text-xs text-amber-600 mt-0.5">Quỹ Vàng còn lại / {formatVND(sjcPrice)} (1 chỉ)</p>
+            {goldAllocated > 0 && (
+              <p className="text-[10px] text-slate-400 mt-0.5">
+                Tổng phân bổ: {formatVND(goldAllocated)} · Đã mua: {formatVND(goldSpent)}
+              </p>
+            )}
             <div className="mt-2 h-2 bg-amber-200 rounded-full overflow-hidden">
               <div className="h-full rounded-full transition-all" style={{ width: `${goldProgress}%`, background: canBuyGold ? '#10b981' : '#f59e0b' }} />
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-amber-500">{goldProgress.toFixed(0)}%</span>
               {canBuyGold ? (
-                <span className="text-xs font-bold text-emerald-600">Đủ mua 1 chỉ SJC!</span>
+                <span className="text-xs font-bold text-emerald-600">✓ Đủ mua 1 chỉ!</span>
               ) : (
-                <span className="text-[10px] text-amber-500">Còn {formatVND(sjcPrice - liquidBalance)}</span>
+                <span className="text-[10px] text-amber-500">Còn thiếu {formatVND(sjcPrice - availableGoldFund)}</span>
               )}
             </div>
+            {canBuyGold && (
+              <button
+                onClick={() => setShowGoldBuyModal(true)}
+                className="mt-3 w-full py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+              >
+                🥇 Ghi nhận mua 1 chỉ vàng SJC
+              </button>
+            )}
+            {!canBuyGold && goldBought > 0 && (
+              <p className="mt-2 text-[10px] text-amber-400 text-center">Tiếp tục tích luỹ để mua chỉ thứ {goldBought + 1}</p>
+            )}
+            {goldAllocated === 0 && (
+              <p className="mt-2 text-[10px] text-slate-400 text-center">Chưa có dữ liệu phân bổ danh mục Vàng</p>
+            )}
           </div>
         </div>
       )}
@@ -395,17 +558,47 @@ export default function SavingsSection() {
           </button>
         </div>
 
-        {/* Quick add: show available amount */}
-        {availableForSavings > 0 && !addingSavings && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-blue-700">Có {formatVND(availableForSavings)} chưa chuyển vào sổ</p>
-              <p className="text-xs text-blue-500">Tạo sổ tiết kiệm để bắt đầu sinh lời</p>
-            </div>
-            <button onClick={() => {
-              setSavingsForm(f => ({ ...f, principal: availableForSavings.toString() }));
-              setAddingSavings(true);
-            }} className="btn-primary text-sm">Tạo sổ</button>
+        {/* Warning: accounts with no category assigned */}
+        {unassignedInSavings > 0 && (
+          <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <p className="text-xs text-amber-700 flex items-start gap-1.5">
+              <Warning size={14} className="shrink-0 mt-0.5" weight="fill" />
+              <span>
+                Có <strong>{formatVND(unassignedInSavings)}</strong> trong sổ chưa gán danh mục — 
+                hệ thống không thể theo dõi đúng bucket. Hãy nhấn <strong>Sửa</strong> trên sổ đó và chọn danh mục.
+              </span>
+            </p>
+          </div>
+        )}
+        {/* Quick add: per-bucket available banners */}
+        {!addingSavings && (availableForDuPhong > 0 || availableForTKTP > 0) && (
+          <div className="mb-4 space-y-2">
+            {availableForDuPhong > 0 && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-700">🛡️ Dự Phòng: <strong>{formatVND(availableForDuPhong)}</strong> chưa gửi vào sổ</p>
+                  <p className="text-xs text-blue-400">Tạo sổ không kỳ hạn để giữ quỹ dự phòng</p>
+                </div>
+                <button onClick={() => {
+                  const dpCat = categories.find(c => c.name.includes('Dự Phòng'));
+                  setSavingsForm(f => ({ ...f, principal: availableForDuPhong.toString(), type: 'liquid', category_id: dpCat?.id?.toString() || '' }));
+                  setAddingSavings(true);
+                }} className="btn-primary text-sm shrink-0">Tạo sổ DP</button>
+              </div>
+            )}
+            {availableForTKTP > 0 && (
+              <div className="p-3 bg-violet-50 border border-violet-200 rounded-xl flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-violet-700">💰 Tiết kiệm & TP: <strong>{formatVND(availableForTKTP)}</strong> chưa gửi vào sổ</p>
+                  <p className="text-xs text-violet-400">Tạo sổ kỳ hạn để sinh lời cao hơn</p>
+                </div>
+                <button onClick={() => {
+                  const tktpCat = categories.find(c => c.name.includes('Tiết kiệm'));
+                  setSavingsForm(f => ({ ...f, principal: availableForTKTP.toString(), type: 'term', category_id: tktpCat?.id?.toString() || '' }));
+                  setAddingSavings(true);
+                }} className="btn-primary text-sm shrink-0" style={{ background: '#8b5cf6' }}>Tạo sổ TKTP</button>
+              </div>
+            )}
           </div>
         )}
 
@@ -438,6 +631,22 @@ export default function SavingsSection() {
                 </select>
               </div>
             </div>
+
+            {/* Hint: available per bucket when category is chosen */}
+            {(() => {
+              const selCat = savingsForm.category_id ? categories.find(c => c.id === parseInt(savingsForm.category_id)) : null;
+              const isDP   = selCat?.name?.includes('Dự Phòng');
+              const isTKTP = selCat?.name?.includes('Tiết kiệm');
+              const avail  = isDP ? availableForDuPhong : isTKTP ? availableForTKTP : null;
+              if (avail === null || avail <= 0) return null;
+              const color  = isDP ? { bg: 'bg-blue-50', border: 'border-blue-100', text: 'text-blue-700' } : { bg: 'bg-violet-50', border: 'border-violet-100', text: 'text-violet-700' };
+              return (
+                <div className={`mb-3 p-2.5 rounded-lg text-xs flex items-center justify-between border ${color.bg} ${color.border} ${color.text}`}>
+                  <span>Còn <strong>{formatVND(avail)}</strong> có thể phân bổ vào {isDP ? 'Dự Phòng' : 'Tiết kiệm & TP'}</span>
+                  <button type="button" onClick={() => setSavingsForm(f => ({ ...f, principal: avail.toString() }))} className="font-semibold underline ml-2 hover:opacity-70">Điền vào</button>
+                </div>
+              );
+            })()}
             <div className="grid grid-cols-4 gap-3 mb-3">
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Số tiền gốc</label>
@@ -596,11 +805,38 @@ export default function SavingsSection() {
                         <td colSpan={11}>
                           <div className="p-3">
                             <p className="text-sm font-medium text-slate-700 mb-2">Bơm vốn vào "{a.name}"</p>
-                            <p className="text-xs text-slate-500 mb-3">Số tiền bơm thêm phải ≤ số tiền sẵn sàng ({formatVND(availableForSavings)})</p>
+                            {/* Show correct available amount based on account category */}
+                            {(() => {
+                              const isDP   = a.category_name?.includes('Dự Phòng');
+                              const isTKTP = a.category_name?.includes('Tiết kiệm');
+                              const avail  = isDP ? availableForDuPhong : isTKTP ? availableForTKTP : availableForSavings;
+                              const label  = isDP ? 'Dự Phòng' : isTKTP ? 'Tiết kiệm & TP' : 'phân bổ chung';
+                              const cls    = avail > 0
+                                ? (isDP ? 'bg-blue-50 text-blue-700' : isTKTP ? 'bg-violet-50 text-violet-700' : 'bg-slate-50 text-slate-600')
+                                : 'bg-amber-50 text-amber-600';
+                              return (
+                                <div className={`text-xs mb-3 p-2 rounded-lg ${cls}`}>
+                                  {avail > 0
+                                    ? <>Quỹ {label}: còn <strong>{formatVND(avail)}</strong> có thể bơm vào sổ này</>
+                                    : 'Đã phân bổ hết — có thể bơm thêm từ nguồn khác'}
+                                </div>
+                              );
+                            })()}
                             <div className="grid grid-cols-3 gap-3">
                               <div>
                                 <label className="text-xs text-slate-500 mb-1 block">Số tiền bơm</label>
-                                <input type="text" inputMode="numeric" value={depositForm.amount ? formatNumberInput(depositForm.amount) : ''} onChange={e => setDepositForm({ ...depositForm, amount: e.target.value.replace(/\D/g, '') })} placeholder={formatVND(availableForSavings)} className="input text-sm" />
+                                {(() => {
+                                  const isDP   = a.category_name?.includes('Dự Phòng');
+                                  const isTKTP = a.category_name?.includes('Tiết kiệm');
+                                  const avail  = isDP ? availableForDuPhong : isTKTP ? availableForTKTP : availableForSavings;
+                                  return (
+                                    <input type="text" inputMode="numeric"
+                                      value={depositForm.amount ? formatNumberInput(depositForm.amount) : ''}
+                                      onChange={e => setDepositForm({ ...depositForm, amount: e.target.value.replace(/\D/g, '') })}
+                                      placeholder={avail > 0 ? formatVND(avail) : 'Nhập số tiền'}
+                                      className="input text-sm" />
+                                  );
+                                })()}
                               </div>
                               <div>
                                 <label className="text-xs text-slate-500 mb-1 block">Ngày bơm</label>
@@ -659,7 +895,7 @@ export default function SavingsSection() {
                       <td className="py-3 px-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
-                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" disabled={availableForSavings <= 0}>Bơm vốn</button>
+                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
                           <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition">Xóa</button>
                         </div>
                       </td>
@@ -703,6 +939,71 @@ export default function SavingsSection() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Gold Buy Confirmation Modal ===== */}
+      {showGoldBuyModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">🥇</div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">Ghi nhận mua vàng SJC</h3>
+                <p className="text-xs text-slate-400">Giao dịch sẽ lưu vào Danh mục đầu tư</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-5">
+              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
+                <span className="text-sm text-slate-600">Tài sản</span>
+                <span className="text-sm font-semibold text-amber-800">Vàng SJC</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
+                <span className="text-sm text-slate-600">Khối lượng</span>
+                <span className="text-sm font-semibold text-amber-800">1 chỉ</span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
+                <span className="text-sm text-slate-600">Giá mua</span>
+                <span className="text-sm font-bold text-amber-800">{formatVND(sjcPrice)}</span>
+              </div>
+              <div>
+                <label className="text-xs text-slate-500 mb-1 block">Ngày mua</label>
+                <input
+                  type="date"
+                  value={goldBuyDate}
+                  onChange={e => setGoldBuyDate(e.target.value)}
+                  className="input w-full"
+                />
+              </div>
+              {goldBought > 0 && (
+                <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-xl">
+                  <span className="text-sm text-slate-600">Tổng sau khi mua</span>
+                  <span className="text-sm font-bold text-emerald-700">{goldBought + 1} chỉ vàng SJC</span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-slate-400 mb-4">
+              💡 Lãi/lỗ sẽ tự động tính khi giá SJC thay đổi. Xem tại mục <strong>Đầu tư &gt; Danh mục</strong>.
+            </p>
+
+            <div className="flex gap-2">
+              <button
+                onClick={() => setShowGoldBuyModal(false)}
+                className="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleBuyGold}
+                disabled={goldBuying}
+                className="flex-1 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition disabled:opacity-60"
+              >
+                {goldBuying ? 'Đang lưu...' : '✓ Xác nhận mua'}
+              </button>
+            </div>
           </div>
         </div>
       )}

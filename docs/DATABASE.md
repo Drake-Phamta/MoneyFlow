@@ -79,7 +79,7 @@ VD: Phase 1 → Dự Phòng 0.70, Chứng Khoán 0.30
 | name | TEXT | Tên hiển thị |
 | category | TEXT | Nhóm: stock, etf, gold, savings, bond |
 | ticker | TEXT | Mã CK (null = parent category) |
-| unit | TEXT | Đơn vị (cổ, lượng, ...) |
+| unit | TEXT | Đơn vị (cổ, chỉ, ...) |
 | color | TEXT | Mã màu |
 | icon | TEXT | Tên icon |
 | active | INTEGER | 1 = đang dùng |
@@ -248,3 +248,4 @@ asset_types ──1:N──→ portfolio_snapshots
 | V2 | `migrateToV2()` | Phân loại lại asset_types, seed VN30 + ETF + SJC |
 | V3 | `migrateToV3()` | Cập nhật phase_allocations + guidance |
 | V4 | `migrateToV4()` | Thêm savings_accounts + savings_transactions |
+| V5 | `migrateToV5()` | Nhất quán đơn vị "chỉ" cho tài sản Vàng và cập nhật kịch bản phase |
