@@ -189,6 +189,15 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  app.delete('/api/activity/:id', (req, res) => {
+    try {
+      db.deleteActivityLog(parseInt(req.params.id));
+      res.json(true);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ===== DATA MANAGEMENT =====
   app.get('/api/data/stats', (req, res) => {
     try { res.json(db.getStats()); }

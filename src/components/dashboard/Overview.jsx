@@ -89,6 +89,21 @@ export default function Overview() {
     }
   }
 
+  async function handleDeleteActivity(id) {
+    if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động này khỏi nhật ký?')) return;
+    try {
+      await apiClient.activity.delete(id);
+      setToast({ type: 'success', message: 'Đã xóa hoạt động thành công' });
+      setTimeout(() => setToast(null), 3000);
+      const fresh = await apiClient.activity.get(10);
+      setActivity(fresh);
+    } catch (err) {
+      console.error('Delete activity error:', err);
+      setToast({ type: 'error', message: 'Lỗi khi xóa hoạt động: ' + err.message });
+      setTimeout(() => setToast(null), 4000);
+    }
+  }
+
   const portfolio = summary?.portfolio || [];
   const totalInvested = summary?.totalInvested || 0;
   const totalCurrentValue = summary?.totalCurrentValue || 0;
@@ -505,7 +520,7 @@ export default function Overview() {
               };
               const { Icon, bg, color } = ACTIVITY_ICONS[a.type] || { Icon: BookmarkSimple, bg: 'bg-slate-100', color: 'text-slate-500' };
               return (
-                <div key={a.id} className="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
+                <div key={a.id} className="group flex items-center gap-3 py-2 border-b border-slate-50 last:border-0 hover:bg-slate-50/50 px-2 -mx-2 rounded-lg transition-all duration-200">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${bg} ${color}`}>
                     <Icon size={16} weight="regular" />
                   </div>
@@ -513,7 +528,16 @@ export default function Overview() {
                     <p className="text-sm text-slate-700 truncate">{a.description}</p>
                     <p className="text-xs text-slate-400">{a.date}</p>
                   </div>
-                  {a.amount > 0 && <span className="text-sm font-semibold text-slate-800">{formatVND(a.amount)}</span>}
+                  <div className="flex items-center gap-3">
+                    {a.amount > 0 && <span className="text-sm font-semibold text-slate-800">{formatVND(a.amount)}</span>}
+                    <button
+                      onClick={() => handleDeleteActivity(a.id)}
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 p-1 rounded transition-all duration-200 flex items-center justify-center"
+                      title="Xóa hoạt động này"
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </div>
                 </div>
               );
             })}

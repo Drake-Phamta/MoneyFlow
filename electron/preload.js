@@ -52,6 +52,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   activity: {
     get: (limit) => ipcRenderer.invoke('activity:get', limit),
+    delete: (id) => ipcRenderer.invoke('activity:delete', id),
   },
   importExcel: (filePath) => ipcRenderer.invoke('import:excel', filePath),
   exportExcel: (filePath) => ipcRenderer.invoke('export:excel', filePath),

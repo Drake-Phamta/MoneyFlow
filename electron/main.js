@@ -126,6 +126,7 @@ ipcMain.handle('portfolio:summary', async () => { await ready(); return db.getPo
 
 // Activity
 ipcMain.handle('activity:get', async (_, limit) => { await ready(); return db.getActivityLog(limit); });
+ipcMain.handle('activity:delete', async (_, id) => { await ready(); return db.deleteActivityLog(id); });
 
 // Import/Export
 ipcMain.handle('import:excel', async (_, filePath) => { await ready(); return db.importExcel(filePath); });

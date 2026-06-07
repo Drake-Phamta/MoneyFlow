@@ -52,6 +52,27 @@ class FinancialDB {
       this.run("UPDATE phases SET guidance = REPLACE(guidance, 'vàng miếng SJC', 'vàng SJC')");
     } catch (e) {}
 
+    // One-time fix: Correct the date of existing monthly entries in activity_log
+    try {
+      const logs = this.query("SELECT id, description FROM activity_log WHERE type = 'MONTHLY_ENTRY'");
+      let migrated = false;
+      for (const log of logs) {
+        const match = log.description.match(/Nhập liệu T(\d+)\/(\d+)/);
+        if (match) {
+          const m = match[1].padStart(2, '0');
+          const y = match[2];
+          const correctDate = `${y}-${m}-01`;
+          this.run("UPDATE activity_log SET date = ? WHERE id = ?", [correctDate, log.id]);
+          migrated = true;
+        }
+      }
+      if (migrated) {
+        this.save();
+      }
+    } catch (e) {
+      console.error('[DB] Migration of activity dates failed:', e.message);
+    }
+
     // Only save if database didn't exist before (new DB)
     if (!dbExists) {
       this.save();
@@ -1254,9 +1275,23 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         [data.month_index, data.month_label, data.income || 0, data.expense || 0, data.bonus || 0,
          data.total_inflow || 0, data.note || null, data.phase_id || null, data.status || 'confirmed']);
     }
+    // Clean up old activity for this month to avoid duplicates
+    if (data.month_label) {
+      this.run(`DELETE FROM activity_log WHERE type = 'MONTHLY_ENTRY' AND description LIKE ?`, [`Nhập liệu ${data.month_label}%`]);
+    }
+    // Calculate log date based on the month being entered rather than today's date
+    let logDate = new Date().toISOString().split('T')[0];
+    if (data.month_label) {
+      const match = data.month_label.match(/T(\d+)\/(\d+)/);
+      if (match) {
+        const m = match[1].padStart(2, '0');
+        const y = match[2];
+        logDate = `${y}-${m}-01`;
+      }
+    }
     // Log activity
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
-      [new Date().toISOString().split('T')[0], 'MONTHLY_ENTRY',
+      [logDate, 'MONTHLY_ENTRY',
        `Nhập liệu ${data.month_label || ''}: ${formatVND(data.total_inflow)}`, data.total_inflow || 0]);
     this.save();
   }
@@ -1430,6 +1465,12 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   // ===== ACTIVITY LOG =====
   getActivityLog(limit = 20) {
     return this.query('SELECT * FROM activity_log ORDER BY date DESC, id DESC LIMIT ?', [limit]);
+  }
+
+  deleteActivityLog(id) {
+    this.run('DELETE FROM activity_log WHERE id = ?', [id]);
+    this.save();
+    return true;
   }
 
   // ===== IMPORT EXCEL =====

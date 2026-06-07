@@ -72,7 +72,10 @@ export const api = {
     get: () => get('/portfolio'),
     summary: () => get('/portfolio/summary'),
   },
-  activity: { get: (limit) => get(`/activity?limit=${limit || 20}`) },
+  activity: {
+    get: (limit) => get(`/activity?limit=${limit || 20}`),
+    delete: (id) => del(`/activity/${id}`),
+  },
   watchlist: {
     get: () => get('/watchlist'),
     add: (data) => post('/watchlist', data),
