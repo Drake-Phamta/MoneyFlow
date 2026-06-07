@@ -930,6 +930,23 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       const goalAmount = p.goal_multiplier > 0 ? p.goal_multiplier * monthlyExpense : 0;
       this.run('UPDATE phases SET goal_amount = ? WHERE id = ?', [goalAmount, p.id]);
     }
+
+    // Also update Phase 1 guidance text dynamically to reflect the new monthly expense
+    try {
+      const p1 = this.queryOne('SELECT id, guidance FROM phases WHERE sort_order = 1');
+      if (p1) {
+        const formatCompact = (val) => {
+          if (val >= 1e9) return (val / 1e9).toFixed(1) + ' tỷ';
+          if (val >= 1e6) return (val / 1e6).toFixed(0) + 'M';
+          return val.toLocaleString('vi-VN');
+        };
+        const lines = p1.guidance.split('\n');
+        lines[0] = `Mục tiêu: Dự phòng 3 tháng chi tiêu mục tiêu (~${formatCompact(monthlyExpense * 3)} với mục tiêu ${formatCompact(monthlyExpense)}/tháng). Xây thói quen tài chính.`;
+        this.run('UPDATE phases SET guidance = ? WHERE id = ?', [lines.join('\n'), p1.id]);
+      }
+    } catch (e) {
+      console.error('[DB] Failed to update Phase 1 guidance text:', e.message);
+    }
   }
 
   // Recalculate all phase goals based on actual average expense

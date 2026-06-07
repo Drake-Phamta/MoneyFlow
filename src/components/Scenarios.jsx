@@ -150,6 +150,7 @@ export default function Scenarios() {
   const [phases, setPhases] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [avgExpense, setAvgExpense] = useState(4000000);
+  const [expectedExpense, setExpectedExpense] = useState(4000000);
   const [expandedPhase, setExpandedPhase] = useState(null);
   const [expandedKnowledge, setExpandedKnowledge] = useState(null);
   const [allocsByCategory, setAllocsByCategory] = useState({});
@@ -183,6 +184,7 @@ export default function Scenarios() {
       setAvgExpense(avg);
       const paramMap = {};
       for (const param of params) paramMap[param.key] = param.value;
+      setExpectedExpense(paramMap.FI_MONTHLY_EXPENSE || 4000000);
       setTotalMonths(paramMap.TOTAL_MONTHS || 120);
       if (ph) {
         setExpandedPhase(ph.sort_order);
@@ -215,7 +217,7 @@ export default function Scenarios() {
   const totalCurrentValue = (portfolio?.totalCurrentValue || totalAllocated) + totalSavingsBalance;
 
   // FI calculation (4% rule)
-  const fiNumber = avgExpense * 12 / 0.04;
+  const fiNumber = expectedExpense * 12 / 0.04;
   const fiRatio = fiNumber > 0 ? (totalCurrentValue / fiNumber) * 100 : 0;
 
   // Projection scenarios
@@ -224,7 +226,7 @@ export default function Scenarios() {
     const monthlyReturn = annualReturn / 12;
     const inflationMonthly = 0.035 / 12;
     let monthsToFI = 0;
-    let currentExpense = avgExpense;
+    let currentExpense = expectedExpense;
 
     for (let m = 0; m < 600; m++) {
       balance = balance * (1 + monthlyReturn) + monthlyContrib;

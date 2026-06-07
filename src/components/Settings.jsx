@@ -258,6 +258,8 @@ export default function Settings() {
     }
   }
 
+  const targetExpense = params.FI_MONTHLY_EXPENSE || 4000000;
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div>
@@ -298,23 +300,23 @@ export default function Settings() {
         <div className="grid grid-cols-4 gap-3">
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Dự phòng (3×)</p>
-            <p className="text-sm font-bold text-primary-600">{formatVND(avgExpense * 3)}</p>
-            <p className="text-[10px] text-slate-300">thực tế</p>
+            <p className="text-sm font-bold text-primary-600">{formatVND(targetExpense * 3)}</p>
+            <p className="text-[10px] text-slate-300">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Tăng tốc (6×)</p>
-            <p className="text-sm font-bold text-blue-600">{formatVND(avgExpense * 6)}</p>
-            <p className="text-[10px] text-slate-300">thực tế</p>
+            <p className="text-sm font-bold text-blue-600">{formatVND(targetExpense * 6)}</p>
+            <p className="text-[10px] text-slate-300">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Tích lũy (24×)</p>
-            <p className="text-sm font-bold text-violet-600">{formatVND(avgExpense * 24)}</p>
-            <p className="text-[10px] text-slate-300">thực tế</p>
+            <p className="text-sm font-bold text-violet-600">{formatVND(targetExpense * 24)}</p>
+            <p className="text-[10px] text-slate-300">mục tiêu</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl text-center">
             <p className="text-[10px] text-emerald-600">Tự do tài chính (quy tắc 4%)</p>
-            <p className="text-sm font-bold text-emerald-700">{formatVND(avgExpense * 12 / 0.04)}</p>
-            <p className="text-[10px] text-emerald-400">thực tế</p>
+            <p className="text-sm font-bold text-emerald-700">{formatVND(targetExpense * 12 / 0.04)}</p>
+            <p className="text-[10px] text-emerald-400">mục tiêu</p>
           </div>
         </div>
       </div>
