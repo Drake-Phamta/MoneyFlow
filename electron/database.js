@@ -303,6 +303,20 @@ class FinancialDB {
       )
     `);
 
+    // Discrepancy logs
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS discrepancy_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        month_index INTEGER NOT NULL,
+        month_label TEXT NOT NULL,
+        amount REAL NOT NULL,
+        reason TEXT,
+        target_category_id INTEGER,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+
     // Migration: add current_price if missing
     try {
       this.db.run('ALTER TABLE asset_types ADD COLUMN current_price REAL DEFAULT 0');
@@ -1359,26 +1373,58 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     this.save();
   }
 
-  adjustInvestmentAllocation(discrepancyAmount) {
-    // Find the most recent filled monthly entry
-    const latest = this.queryOne('SELECT id FROM monthly_entries WHERE total_inflow > 0 ORDER BY id DESC LIMIT 1');
+  getDiscrepancyLogs() {
+    return this.query(`
+      SELECT d.*, c.name as category_name
+      FROM discrepancy_logs d
+      LEFT JOIN categories c ON c.id = d.target_category_id
+      ORDER BY d.id DESC
+    `);
+  }
+
+  adjustInvestmentAllocation(discrepancyAmount, categoryId, reason, dateStr) {
+    // Find the most recent monthly entry that actually has allocations
+    let latest = this.queryOne(`
+      SELECT DISTINCT me.id, me.month_index, me.month_label 
+      FROM monthly_entries me 
+      JOIN allocations a ON a.monthly_entry_id = me.id 
+      WHERE me.status = 'confirmed' OR me.income IS NOT NULL
+      ORDER BY me.month_index DESC LIMIT 1
+    `);
+    // Fallback: any filled entry
+    if (!latest) {
+      latest = this.queryOne("SELECT id, month_index, month_label FROM monthly_entries WHERE income IS NOT NULL OR status = 'filled' ORDER BY month_index DESC LIMIT 1");
+    }
     if (!latest) return;
 
-    // Find investment allocations for the latest month (exclude Dự Phòng and Tiết kiệm)
-    const allAllocs = this.query(`
-      SELECT a.id, a.actual_amount, a.planned_amount, a.monthly_entry_id, c.name as category_name
-      FROM allocations a
-      JOIN categories c ON c.id = a.category_id
-      WHERE a.monthly_entry_id = ?
-    `, [latest.id]);
-    const investAllocs = allAllocs.filter(a => !a.category_name.includes('Dự Phòng') && !a.category_name.includes('Tiết kiệm'));
+    if (categoryId) {
+      const target = this.queryOne('SELECT * FROM allocations WHERE monthly_entry_id = ? AND category_id = ?', [latest.id, categoryId]);
+      if (target) {
+        const newAmount = (target.actual_amount || target.planned_amount || 0) + discrepancyAmount;
+        this.run('UPDATE allocations SET actual_amount = ? WHERE id = ?', [Math.max(0, newAmount), target.id]);
+      } else {
+        this.run('INSERT INTO allocations (monthly_entry_id, category_id, planned_amount, actual_amount) VALUES (?, ?, 0, ?)', [latest.id, categoryId, Math.max(0, discrepancyAmount)]);
+      }
+    } else {
+      // Fallback
+      const allAllocs = this.query(`
+        SELECT a.id, a.actual_amount, a.planned_amount, a.monthly_entry_id, c.name as category_name
+        FROM allocations a
+        JOIN categories c ON c.id = a.category_id
+        WHERE a.monthly_entry_id = ?
+      `, [latest.id]);
+      const investAllocs = allAllocs.filter(a => !a.category_name.includes('Dự Phòng') && !a.category_name.includes('Tiết kiệm'));
 
-    if (investAllocs.length === 0) return;
+      if (investAllocs.length > 0) {
+        const target = investAllocs[0];
+        const newAmount = (target.actual_amount || target.planned_amount || 0) + discrepancyAmount;
+        this.run('UPDATE allocations SET actual_amount = ? WHERE id = ?', [Math.max(0, newAmount), target.id]);
+      }
+    }
 
-    // Add discrepancy to the first investment allocation's actual_amount
-    const target = investAllocs[0];
-    const newAmount = (target.actual_amount || target.planned_amount || 0) + discrepancyAmount;
-    this.run('UPDATE allocations SET actual_amount = ? WHERE id = ?', [Math.max(0, newAmount), target.id]);
+    this.run('INSERT INTO discrepancy_logs (date, month_index, month_label, amount, reason, target_category_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [dateStr || new Date().toISOString().split('T')[0], latest.month_index, latest.month_label, discrepancyAmount, reason || '', categoryId || null]);
+
     this.save();
   }
 
@@ -1413,29 +1459,76 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
 
   // ===== PORTFOLIO =====
   getPortfolio() {
-    return this.query(`
-      SELECT
-        a.id as asset_type_id,
-        CASE WHEN a.ticker IS NOT NULL AND a.ticker != '' THEN a.ticker ELSE a.name END as name,
-        a.category, a.ticker, a.unit, a.color, a.icon,
-        a.current_price, a.asset_class,
-        COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) as total_quantity,
-        COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount ELSE -t.total_amount END), 0) as total_invested,
-        CASE WHEN COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) > 0
-          THEN SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount ELSE -t.total_amount END) /
-               SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END)
-          ELSE 0 END as avg_cost,
-        CASE WHEN a.current_price > 0
-          THEN COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.quantity ELSE -t.quantity END), 0) * a.current_price
-          ELSE COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount ELSE -t.total_amount END), 0)
-        END as current_value
-      FROM asset_types a
-      LEFT JOIN transactions t ON t.asset_type_id = a.id
-      WHERE a.active = 1 AND a.asset_class NOT IN ('savings', 'bond')
-      GROUP BY a.id
-      HAVING total_quantity > 0
-      ORDER BY current_value DESC
+    const assets = this.query(`
+      SELECT id as asset_type_id, name, category, ticker, unit, color, icon, current_price, asset_class
+      FROM asset_types
+      WHERE active = 1 AND asset_class NOT IN ('savings', 'bond')
     `);
+    const txs = this.query(`
+      SELECT asset_type_id, type, quantity, price, total_amount, date
+      FROM transactions
+      ORDER BY date ASC, id ASC
+    `);
+
+    const txsByAsset = {};
+    for (const t of txs) {
+      if (!txsByAsset[t.asset_type_id]) txsByAsset[t.asset_type_id] = [];
+      txsByAsset[t.asset_type_id].push(t);
+    }
+
+    const portfolio = [];
+    for (const a of assets) {
+      const assetTxs = txsByAsset[a.asset_type_id] || [];
+      let qty = 0;
+      let avgCost = 0;
+      let firstBuyDate = null;
+
+      for (const t of assetTxs) {
+        const tQty = Number(t.quantity);
+        const tAmount = Number(t.total_amount);
+
+        if (t.type === 'BUY') {
+          if (qty === 0) firstBuyDate = t.date;
+          const prevQty = qty;
+          qty += tQty;
+          if (qty > 0) {
+            avgCost = (prevQty * avgCost + tAmount) / qty;
+          } else {
+            avgCost = 0;
+          }
+        } else if (t.type === 'SELL') {
+          qty = Math.max(0, qty - tQty);
+          if (qty === 0) {
+            avgCost = 0;
+            firstBuyDate = null;
+          }
+        }
+      }
+
+      if (qty > 0) {
+        const name = a.ticker && a.ticker !== '' ? a.ticker : a.name;
+        const current_value = a.current_price > 0 ? qty * a.current_price : qty * avgCost;
+        portfolio.push({
+          asset_type_id: a.asset_type_id,
+          name,
+          category: a.category,
+          ticker: a.ticker,
+          unit: a.unit,
+          color: a.color,
+          icon: a.icon,
+          current_price: a.current_price,
+          asset_class: a.asset_class,
+          total_quantity: qty,
+          total_invested: qty * avgCost,
+          avg_cost: avgCost,
+          current_value,
+          first_buy_date: firstBuyDate
+        });
+      }
+    }
+
+    // Sort by current_value DESC
+    return portfolio.sort((x, y) => y.current_value - x.current_value);
   }
 
   // Map asset to allocation category based on asset_class and transaction strategy
@@ -1495,7 +1588,18 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       console.error('getPortfolioSummary: savings error:', e.message);
     }
 
-    return { portfolio, totalInvested, totalCurrentValue, totalGain, byCategory };
+    // Tính toán dòng tiền ra ròng thực tế của toàn bộ ví giao dịch (để tính Tiền mặt trên Dashboard)
+    let netCashOutflow = totalInvested;
+    try {
+      const netFlowRes = this.queryOne("SELECT COALESCE(SUM(CASE WHEN type = 'BUY' THEN total_amount + fee ELSE -total_amount + fee END), 0) as net_flow FROM transactions");
+      if (netFlowRes) {
+        netCashOutflow = netFlowRes.net_flow;
+      }
+    } catch (e) {
+      console.error('getPortfolioSummary: netCashOutflow error:', e.message);
+    }
+
+    return { portfolio, totalInvested, totalCurrentValue, totalGain, byCategory, netCashOutflow };
   }
 
   // ===== ACTIVITY LOG =====

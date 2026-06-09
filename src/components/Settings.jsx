@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { formatVND, formatPercent } from '../utils/formatters';
 import { apiClient, isElectron } from '../utils/apiClient';
 import FormattedInput from './FormattedInput';
@@ -672,7 +673,7 @@ export default function Settings() {
       </div>
 
       {/* Confirm Modal */}
-      {confirmClear && (
+      {confirmClear && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in">
           <div className="card max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold text-red-700 mb-2">
@@ -691,7 +692,8 @@ export default function Settings() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

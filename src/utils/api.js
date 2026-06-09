@@ -61,7 +61,8 @@ export const api = {
   allocations: {
     get: (entryId) => get(`/allocations/${entryId}`),
     save: (entryId, allocs) => post(`/allocations/${entryId}`, { allocations: allocs }),
-    adjust: (discrepancyAmount) => post('/allocations/adjust', { discrepancyAmount }),
+    adjust: (discrepancyAmount, categoryId, reason, date) => post('/allocations/adjust', { discrepancyAmount, categoryId, reason, date }),
+    discrepancies: () => get('/allocations/discrepancies'),
   },
   transactions: {
     get: () => get('/transactions'),
@@ -90,6 +91,7 @@ export const api = {
   },
   priceHistory: {
     get: (assetId, days) => get(`/price-history/${assetId}?days=${days || 30}`),
+    fetch: (assetId, days) => post(`/price-history/${assetId}/fetch?days=${days || 365}`),
   },
   prices: {
     refresh: () => post('/prices/refresh'),

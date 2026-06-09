@@ -23,19 +23,21 @@ export default function AllocationPie({ data = [], layout = 'vertical', theme = 
   const total = filtered.reduce((s, d) => s + d.value, 0);
 
   const renderLegend = () => (
-    <div className={layout === 'horizontal' ? "flex flex-col justify-center gap-3 w-full h-full" : "space-y-2 mt-2"}>
+    <div className={layout === 'horizontal' ? "grid grid-cols-2 gap-x-3 gap-y-3 w-full content-start overflow-y-auto max-h-[180px] pr-1" : "space-y-2 mt-2 max-h-[200px] overflow-y-auto pr-1"}>
       {filtered.map((d) => (
-        <div key={d.name} className="flex items-center justify-between">
-          <div className="flex items-center gap-2 min-w-0 pr-4">
-            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
-            <span className={`text-sm ${textColor} flex items-center gap-1 truncate`}>
-              {d.icon && <AppIcon name={d.icon} size={14} />}
+        <div key={d.name} className="flex flex-col justify-center">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
+            <span className={`text-xs ${textColor} flex items-center gap-1 truncate font-medium`} title={d.name}>
+              {d.icon && <AppIcon name={d.icon} size={12} />}
               {d.name}
             </span>
           </div>
-          <div className="text-right flex-shrink-0">
-            <span className={`text-sm font-bold ${valueColor}`}>{formatVND(d.value)}</span>
-            <span className={`text-xs ${isDark ? 'text-slate-400' : 'text-slate-400'} ml-1`}>({((d.value / total) * 100).toFixed(0)}%)</span>
+          <div className="flex items-baseline gap-1 mt-0.5 ml-3.5">
+            <span className={`text-xs font-bold ${valueColor} truncate`}>{formatVND(d.value)}</span>
+            <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-400'} flex-shrink-0`}>
+              ({((d.value / total) * 100).toFixed(0)}%)
+            </span>
           </div>
         </div>
       ))}

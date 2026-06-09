@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
@@ -537,7 +538,7 @@ export default function MonthlyEntry() {
       )}
 
       {/* Delete Confirmation Modal */}
-      {deleteConfirm && (
+      {deleteConfirm && createPortal(
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in">
           <div className="card max-w-sm w-full mx-4">
             <h3 className="text-lg font-bold text-slate-800 mb-2">Xóa nhập liệu?</h3>
@@ -549,7 +550,8 @@ export default function MonthlyEntry() {
               <button onClick={() => handleDelete(deleteConfirm)} className="btn-danger">Xóa</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Empty state */}

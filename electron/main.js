@@ -17,6 +17,12 @@ let priceService;
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400, height: 900, minWidth: 1000, minHeight: 700,
+    titleBarStyle: 'hidden',
+    titleBarOverlay: {
+      color: '#f8fafc',
+      symbolColor: '#475569',
+      height: 36
+    },
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     title: 'Money Flow',
     icon: path.join(__dirname, '..', 'icon.ico'),
@@ -113,7 +119,8 @@ ipcMain.handle('monthly:delete', async (_, monthIndex) => { await ready(); db.de
 // Allocations
 ipcMain.handle('allocations:get', async (_, entryId) => { await ready(); return db.getAllocations(entryId); });
 ipcMain.handle('allocations:save', async (_, entryId, allocs) => { await ready(); db.saveAllocations(entryId, allocs); return true; });
-ipcMain.handle('allocations:adjust', async (_, discrepancyAmount) => { await ready(); db.adjustInvestmentAllocation(discrepancyAmount); return true; });
+ipcMain.handle('allocations:adjust', async (_, discrepancyAmount, categoryId, reason, date) => { await ready(); db.adjustInvestmentAllocation(discrepancyAmount, categoryId, reason, date); return true; });
+ipcMain.handle('allocations:discrepancies', async () => { await ready(); return db.getDiscrepancyLogs(); });
 
 // Transactions
 ipcMain.handle('transactions:get', async () => { await ready(); return db.getTransactions(); });
@@ -168,6 +175,11 @@ ipcMain.handle('alerts:markAllRead', async () => { await ready(); db.markAllAler
 
 // Price history & refresh
 ipcMain.handle('priceHistory:get', async (_, assetId, days) => { await ready(); return db.getPriceHistory(assetId, days || 30); });
+ipcMain.handle('priceHistory:fetch', async (_, assetId, days) => {
+  await ready();
+  await priceService.fetchAndCacheHistory(assetId, days || 365);
+  return db.getPriceHistory(assetId, days || 365);
+});
 ipcMain.handle('prices:refresh', async () => {
   await ready();
   const result = await priceService.fetchAllWatchlistPrices();

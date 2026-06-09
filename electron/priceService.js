@@ -340,6 +340,100 @@ class PriceService {
 
     return alerts;
   }
+
+  /**
+   * Fetch full price history from external API and cache into price_snapshots.
+   * Smart caching: only fetches data newer than the latest snapshot in DB.
+   * @param {number} assetId - asset_type_id
+   * @param {number} days - number of days to fetch (0 = all available)
+   * @returns {{ cached: number, fetched: number, total: number }}
+   */
+  async fetchAndCacheHistory(assetId, days = 365) {
+    const asset = this.db.queryOne('SELECT * FROM asset_types WHERE id = ?', [assetId]);
+    if (!asset || !asset.ticker) throw new Error('Asset not found or no ticker');
+
+    // Check what we already have cached
+    const latestSnapshot = this.db.queryOne(
+      'SELECT date FROM price_snapshots WHERE asset_type_id = ? ORDER BY date DESC LIMIT 1',
+      [assetId]
+    );
+    const cachedCount = this.db.queryOne(
+      'SELECT COUNT(*) as cnt FROM price_snapshots WHERE asset_type_id = ?',
+      [assetId]
+    )?.cnt || 0;
+
+    let bars = [];
+
+    if (asset.asset_class === 'gold') {
+      // Gold: fetch from btmc.vn day by day
+      const now = new Date();
+      const fetchDays = days === 0 ? 730 : Math.min(days, 730);
+      
+      // Smart: only fetch days we don't have
+      const startDate = latestSnapshot?.date ? new Date(latestSnapshot.date) : null;
+      
+      for (let i = 0; i < fetchDays; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        // Skip weekends
+        if (d.getDay() === 0 || d.getDay() === 6) continue;
+        
+        // Skip dates we already have (except today for freshness)
+        if (i > 0 && startDate && d <= startDate) continue;
+        
+        const dateParam = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+        try {
+          const res = await fetch(`https://btmc.vn/ProductHome/getGoldDate?date=${encodeURIComponent(dateParam)}`, {
+            headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+          });
+          const data = await res.json();
+          const sjcMua = data?.Data?.sjcmua;
+          const sjcBan = data?.Data?.sjcban;
+          if (sjcMua && sjcBan) {
+            const buyPrice = parseInt(sjcMua.replace(/<[^>]*>/g, '')) * 1000;
+            const sellPrice = parseInt(sjcBan.replace(/<[^>]*>/g, '')) * 1000;
+            const midPrice = Math.round((buyPrice + sellPrice) / 2);
+            bars.push({
+              date: dateStr,
+              open: buyPrice,
+              high: sellPrice,
+              low: buyPrice,
+              close: midPrice,
+              volume: 0
+            });
+          }
+        } catch (e) { /* skip failed dates */ }
+        
+        // Rate limit: 80ms delay between requests
+        if (i < fetchDays - 1) {
+          await new Promise(r => setTimeout(r, 80));
+        }
+      }
+    } else {
+      // Stocks/ETFs: fetch from VNDirect API (bulk)
+      bars = await this.fetchPriceHistory(asset.ticker, days);
+    }
+
+    // Save all fetched bars into DB
+    let newCount = 0;
+    for (const bar of bars) {
+      try {
+        this.db.savePriceSnapshot(assetId, bar.date, bar);
+        newCount++;
+      } catch (e) { /* skip duplicates */ }
+    }
+
+    // Return the full history from DB
+    const total = this.db.queryOne(
+      'SELECT COUNT(*) as cnt FROM price_snapshots WHERE asset_type_id = ?',
+      [assetId]
+    )?.cnt || 0;
+
+    console.log(`[PriceService] fetchAndCacheHistory: asset=${assetId}, cached=${cachedCount}, fetched=${newCount}, total=${total}`);
+    return { cached: cachedCount, fetched: newCount, total };
+  }
 }
 
 module.exports = PriceService;

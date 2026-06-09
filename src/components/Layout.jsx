@@ -11,9 +11,15 @@ const navItems = [
 
 export default function Layout({ children }) {
   return (
-    <div className="flex h-screen w-screen bg-slate-50">
+    <div className="flex h-screen w-screen bg-slate-50 overflow-hidden relative">
+      {/* Draggable Titlebar Overlay (chừa 150px bên phải cho nút điều khiển cửa sổ native) */}
+      <div 
+        className="absolute top-0 left-0 right-[150px] h-9 z-40 select-none" 
+        style={{ WebkitAppRegion: 'drag' }}
+      />
+
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0">
+      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col shrink-0 pt-6">
         {/* Logo */}
         <div className="p-5 border-b border-slate-100">
           <div className="flex items-center gap-3">
@@ -56,7 +62,7 @@ export default function Layout({ children }) {
 
       {/* Main */}
       <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6 min-w-0">
+        <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 min-w-0">
           {children}
         </div>
       </main>

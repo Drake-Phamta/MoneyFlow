@@ -141,13 +141,18 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/api/allocations/:entryId', (req, res) => {
-    try { res.json(db.getAllocations(parseInt(req.params.entryId))); }
+  app.get('/api/allocations/discrepancies', (req, res) => {
+    try { res.json(db.getDiscrepancyLogs()); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
   app.post('/api/allocations/adjust', (req, res) => {
-    try { db.adjustInvestmentAllocation(req.body.discrepancyAmount); res.json(true); }
+    try { db.adjustInvestmentAllocation(req.body.discrepancyAmount, req.body.categoryId, req.body.reason, req.body.date); res.json(true); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/allocations/:entryId', (req, res) => {
+    try { res.json(db.getAllocations(parseInt(req.params.entryId))); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
@@ -299,6 +304,15 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     try {
       const days = parseInt(req.query.days) || 30;
       res.json(db.getPriceHistory(parseInt(req.params.assetId), days));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/price-history/:assetId/fetch', async (req, res) => {
+    try {
+      const assetId = parseInt(req.params.assetId);
+      const days = parseInt(req.query.days) || 365;
+      await priceService.fetchAndCacheHistory(assetId, days);
+      res.json(db.getPriceHistory(assetId, days));
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

@@ -39,7 +39,8 @@ contextBridge.exposeInMainWorld('api', {
   allocations: {
     get: (entryId) => ipcRenderer.invoke('allocations:get', entryId),
     save: (entryId, allocs) => ipcRenderer.invoke('allocations:save', entryId, allocs),
-    adjust: (discrepancyAmount) => ipcRenderer.invoke('allocations:adjust', discrepancyAmount),
+    adjust: (discrepancyAmount, categoryId, reason, date) => ipcRenderer.invoke('allocations:adjust', discrepancyAmount, categoryId, reason, date),
+    discrepancies: () => ipcRenderer.invoke('allocations:discrepancies'),
   },
   transactions: {
     get: () => ipcRenderer.invoke('transactions:get'),
@@ -75,6 +76,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   priceHistory: {
     get: (assetId, days) => ipcRenderer.invoke('priceHistory:get', assetId, days),
+    fetch: (assetId, days) => ipcRenderer.invoke('priceHistory:fetch', assetId, days),
   },
   prices: {
     refresh: () => ipcRenderer.invoke('prices:refresh'),

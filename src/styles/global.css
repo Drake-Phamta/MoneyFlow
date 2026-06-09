@@ -85,6 +85,23 @@ body {
   @apply bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-white/50 p-5;
 }
 
+/* Bento Box styles */
+.bento-card {
+  @apply bg-white rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 p-6 lg:p-8 transition-all duration-300;
+}
+
+.bento-card:hover {
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.08)] border-slate-200 -translate-y-1;
+}
+
+.bento-glass {
+  @apply bg-white/80 backdrop-blur-2xl rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/60 p-6 lg:p-8 transition-all duration-300 relative overflow-hidden;
+}
+
+.bento-glass:hover {
+  @apply shadow-[0_8px_30px_rgb(0,0,0,0.08)] -translate-y-1 bg-white/90;
+}
+
 /* Input styles */
 .input {
   @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-sm

@@ -5,6 +5,8 @@ import { formatVND, formatCompact } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AllocationPie from './charts/AllocationPie';
+import AssetDetailModal from './charts/AssetDetailModal';
+import NetWorthModal from './charts/NetWorthModal';
 import AppIcon from '../utils/iconMap';
 import CustomTooltip from '../utils/CustomTooltip';
 import { ArrowClockwise, Warning, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, BookmarkSimple, PiggyBank, CheckCircle, XCircle, Info, X, Bell, Calendar, ChartLineUp, CaretDown, CaretUp } from '../utils/iconMap';
@@ -24,6 +26,18 @@ function formatRelativeTime(dateStr) {
   if (diffHours < 24) return `${diffHours} giờ trước`;
   if (diffDays < 7) return `${diffDays} ngày trước`;
   return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+}
+
+function InfoTooltip({ content }) {
+  return (
+    <div className="relative group inline-flex items-center justify-center ml-1.5 cursor-help">
+      <Info size={14} className="text-slate-400 hover:text-primary-500 transition-colors" weight="fill" />
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-800 text-white text-xs leading-relaxed rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none">
+        {content}
+        <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-800"></div>
+      </div>
+    </div>
+  );
 }
 
 // Loading skeleton component
@@ -90,6 +104,8 @@ export default function Dashboard() {
   const [nextMonth, setNextMonth] = useState(null);
   const [editingPrice, setEditingPrice] = useState(null);
   const [priceValue, setPriceValue] = useState('');
+  const [selectedAssetForModal, setSelectedAssetForModal] = useState(null);
+  const [showNetWorthModal, setShowNetWorthModal] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -237,8 +253,9 @@ export default function Dashboard() {
   const totalSavingsAccrued = savingsSummary?.totalAccrued || 0;
   const totalSavingsBalance = savingsSummary?.totalBalance || 0;
   
-  // Tiền mặt = Tổng Thu - Tổng Chi - Vốn đầu tư - Vốn tiết kiệm
-  const totalCashOnHand = Math.max(0, totalNet - totalInvested - totalSavingsPrincipal);
+  // Tiền mặt = Tổng Thu - Tổng Chi - Dòng tiền ra ròng đầu tư - Vốn tiết kiệm
+  const netCashOutflow = summary?.netCashOutflow !== undefined ? summary.netCashOutflow : totalInvested;
+  const totalCashOnHand = Math.max(0, totalNet - netCashOutflow - totalSavingsPrincipal);
   
   // Tổng lợi nhuận = Lãi đầu tư + Lãi tiết kiệm dự kiến
   const totalOverallGain = totalGain + totalSavingsAccrued;
@@ -462,42 +479,50 @@ export default function Dashboard() {
 
       {/* Alerts Banner */}
       {maturities.length > 0 && (
-        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between">
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-[1.25rem] flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-sm font-semibold text-amber-700">Sắp đáo hạn ({maturities.length} sổ tiết kiệm trong 30 ngày tới)</p>
-            <p className="text-xs text-amber-600 mt-0.5">
+            <p className="text-[10px] uppercase tracking-widest font-extrabold text-amber-700 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              Sắp đáo hạn ({maturities.length} sổ tiết kiệm)
+            </p>
+            <p className="text-sm font-semibold text-amber-800 mt-1">
               {maturities.slice(0, 3).map(m => m.name).join(', ')}
               {maturities.length > 3 && ` +${maturities.length - 3} sổ khác`}
             </p>
           </div>
-          <button onClick={() => navigate('/investments?tab=savings')} className="btn-ghost text-sm text-amber-700">Xem</button>
+          <button onClick={() => navigate('/investments?tab=savings')} className="px-4 py-2 bg-amber-100 hover:bg-amber-200 text-xs font-bold text-amber-800 rounded-xl transition-colors">Chi tiết</button>
         </div>
       )}
 
       {/* Next Month Reminder */}
       {nextMonth && (
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Calendar size={16} className="text-blue-500" weight="regular" />
-            <p className="text-sm text-blue-700">
-              Chưa nhập liệu <span className="font-semibold">{nextMonth.month_label}</span>
-            </p>
+        <div className="p-4 bg-blue-50 border border-blue-200 rounded-[1.25rem] flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
+              <Calendar size={20} weight="duotone" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-extrabold text-blue-600">Nhắc nhở nhập liệu</p>
+              <p className="text-sm font-bold text-blue-900 mt-0.5">
+                Chưa có dữ liệu cho <span className="text-blue-600">{nextMonth.month_label}</span>
+              </p>
+            </div>
           </div>
-          <button onClick={() => navigate('/cashflow')} className="btn-ghost text-sm text-blue-700 font-medium">Nhập ngay →</button>
+          <button onClick={() => navigate('/cashflow')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl transition-colors shadow-md">Nhập ngay</button>
         </div>
       )}
 
       {/* Phase Card — Enhanced */}
       {phase && (
-        <div className="card bg-gradient-to-r from-primary-50 to-violet-50 border-primary-100">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bento-card bg-gradient-to-r from-primary-50 to-violet-50 border-primary-100">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <span className="badge bg-primary-100 text-primary-700 mb-1">{phase.name}</span>
-              <p className="text-sm text-slate-600">{phase.goal_description}</p>
+              <p className="text-[10px] uppercase tracking-widest font-extrabold text-primary-500 mb-1">{phase.name}</p>
+              <h3 className="text-lg font-black text-slate-800 tracking-tight">{phase.goal_description}</h3>
             </div>
             <div className="text-right">
-              <p className="text-xs text-slate-400">Mục tiêu</p>
-              <p className="text-lg font-bold text-primary-600">
+              <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Mục tiêu</p>
+              <p className="text-2xl font-black text-primary-600 tracking-tight">
                 {phase.goal_amount > 0 ? formatVND(phase.goal_amount) : 'Tự do tài chính'}
               </p>
             </div>
@@ -505,21 +530,23 @@ export default function Dashboard() {
 
           {/* Progress bar */}
           {phaseProgress && phase.goal_amount > 0 && (
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs text-slate-500">{phaseProgress.label}</span>
-                <span className="text-xs font-semibold text-primary-600">{phaseProgress.pct.toFixed(1)}%</span>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] uppercase tracking-widest font-extrabold text-slate-500">{phaseProgress.label}</span>
+                <span className="text-xs font-black text-primary-600">{phaseProgress.pct.toFixed(1)}%</span>
               </div>
-              <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div className="w-full h-3 bg-slate-200/60 rounded-full overflow-hidden shadow-inner">
                 <div
-                  className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all duration-700"
+                  className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all duration-700 relative"
                   style={{ width: `${phaseProgress.pct}%` }}
-                />
+                >
+                  <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
+                </div>
               </div>
               {/* Remaining amount hint */}
               {phaseProgress.current < phaseProgress.goal && (
-                <p className="text-xs text-slate-500 mt-1.5">
-                  Còn lại <span className="font-semibold text-primary-600">{formatVND(phaseProgress.goal - phaseProgress.current)}</span> để đạt mục tiêu
+                <p className="text-[10px] font-bold text-slate-500 mt-2">
+                  Còn lại <span className="font-black text-primary-600">{formatVND(phaseProgress.goal - phaseProgress.current)}</span> để đạt mục tiêu
                 </p>
               )}
             </div>
@@ -527,10 +554,10 @@ export default function Dashboard() {
 
           {/* Phase allocation targets */}
           {phaseAllocs.length > 0 && (
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
-              <span className="font-medium text-slate-600">Phân bổ:</span>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 pt-4 border-t border-primary-100/50">
+              <span className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">Phân bổ:</span>
               {phaseAllocs.map(a => (
-                <span key={a.category_id}>
+                <span key={a.category_id} className="text-xs font-bold text-slate-600 bg-white/50 px-2 py-1 rounded-md">
                   {a.ratio * 100}% {a.category_name}
                 </span>
               ))}
@@ -539,46 +566,55 @@ export default function Dashboard() {
 
           {/* Next phase hint */}
           {nextPhase && (
-            <p className="text-xs text-slate-400 mt-2">
-              Tiếp theo: <span className="text-primary-600 font-medium">{nextPhase.name}</span>
+            <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mt-4 text-center bg-white/40 py-2 rounded-xl">
+              Tiếp theo: <span className="text-primary-600">{nextPhase.name}</span>
               {nextPhase.entry_condition && ` — ${nextPhase.entry_condition}`}
             </p>
           )}
         </div>
       )}
 
-      {/* Hero Section */}
-      <div className="card p-0 overflow-hidden mb-5 bg-gradient-to-br from-indigo-900 via-violet-800 to-purple-900 text-white shadow-xl relative border-0">
-        {/* Abstract background blobs */}
-        <div className="absolute top-[-50%] left-[-10%] w-[80%] h-[200%] bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-[-50%] right-[-10%] w-[50%] h-[200%] bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
-        
-        <div className="relative p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 z-10">
-          <div className="flex-1 space-y-6">
+      {/* Bento Grid: Hero & Pie Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
+        {/* Total Net Worth (Hero Bento) */}
+        <div 
+          className="lg:col-span-3 bento-card relative bg-gradient-to-br from-white to-slate-50/50 flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all group"
+          onClick={() => setShowNetWorthModal(true)}
+        >
+          {/* Subtle light mesh gradient blob */}
+          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[150%] bg-gradient-to-bl from-primary-100/50 via-violet-100/30 to-transparent rounded-full blur-3xl pointer-events-none"></div>
+
+          <div className="relative z-10 space-y-8">
             <div>
-              <span className="text-xs font-bold text-indigo-200 uppercase tracking-widest opacity-90">Tổng tài sản ròng</span>
-              <h2 className="text-4xl lg:text-5xl font-black mt-2 tracking-tight text-white drop-shadow-lg">{formatVND(grandTotal)}</h2>
+              <span className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"></div>
+                Tổng tài sản ròng
+              </span>
+              <h2 className="text-4xl lg:text-[52px] leading-tight font-black mt-3 tracking-tight text-slate-800 drop-shadow-sm">{formatVND(grandTotal)}</h2>
             </div>
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="bg-white px-5 py-3 rounded-2xl shadow-lg border border-white/20">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng lợi nhuận</p>
-                <p className={`text-xl font-black ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+            <div className="flex flex-wrap items-center gap-6">
+              <div>
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Tổng lợi nhuận</p>
+                <p className={`text-2xl font-black tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {totalOverallGain >= 0 ? '+' : ''}{formatVND(totalOverallGain)}
                 </p>
               </div>
-              <div className="bg-white px-5 py-3 rounded-2xl shadow-lg border border-white/20">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Hiệu suất tài sản</p>
-                <p className={`text-xl font-black ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+              <div className="w-px h-10 bg-slate-200"></div>
+              <div>
+                <p className="text-[10px] text-slate-400 font-extrabold uppercase tracking-widest mb-1.5">Hiệu suất tài sản</p>
+                <p className={`text-2xl font-black tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                   {totalInvested + totalSavingsPrincipal > 0 ? ((totalOverallGain / (totalInvested + totalSavingsPrincipal)) * 100).toFixed(2) : '0.00'}%
                 </p>
               </div>
             </div>
           </div>
-          
-          {/* Pie Chart Area */}
-          <div className="w-full lg:flex-1 lg:max-w-[540px] flex-shrink-0 bg-white/10 backdrop-blur-md rounded-[2rem] p-5 shadow-inner border border-white/10">
-            <h3 className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-4">Cơ cấu tài sản</h3>
-            <AllocationPie data={allocPieData} layout="horizontal" theme="dark" />
+        </div>
+
+        {/* Allocation Pie Chart (Bento) */}
+        <div className="lg:col-span-2 bento-card flex flex-col">
+          <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-6">Cơ cấu tài sản</h3>
+          <div className="flex-1 flex items-center justify-center min-h-[200px]">
+            <AllocationPie data={allocPieData} layout="horizontal" theme="light" />
           </div>
         </div>
       </div>
@@ -586,68 +622,103 @@ export default function Dashboard() {
       {/* Modular KPI Panels */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         {/* Investment Panel */}
-        <div className="card bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:-translate-y-1">
-          <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-3">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
-              <ChartLineUp size={22} weight="duotone" />
+        <div className="bento-card flex flex-col">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-50 pb-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-inner">
+              <ChartLineUp size={24} weight="duotone" />
             </div>
-            <h3 className="text-base font-semibold text-slate-700">Đầu tư & Tích sản</h3>
+            <h3 className="text-lg font-black text-slate-700 tracking-tight">Đầu tư & Tích sản</h3>
           </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Vốn đầu tư</p>
-              <p className="text-lg font-bold text-slate-800">{formatVND(totalInvested)}</p>
-              <p className="text-[10px] text-slate-400 mt-1">Cổ phiếu, Quỹ, Vàng, v.v.</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Giá trị hiện tại</p>
-              <p className="text-lg font-bold text-blue-600">{formatVND(totalCurrentValue)}</p>
-              <p className="text-[10px] text-slate-400 mt-1">Bao gồm cả vốn lẫn lãi</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Lãi/Lỗ</p>
-              <p className={`text-lg font-bold ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-6 flex-1">
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Vốn đầu tư
+                <InfoTooltip content="Tổng số tiền gốc đã thực nạp vào các tài sản Đầu tư (Cổ phiếu, Quỹ, Vàng...)" />
               </p>
-              {totalGainPct !== 0 && (
-                <p className={`text-[10px] font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-                  {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
+              <div>
+                <p className="text-xl font-black text-slate-800 tracking-tight">{formatVND(totalInvested)}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Cổ phiếu, Quỹ, Vàng</p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Giá trị hiện tại
+                <InfoTooltip content="Giá trị thị trường tính theo thời gian thực của toàn bộ tài sản Đầu tư." />
+              </p>
+              <div>
+                <p className="text-xl font-black text-blue-600 tracking-tight">{formatVND(totalCurrentValue)}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Bao gồm cả vốn lẫn lãi</p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Lãi/Lỗ
+                <InfoTooltip content="Phần chênh lệch giữa Giá trị hiện tại và Vốn đầu tư gốc." />
+              </p>
+              <div>
+                <p className={`text-xl font-black tracking-tight ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                  {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
                 </p>
-              )}
+                {totalGainPct !== 0 && (
+                  <p className={`text-[10px] font-bold mt-1 ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                    {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Liquidity Panel */}
-        <div className="card bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:-translate-y-1">
-          <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
-              <PiggyBank size={22} weight="duotone" />
+        <div className="bento-card flex flex-col">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-50 pb-4">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-inner">
+              <PiggyBank size={24} weight="duotone" />
             </div>
-            <h3 className="text-base font-semibold text-slate-700">An toàn & Tiền mặt</h3>
+            <h3 className="text-lg font-black text-slate-700 tracking-tight">An toàn & Tiền mặt</h3>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Tiền mặt</p>
-              <p className="text-base font-bold text-amber-600">{formatVND(totalCashOnHand)}</p>
-              <p className="text-[10px] text-slate-400 mt-1">Tiền mặt nhàn rỗi</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Gốc tiết kiệm</p>
-              <p className="text-base font-bold text-violet-600">{formatVND(totalSavingsPrincipal)}</p>
-              {savingsSummary && <p className="text-[10px] text-slate-400 mt-1">{savingsSummary.accountCount} sổ tiết kiệm</p>}
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Thanh khoản</p>
-              <p className="text-base font-bold text-slate-800">{formatVND(totalSavingsBalance)}</p>
-              <p className="text-[10px] text-slate-400 mt-1">Bao gồm lãi: +{formatVND(totalSavingsAccrued)}</p>
-            </div>
-            <div>
-              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Tỷ lệ tiết kiệm</p>
-              <p className={`text-base font-bold ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
-                {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '--'}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 gap-y-8 flex-1">
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Tiền mặt
+                <InfoTooltip content="Lượng tiền nhàn rỗi có sẵn (Tổng Thu - Tổng Chi - Vốn Đầu tư - Vốn Tiết kiệm)." />
               </p>
-              <p className="text-[10px] text-slate-400 mt-1">Tiết kiệm / Thu nhập</p>
+              <div>
+                <p className="text-xl font-black text-amber-600 tracking-tight">{formatVND(totalCashOnHand)}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiền nhàn rỗi</p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Gốc tiết kiệm
+                <InfoTooltip content="Tổng số tiền gốc đang được gửi ở các sổ tiết kiệm." />
+              </p>
+              <div>
+                <p className="text-xl font-black text-violet-600 tracking-tight">{formatVND(totalSavingsPrincipal)}</p>
+                {savingsSummary && <p className="text-[10px] text-slate-400 mt-1 font-medium">{savingsSummary.accountCount} sổ tiết kiệm</p>}
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Thanh khoản
+                <InfoTooltip content="Khả năng quy đổi thành tiền mặt ngay lập tức (Tiền mặt + Gốc tiết kiệm + Lãi dự kiến)." />
+              </p>
+              <div>
+                <p className="text-xl font-black text-slate-800 tracking-tight">{formatVND(totalSavingsBalance)}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Lãi: +{formatVND(totalSavingsAccrued)}</p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-between">
+              <p className="text-[10px] text-slate-400 mb-1.5 font-extrabold uppercase tracking-widest flex items-center">
+                Tỷ lệ tiết kiệm
+                <InfoTooltip content="Phần trăm thu nhập được giữ lại so với chi tiêu (Thu nhập thuần / Tổng Thu)." />
+              </p>
+              <div>
+                <p className={`text-xl font-black tracking-tight ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+                  {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '--'}
+                </p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiết kiệm / Thu nhập</p>
+              </div>
             </div>
           </div>
         </div>
@@ -658,20 +729,20 @@ export default function Dashboard() {
         {/* Left: Portfolio table (2 cols) */}
         <div className="lg:col-span-2 space-y-4">
           {/* Portfolio Cards */}
-          <div className="card">
-            <div className="flex items-center justify-between mb-4">
+          <div className="bento-card">
+            <div className="flex items-center justify-between mb-6">
               <div>
-                <h3 className="text-sm font-semibold text-slate-700">Danh mục giao dịch</h3>
-                <p className="text-xs text-slate-400 mt-0.5">Click giá để cập nhật</p>
+                <h3 className="text-lg font-black text-slate-800 tracking-tight">Danh mục giao dịch</h3>
+                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mt-1">Click giá để cập nhật</p>
               </div>
               {portfolio.length > 0 && (
-                <span className="text-xs text-slate-400">{portfolio.length} tài sản</span>
+                <span className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">{portfolio.length} tài sản</span>
               )}
             </div>
             {portfolio.length === 0 ? (
               <div className="text-center py-16 text-slate-400">
-                <p className="text-sm">Chưa có tài sản nào</p>
-                <button onClick={() => navigate('/cashflow')} className="btn-primary mt-3 text-sm">Nhập liệu tháng đầu tiên</button>
+                <p className="text-sm font-medium">Chưa có tài sản nào</p>
+                <button onClick={() => navigate('/cashflow')} className="px-5 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-colors mt-4 shadow-sm text-sm">Nhập liệu tháng đầu tiên</button>
               </div>
             ) : (
               <>
@@ -681,48 +752,53 @@ export default function Dashboard() {
                     const gainPct = p.total_invested > 0 ? (gain / p.total_invested) * 100 : 0;
                     const isEditing = editingPrice === p.asset_type_id;
                     const isPositive = gain >= 0;
+                    const isInteractive = !['Tiền mặt', 'Tiết kiệm', 'Trái phiếu', 'Tiết kiệm & Trái phiếu', 'Dự Phòng'].includes(p.category);
 
                     return (
-                      <div key={p.asset_type_id} className="portfolio-card">
+                      <div 
+                        key={p.asset_type_id} 
+                        className={`portfolio-card overflow-hidden relative ${isInteractive ? 'cursor-pointer hover:border-primary-200 hover:shadow-md transition-all group' : ''}`}
+                        onClick={() => isInteractive && setSelectedAssetForModal(p)}
+                      >
                         {/* Header: Icon + Name + Category */}
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center justify-between mb-4">
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="asset-icon-circle bg-primary-50 text-primary-600">
+                            <div className="asset-icon-circle bg-primary-50 text-primary-600 shadow-sm">
                               <AppIcon name={p.icon} size={18} />
                             </div>
                             <div className="min-w-0">
-                              <p className="text-sm font-bold text-slate-800 truncate">{p.name}</p>
-                              <p className="text-[10px] text-slate-400">{p.category}</p>
+                              <p className="text-sm font-black text-slate-800 truncate tracking-tight">{p.name}</p>
+                              <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">{p.category}</p>
                             </div>
                           </div>
                           <div className={`text-right ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
-                            <p className="text-sm font-bold">{isPositive ? '+' : ''}{formatVND(gain)}</p>
-                            <p className="text-[10px] font-medium">{isPositive ? '+' : ''}{gainPct.toFixed(2)}%</p>
+                            <p className="text-sm font-black tracking-tight">{isPositive ? '+' : ''}{formatVND(gain)}</p>
+                            <p className="text-[10px] font-bold">{isPositive ? '+' : ''}{gainPct.toFixed(2)}%</p>
                           </div>
                         </div>
 
                         {/* Details grid */}
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="grid grid-cols-3 gap-2 mb-4">
                           <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">Khối lượng</p>
-                            <p className="text-xs font-semibold text-slate-700 font-mono">{p.total_quantity}</p>
+                            <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Khối lượng</p>
+                            <p className="text-xs font-black text-slate-700 font-mono">{p.total_quantity}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">Giá vốn</p>
-                            <p className="text-xs text-slate-600 font-mono">{formatVND(p.avg_cost)}</p>
+                            <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Giá vốn</p>
+                            <p className="text-xs font-bold text-slate-600 font-mono">{formatVND(p.avg_cost)}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] text-slate-400 mb-0.5">Giá hiện tại</p>
+                            <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Giá hiện tại</p>
                             {isEditing ? (
                               <input autoFocus type="text" inputMode="numeric"
                                 value={priceValue ? formatNumberInput(priceValue) : ''}
                                 onChange={e => setPriceValue(e.target.value.replace(/\D/g, ''))}
                                 onBlur={() => handlePriceUpdate(p.asset_type_id)}
                                 onKeyDown={e => { if (e.key === 'Enter') handlePriceUpdate(p.asset_type_id); if (e.key === 'Escape') setEditingPrice(null); }}
-                                className="input text-xs py-0.5 px-1 font-mono" />
+                                className="input text-xs py-0.5 px-1 font-mono bg-white shadow-inner" />
                             ) : (
                               <button onClick={() => { setEditingPrice(p.asset_type_id); setPriceValue(p.current_price?.toString() || ''); }}
-                                className="text-xs font-semibold text-primary-600 hover:bg-primary-50 px-1 py-0.5 rounded cursor-pointer font-mono"
+                                className="text-xs font-bold text-primary-600 hover:bg-primary-50 px-2 py-0.5 rounded cursor-pointer font-mono border border-transparent hover:border-primary-100 transition-colors"
                                 title="Click để cập nhật giá">
                                 {p.current_price > 0 ? formatVND(p.current_price) : 'Cập nhật'}
                               </button>
@@ -731,9 +807,9 @@ export default function Dashboard() {
                         </div>
 
                         {/* Footer: Value */}
-                        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                          <span className="text-xs text-slate-400">Giá trị</span>
-                          <span className="text-sm font-bold text-slate-800">{formatVND(p.current_value)}</span>
+                        <div className="flex items-center justify-between pt-3 border-t border-slate-100/60">
+                          <span className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400">Giá trị hiện tại</span>
+                          <span className="text-base font-black text-slate-800 tracking-tight">{formatVND(p.current_value)}</span>
                         </div>
                       </div>
                     );
@@ -741,26 +817,26 @@ export default function Dashboard() {
                 </div>
 
                 {/* Summary card */}
-                <div className="mt-4 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tổng cộng</span>
+                <div className="mt-5 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] uppercase tracking-widest font-extrabold text-slate-500">Tổng cộng</span>
                     <div className={`text-right ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                      <span className="text-sm font-bold">{totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}</span>
-                      <span className="text-[10px] ml-1">({totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%)</span>
+                      <span className="text-base font-black tracking-tight">{totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}</span>
+                      <span className="text-[10px] ml-1 font-bold">({totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%)</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-[10px] text-slate-400 mb-0.5">Vốn đầu tư</p>
-                      <p className="text-sm font-semibold text-slate-700">{formatVND(totalInvested)}</p>
+                      <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Vốn đầu tư</p>
+                      <p className="text-sm font-black text-slate-700 tracking-tight">{formatVND(totalInvested)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 mb-0.5">Giá trị hiện tại</p>
-                      <p className="text-sm font-bold text-slate-800">{formatVND(totalCurrentValue)}</p>
+                      <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Giá trị hiện tại</p>
+                      <p className="text-sm font-black text-slate-800 tracking-tight">{formatVND(totalCurrentValue)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] text-slate-400 mb-0.5">Tài sản</p>
-                      <p className="text-sm font-semibold text-slate-700">{portfolio.length}</p>
+                      <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Tài sản</p>
+                      <p className="text-sm font-black text-slate-700 tracking-tight">{portfolio.length}</p>
                     </div>
                   </div>
                 </div>
@@ -770,10 +846,10 @@ export default function Dashboard() {
 
           {/* Mini Cash Flow Chart */}
           {miniChartData.length > 0 && (
-            <div className="card">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-slate-700">Thu chi 6 tháng gần nhất</h3>
-                <button onClick={() => navigate('/cashflow')} className="text-xs text-primary-600 hover:underline">Xem tất cả</button>
+            <div className="bento-card">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-black text-slate-800 tracking-tight">Thu chi 6 tháng gần nhất</h3>
+                <button onClick={() => navigate('/cashflow')} className="text-[10px] uppercase tracking-widest font-extrabold text-primary-600 hover:text-primary-700 transition-colors">Xem tất cả →</button>
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={miniChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
@@ -996,6 +1072,23 @@ export default function Dashboard() {
             <X size={18} />
           </button>
         </div>
+      )}
+
+      {/* Interactive Modals */}
+      {selectedAssetForModal && (
+        <AssetDetailModal 
+          asset={selectedAssetForModal} 
+          onClose={() => setSelectedAssetForModal(null)} 
+        />
+      )}
+
+      {showNetWorthModal && (
+        <NetWorthModal 
+          filled={filled} 
+          grandTotal={grandTotal} 
+          portfolio={summary?.portfolio || []} 
+          onClose={() => setShowNetWorthModal(false)} 
+        />
       )}
     </div>
   );

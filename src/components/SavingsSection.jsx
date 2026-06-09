@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { formatVND } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
@@ -944,7 +945,7 @@ export default function SavingsSection() {
       )}
 
       {/* ===== Gold Buy Confirmation Modal ===== */}
-      {showGoldBuyModal && (
+      {showGoldBuyModal && createPortal(
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
             <div className="flex items-center gap-3 mb-4">
@@ -1005,7 +1006,8 @@ export default function SavingsSection() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

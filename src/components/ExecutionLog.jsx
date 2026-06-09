@@ -11,12 +11,15 @@ export default function ExecutionLog({ embedded }) {
   const [assetTypes, setAssetTypes] = useState([]);
   const [parentAssets, setParentAssets] = useState([]);
   const [catalogItems, setCatalogItems] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [discrepancyLogs, setDiscrepancyLogs] = useState([]);
   const [selectedParent, setSelectedParent] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [investmentAllocated, setInvestmentAllocated] = useState(0);
   const [discrepancyConfirmed, setDiscrepancyConfirmed] = useState(null); // { amount, reason, date }
   const [showDiscrepancyInput, setShowDiscrepancyInput] = useState(false);
   const [discrepancyReason, setDiscrepancyReason] = useState('');
+  const [targetCategoryId, setTargetCategoryId] = useState('');
   const [form, setForm] = useState({
     date: new Date().toISOString().split('T')[0],
     asset_type_id: '',
@@ -31,15 +34,23 @@ export default function ExecutionLog({ embedded }) {
   useEffect(() => {
     (async () => {
       try {
-        const [t, a, catalog, filled] = await Promise.all([
+        const [t, a, catalog, filled, cats, logs] = await Promise.all([
           apiClient.transactions.get(),
           apiClient.assets.get(),
           apiClient.catalog.get(),
           apiClient.monthly.filled().catch(() => []),
+          apiClient.categories.get().catch(() => []),
+          apiClient.allocations.discrepancies().catch(() => []),
         ]);
         setTransactions(t);
         setAssetTypes(a);
         setCatalogItems(catalog);
+        setCategories(cats.filter(c => !c.name.includes('Dự Phòng') && !c.name.includes('Tiết kiệm')));
+        setDiscrepancyLogs(logs);
+        if (cats.length > 0) {
+          const defaultCat = cats.find(c => !c.name.includes('Dự Phòng') && !c.name.includes('Tiết kiệm'));
+          if (defaultCat) setTargetCategoryId(defaultCat.id.toString());
+        }
 
         // Calculate total allocated to investment categories
         if (filled.length > 0) {
@@ -142,9 +153,10 @@ export default function ExecutionLog({ embedded }) {
   async function handleConfirmDiscrepancy() {
     try {
       // Update allocation in database to match actual invested amount
-      await apiClient.allocations.adjust(discrepancy);
-      // Refresh allocated amount
+      await apiClient.allocations.adjust(discrepancy, parseInt(targetCategoryId), discrepancyReason, new Date().toISOString().split('T')[0]);
+      // Refresh allocated amount and logs
       setInvestmentAllocated(prev => prev + discrepancy);
+      setDiscrepancyLogs(await apiClient.allocations.discrepancies().catch(() => []));
     } catch (err) {
       console.error('Adjust allocation error:', err);
     }
@@ -265,6 +277,17 @@ export default function ExecutionLog({ embedded }) {
                     </div>
                   ) : (
                     <div className="mt-3 space-y-2">
+                      <select
+                        value={targetCategoryId}
+                        onChange={e => setTargetCategoryId(e.target.value)}
+                        className="input text-xs w-full"
+                      >
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>
+                            Điều chỉnh vào: {c.name}
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="text"
                         value={discrepancyReason}
@@ -470,6 +493,46 @@ export default function ExecutionLog({ embedded }) {
           </div>
         )}
       </div>
+      {/* Discrepancy Logs */}
+      {true && (
+        <div className="card mt-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Warning size={18} className="text-slate-500" />
+            <h2 className="text-sm font-bold text-slate-700">Lịch sử Điều chỉnh & Chênh lệch</h2>
+          </div>
+          {(!discrepancyLogs || discrepancyLogs.length === 0) ? (
+            <div className="text-center py-6 text-slate-400 text-sm bg-slate-50 rounded-lg border border-dashed border-slate-200">
+              Chưa có dữ liệu lịch sử điều chỉnh chênh lệch nào được ghi nhận.
+            </div>
+          ) : (
+            <div className="table-wrap mt-2 overflow-hidden">
+              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Tháng áp dụng</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '180px' }}>Hạng mục điều chỉnh</th>
+                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '150px' }}>Số tiền lệch</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Lý do ghi nhận</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {discrepancyLogs.map(log => (
+                    <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors last:border-b-0">
+                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{log.month_label}</td>
+                      <td className="px-4 py-3 text-sm text-slate-600 truncate" title={log.category_name}>{log.category_name || '—'}</td>
+                      <td className={`px-4 py-3 text-sm text-right font-semibold whitespace-nowrap ${log.amount > 0 ? 'text-amber-600' : 'text-blue-500'}`}>
+                        {log.amount > 0 ? '+' : ''}{formatVND(log.amount)}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-slate-500 truncate" title={log.reason}>{log.reason || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
     </div>
   );
 }
