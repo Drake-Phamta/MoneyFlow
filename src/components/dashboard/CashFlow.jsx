@@ -36,7 +36,7 @@ export default function CashFlow() {
       expense: m.expense || 0,
       bonus: m.bonus || 0,
       net: m.total_inflow || 0,
-      savingsRate: m.income > 0 ? ((m.total_inflow / (m.income + (m.bonus || 0))) * 100) : 0,
+      savingsRate: (m.income + (m.bonus || 0)) > 0 ? ((m.total_inflow / (m.income + (m.bonus || 0))) * 100) : 0,
     }));
   }, [filled]);
 

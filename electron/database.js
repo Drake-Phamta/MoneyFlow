@@ -39,6 +39,7 @@ class FinancialDB {
     this.migrateToV3();
     this.migrateToV4();
     this.migrateToV5();
+    this.migrateToV6();
     this.seedDefaults();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
@@ -610,6 +611,20 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
     this.save();
   }
 
+  migrateToV6() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 6) return;
+
+    // Reset peak_price to 0 for all stocks/ETFs so they are recalculated once from history
+    try {
+      this.run("UPDATE asset_types SET peak_price = 0 WHERE asset_class IN ('stock', 'etf') AND ticker IS NOT NULL");
+    } catch (e) {}
+
+    // Update schema version
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 6, 'Database schema version')");
+    this.save();
+  }
+
   seedDefaults() {
     const hasDefaults = this.getParam('TOTAL_MONTHS');
     if (hasDefaults) return;
@@ -985,9 +1000,13 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     this.run('UPDATE asset_types SET is_tracked = ? WHERE id = ?', [tracked ? 1 : 0, assetId]);
     this.save();
   }
-  updateAssetPrice(assetId, price, highPrice) {
-    const peak = highPrice ? Math.max(price, highPrice) : price;
-    this.run('UPDATE asset_types SET current_price = ?, peak_price = MAX(peak_price, ?) WHERE id = ?', [price, peak, assetId]);
+  updateAssetPrice(assetId, price, highPrice, forcePeak = false) {
+    if (forcePeak) {
+      this.run('UPDATE asset_types SET current_price = ?, peak_price = ? WHERE id = ?', [price, highPrice || price, assetId]);
+    } else {
+      const peak = highPrice ? Math.max(price, highPrice) : price;
+      this.run('UPDATE asset_types SET current_price = ?, peak_price = MAX(peak_price, ?) WHERE id = ?', [price, peak, assetId]);
+    }
     this.save();
     console.log(`[DB] Updated asset ${assetId} price to ${price}`);
   }
@@ -1239,7 +1258,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   getFilledMonths() { return this.query('SELECT * FROM monthly_entries WHERE total_inflow > 0 ORDER BY month_index'); }
   getNextUnfilledMonth() {
     // 1. Find the first month in chronological order that is not confirmed (unfilled)
-    const firstUnfilled = this.queryOne("SELECT * FROM monthly_entries WHERE status IS NULL OR status != 'confirmed' ORDER BY month_index ASC LIMIT 1");
+    const firstUnfilled = this.queryOne("SELECT * FROM monthly_entries WHERE status IS NULL OR (status != 'confirmed' AND status != 'filled') ORDER BY month_index ASC LIMIT 1");
     if (firstUnfilled) return firstUnfilled;
 
     // 2. If all generated timeline months are filled, create and return the next chronological month

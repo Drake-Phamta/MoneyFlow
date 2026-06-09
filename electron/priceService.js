@@ -143,42 +143,68 @@ class PriceService {
       if (!item.ticker) continue;
       try {
         let price;
+        let highForPeak;
+        let forcePeak = false;
 
-        // Gold (SJC): fetch from phuquygroup.vn (price is per-chỉ)
         if (item.asset_class === 'gold') {
+          // Gold (SJC): fetch from phuquygroup.vn (price is per-chỉ)
           price = await this.fetchGoldPrice();
-        } else {
-          // Stocks/ETFs: fetch from VNDIRECT
-          price = await this.fetchPrice(item.ticker);
-        }
+          if (!price) {
+            console.log(`[PriceService] No data for gold (${item.ticker})`);
+            results.push({ id: item.id, name: item.name, ticker: item.ticker, status: 'no_data' });
+            continue;
+          }
+          highForPeak = price.high;
 
-        if (!price) {
-          console.log(`[PriceService] No data for ${item.ticker}`);
-          results.push({ id: item.id, name: item.name, ticker: item.ticker, status: 'no_data' });
-          continue;
-        }
-
-        console.log(`[PriceService] ${item.ticker}: ${price.close}`);
-
-        let highForPeak = price.high;
-
-        // First time (peak = 0): fetch historical peak
-        if (!item.peak_price || item.peak_price === 0) {
-          try {
-            if (item.asset_class === 'gold') {
+          // First time (peak = 0): fetch historical peak for gold
+          if (!item.peak_price || item.peak_price === 0) {
+            try {
               const goldPeak = await this.fetchGoldHistoryPeak();
               if (goldPeak > highForPeak) highForPeak = goldPeak;
-            } else {
-              const history = await this.fetchPriceHistory(item.ticker, 0);
+            } catch (e) { /* fallback to daily high */ }
+          }
+        } else {
+          // Stocks/ETFs: Check if we need to fetch full history (if peak_price is 0)
+          if (!item.peak_price || item.peak_price === 0) {
+            console.log(`[PriceService] Fetching full history once for ${item.ticker} to determine historical peak...`);
+            let history = [];
+            try {
+              history = await this.fetchPriceHistory(item.ticker, 0); // days = 0 fetches full history
+            } catch (err) {
+              console.warn(`[PriceService] Full history fetch failed for ${item.ticker}:`, err.message);
+            }
+
+            if (history && history.length > 0) {
+              const last = history.length - 1;
+              price = history[last];
+              
+              // Calculate true peak from full adjusted history
+              highForPeak = price.high;
               for (const bar of history) {
                 if (bar.high > highForPeak) highForPeak = bar.high;
               }
+              forcePeak = true; // Overwrite database peak_price with the newly determined peak
             }
-          } catch (e) { /* fallback to daily high */ }
+          }
+
+          // If we didn't fetch history (peak_price already > 0) OR history fetch failed:
+          if (!price) {
+            // Optimized path: fetch recent price (last 7 days)
+            price = await this.fetchPrice(item.ticker);
+            if (!price) {
+              console.log(`[PriceService] No data for ${item.ticker}`);
+              results.push({ id: item.id, name: item.name, ticker: item.ticker, status: 'no_data' });
+              continue;
+            }
+            highForPeak = price.high;
+            forcePeak = false; // Do not force, use MAX(peak_price, price.high)
+          }
         }
 
+        console.log(`[PriceService] ${item.ticker}: current = ${price.close}, peak = ${highForPeak} (force = ${forcePeak})`);
+
         this.db.savePriceSnapshot(item.id, price.date, price);
-        this.db.updateAssetPrice(item.id, price.close, highForPeak);
+        this.db.updateAssetPrice(item.id, price.close, highForPeak, forcePeak);
 
         results.push({ id: item.id, name: item.name, ticker: item.ticker, price: price.close, status: 'ok' });
       } catch (err) {

@@ -232,10 +232,19 @@ export default function Dashboard() {
     ? (totalNet / totalIncome) * 100
     : null;
 
-  // Total assets = investments + savings + cash
+  // Total assets = cash + investments + savings
+  const totalSavingsPrincipal = savingsSummary?.totalPrincipal || 0;
+  const totalSavingsAccrued = savingsSummary?.totalAccrued || 0;
   const totalSavingsBalance = savingsSummary?.totalBalance || 0;
-  const totalCashOnHand = Math.max(0, totalNet - totalCurrentValue - totalSavingsBalance);
-  const grandTotal = totalCurrentValue + totalSavingsBalance + totalCashOnHand;
+  
+  // Tiền mặt = Tổng Thu - Tổng Chi - Vốn đầu tư - Vốn tiết kiệm
+  const totalCashOnHand = Math.max(0, totalNet - totalInvested - totalSavingsPrincipal);
+  
+  // Tổng lợi nhuận = Lãi đầu tư + Lãi tiết kiệm dự kiến
+  const totalOverallGain = totalGain + totalSavingsAccrued;
+  
+  // Tổng tài sản = Tiền mặt + Giá trị đầu tư + Số dư tiết kiệm
+  const grandTotal = totalCashOnHand + totalCurrentValue + totalSavingsBalance;
 
   // Phase progress calculation
   const phaseProgress = useMemo(() => {
@@ -538,61 +547,109 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* KPI Row 1 — Overview */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="kpi">
-          <span className="kpi-label">Tổng tài sản</span>
-          <p className="kpi-value text-slate-800">{formatVND(grandTotal)}</p>
-          <p className="text-xs text-slate-400">Đầu tư · Tiết kiệm · Tiền mặt</p>
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">Vốn đầu tư</span>
-          <p className="kpi-value text-blue-600">{formatVND(totalInvested)}</p>
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">Giá trị hiện tại</span>
-          <p className="kpi-value text-primary-600">{formatVND(totalCurrentValue)}</p>
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">Lãi/Lỗ</span>
-          <p className={`kpi-value ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-            {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
-          </p>
-          {totalGainPct !== 0 && (
-            <p className={`text-xs font-medium ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
-              {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
-            </p>
-          )}
+      {/* Hero Section */}
+      <div className="card p-0 overflow-hidden mb-5 bg-gradient-to-br from-indigo-900 via-violet-800 to-purple-900 text-white shadow-xl relative border-0">
+        {/* Abstract background blobs */}
+        <div className="absolute top-[-50%] left-[-10%] w-[80%] h-[200%] bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-[-50%] right-[-10%] w-[50%] h-[200%] bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="relative p-6 lg:p-8 flex flex-col lg:flex-row items-center justify-between gap-8 z-10">
+          <div className="flex-1 space-y-6">
+            <div>
+              <span className="text-xs font-bold text-indigo-200 uppercase tracking-widest opacity-90">Tổng tài sản ròng</span>
+              <h2 className="text-4xl lg:text-5xl font-black mt-2 tracking-tight text-white drop-shadow-lg">{formatVND(grandTotal)}</h2>
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="bg-white px-5 py-3 rounded-2xl shadow-lg border border-white/20">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Tổng lợi nhuận</p>
+                <p className={`text-xl font-black ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {totalOverallGain >= 0 ? '+' : ''}{formatVND(totalOverallGain)}
+                </p>
+              </div>
+              <div className="bg-white px-5 py-3 rounded-2xl shadow-lg border border-white/20">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Hiệu suất tài sản</p>
+                <p className={`text-xl font-black ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                  {totalInvested + totalSavingsPrincipal > 0 ? ((totalOverallGain / (totalInvested + totalSavingsPrincipal)) * 100).toFixed(2) : '0.00'}%
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          {/* Pie Chart Area */}
+          <div className="w-full lg:flex-1 lg:max-w-[540px] flex-shrink-0 bg-white/10 backdrop-blur-md rounded-[2rem] p-5 shadow-inner border border-white/10">
+            <h3 className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest mb-4">Cơ cấu tài sản</h3>
+            <AllocationPie data={allocPieData} layout="horizontal" theme="dark" />
+          </div>
         </div>
       </div>
 
-      {/* KPI Row 2 — Savings & Cash */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="kpi">
-          <span className="kpi-label">Tỷ lệ tiết kiệm</span>
-          {savingsRate !== null ? (
-            <>
-              <p className={`kpi-value ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
-                {savingsRate.toFixed(1)}%
+      {/* Modular KPI Panels */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        {/* Investment Panel */}
+        <div className="card bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:-translate-y-1">
+          <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm">
+              <ChartLineUp size={22} weight="duotone" />
+            </div>
+            <h3 className="text-base font-semibold text-slate-700">Đầu tư & Tích sản</h3>
+          </div>
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Vốn đầu tư</p>
+              <p className="text-lg font-bold text-slate-800">{formatVND(totalInvested)}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Cổ phiếu, Quỹ, Vàng, v.v.</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Giá trị hiện tại</p>
+              <p className="text-lg font-bold text-blue-600">{formatVND(totalCurrentValue)}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Bao gồm cả vốn lẫn lãi</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Lãi/Lỗ</p>
+              <p className={`text-lg font-bold ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
               </p>
-              <p className="text-xs text-slate-400">Tiết kiệm / Thu nhập</p>
-            </>
-          ) : (
-            <>
-              <p className="kpi-value text-slate-300">--</p>
-              <p className="text-xs text-slate-400">Nhập dữ liệu tháng để tính</p>
-            </>
-          )}
+              {totalGainPct !== 0 && (
+                <p className={`text-[10px] font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                  {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-        <div className="kpi">
-          <span className="kpi-label">Thanh khoản</span>
-          <p className="kpi-value text-violet-600">{formatVND(totalSavingsBalance)}</p>
-          {savingsSummary && <p className="text-xs text-slate-400">{savingsSummary.accountCount} sổ tiết kiệm</p>}
-        </div>
-        <div className="kpi">
-          <span className="kpi-label">Tiền mặt</span>
-          <p className="kpi-value text-amber-600">{formatVND(totalCashOnHand)}</p>
-          <p className="text-xs text-slate-400">Tiền mặt nhàn rỗi</p>
+
+        {/* Liquidity Panel */}
+        <div className="card bg-white shadow-sm hover:shadow-md transition-all duration-300 border border-slate-100 hover:-translate-y-1">
+          <div className="flex items-center gap-3 mb-5 border-b border-slate-50 pb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shadow-sm">
+              <PiggyBank size={22} weight="duotone" />
+            </div>
+            <h3 className="text-base font-semibold text-slate-700">An toàn & Tiền mặt</h3>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Tiền mặt</p>
+              <p className="text-base font-bold text-amber-600">{formatVND(totalCashOnHand)}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Tiền mặt nhàn rỗi</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Gốc tiết kiệm</p>
+              <p className="text-base font-bold text-violet-600">{formatVND(totalSavingsPrincipal)}</p>
+              {savingsSummary && <p className="text-[10px] text-slate-400 mt-1">{savingsSummary.accountCount} sổ tiết kiệm</p>}
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Thanh khoản</p>
+              <p className="text-base font-bold text-slate-800">{formatVND(totalSavingsBalance)}</p>
+              <p className="text-[10px] text-slate-400 mt-1">Bao gồm lãi: +{formatVND(totalSavingsAccrued)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-0.5 font-medium uppercase tracking-wider">Tỷ lệ tiết kiệm</p>
+              <p className={`text-base font-bold ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+                {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '--'}
+              </p>
+              <p className="text-[10px] text-slate-400 mt-1">Tiết kiệm / Thu nhập</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -757,11 +814,6 @@ export default function Dashboard() {
           {/* Merged Allocation Card */}
           <div className="card">
             <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Phân Bổ Danh Mục</h3>
-
-            {/* Pie chart */}
-            <div className="mb-4">
-              <AllocationPie data={allocPieData} />
-            </div>
 
             {/* Divider */}
             <div className="border-t border-slate-100 mb-3" />
