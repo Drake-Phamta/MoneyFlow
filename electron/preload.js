@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   assets: {
     get: () => ipcRenderer.invoke('assets:get'),
     add: (data) => ipcRenderer.invoke('assets:add', data),
+    update: (id, data) => ipcRenderer.invoke('assets:update', id, data),
     updatePrice: (id, price) => ipcRenderer.invoke('assets:updatePrice', id, price),
     setTracked: (id, tracked) => ipcRenderer.invoke('assets:setTracked', id, tracked),
     delete: (id) => ipcRenderer.invoke('assets:delete', id),

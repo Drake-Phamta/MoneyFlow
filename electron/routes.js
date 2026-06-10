@@ -88,13 +88,23 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  app.get('/api/phases/checklist', (req, res) => {
+    try { res.json(db.getChecklistStatus()); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/phases/:id/active', (req, res) => {
+    try { db.setActivePhase(parseInt(req.params.id)); res.json(true); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   app.get('/api/phases/:id/allocations', (req, res) => {
     try { res.json(db.getPhaseAllocations(parseInt(req.params.id))); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
-  app.get('/api/phases/checklist', (req, res) => {
-    try { res.json(db.getChecklistStatus()); }
+  app.post('/api/phases/:id/allocations', (req, res) => {
+    try { db.updatePhaseAllocations(parseInt(req.params.id), req.body.allocations); res.json(true); }
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 

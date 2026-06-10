@@ -19,7 +19,7 @@ function createWindow() {
     width: 1400, height: 900, minWidth: 1000, minHeight: 700,
     titleBarStyle: 'hidden',
     titleBarOverlay: {
-      color: '#f8fafc',
+      color: 'rgba(0,0,0,0)',
       symbolColor: '#475569',
       height: 36
     },
@@ -92,6 +92,7 @@ ipcMain.handle('params:recalcGoals', async () => { await ready(); db.recalculate
 // Asset Types
 ipcMain.handle('assets:get', async () => { await ready(); return db.getAssetTypes(); });
 ipcMain.handle('assets:add', async (_, data) => { await ready(); return db.addAssetType(data); });
+ipcMain.handle('assets:update', async (_, id, data) => { await ready(); db.updateAssetType(id, data); return true; });
 ipcMain.handle('assets:updatePrice', async (_, id, price) => { await ready(); db.updateAssetPrice(id, price); return true; });
 
 // Timeline

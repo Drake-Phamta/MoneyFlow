@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line, Area, ReferenceLine } from 'recharts';
 import { formatVND, formatCompact } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import MonthlyEntry from './MonthlyEntry';
@@ -40,6 +40,9 @@ export default function CashFlowPage() {
     }
   }
 
+  // Savings rate target (% of income) — default 30%
+  const savingsTargetPct = 30;
+
   // Cash flow data per month
   const cashFlowData = useMemo(() => {
     return filled.map(m => {
@@ -56,40 +59,46 @@ export default function CashFlowPage() {
         expense,
         net,
         savingsRate: totalIncome > 0 ? ((net / totalIncome) * 100) : 0,
+        target: savingsTargetPct,
       };
     });
   }, [filled]);
 
-  // Totals
-  const totalIncome = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
-  const totalExpense = filled.reduce((s, m) => s + (m.expense || 0), 0);
-  const totalNet = cashFlowData.reduce((s, d) => s + d.net, 0);
-  const avgSavingsRate = totalIncome > 0 ? (totalNet / totalIncome) * 100 : 0;
-  const avgMonthly = filled.length > 0 ? totalNet / filled.length : 0;
+  // UseMemo for all KPIs to prevent recalculation on re-renders
+  const { 
+    totalIncome, totalExpense, totalNet, avgSavingsRate, avgMonthly, 
+    totalInvested, avgInvestRate, investTargetPct, streak, bestMonth, worstMonth 
+  } = useMemo(() => {
+    const inc = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
+    const exp = filled.reduce((s, m) => s + (m.expense || 0), 0);
+    const net = cashFlowData.reduce((s, d) => s + d.net, 0);
+    const avgSav = inc > 0 ? (net / inc) * 100 : 0;
+    const avgMon = filled.length > 0 ? net / filled.length : 0;
+    
+    const iRatio = phaseAllocs
+      .filter(pa => {
+        const name = pa.category_name?.toLowerCase() || '';
+        return !name.includes('dự phòng') && !name.includes('tiết kiệm');
+      })
+      .reduce((s, pa) => s + (pa.ratio || 0), 0);
+      
+    const tInvested = filled.reduce((s, m) => s + (m.total_inflow || 0) * iRatio, 0);
+    const avgInv = inc > 0 ? (tInvested / inc) * 100 : 0;
+    const invTarget = Math.round(iRatio * 100);
 
-  // Savings rate target (% of income) — default 30%
-  const savingsTargetPct = 30;
+    let str = 0;
+    for (let i = cashFlowData.length - 1; i >= 0; i--) {
+      if (cashFlowData[i].net > 0) str++;
+      else break;
+    }
+    const sorted = [...cashFlowData].sort((a, b) => b.net - a.net);
 
-  // Investment rate from phase allocations (Chứng Khoán + Vàng + Bắn Tỉa)
-  const investRatio = phaseAllocs
-    .filter(pa => !pa.category_name?.includes('Dự Phòng') && !pa.category_name?.includes('Tiết kiệm'))
-    .reduce((s, pa) => s + (pa.ratio || 0), 0);
-  const investTargetPct = Math.round(investRatio * 100);
-  // Actual invested = inflow * invest ratio per month
-  const totalInvested = filled.reduce((s, m) => s + (m.total_inflow || 0) * investRatio, 0);
-  const avgInvestRate = totalIncome > 0 ? (totalInvested / totalIncome) * 100 : 0;
-
-  // Streak — consecutive months with positive net cash flow
-  let streak = 0;
-  for (let i = cashFlowData.length - 1; i >= 0; i--) {
-    if (cashFlowData[i].net > 0) streak++;
-    else break;
-  }
-
-  // Best/worst months
-  const sortedByNet = [...cashFlowData].sort((a, b) => b.net - a.net);
-  const bestMonth = sortedByNet[0];
-  const worstMonth = sortedByNet[sortedByNet.length - 1];
+    return {
+      totalIncome: inc, totalExpense: exp, totalNet: net, avgSavingsRate: avgSav, avgMonthly: avgMon,
+      totalInvested: tInvested, avgInvestRate: avgInv, investTargetPct: invTarget,
+      streak: str, bestMonth: sorted[0] || null, worstMonth: sorted[sorted.length - 1] || null
+    };
+  }, [filled, cashFlowData, phaseAllocs]);
 
   // Empty state
   if (filled.length === 0) {
@@ -236,13 +245,27 @@ export default function CashFlowPage() {
             </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={60} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="totalIncome" fill="#10b981" name="Thu nhập" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="expense" fill="#f87171" name="Chi tiêu" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="net" fill="#3b82f6" name="Tiền nhàn rỗi" radius={[4, 4, 0, 0]} />
+                <defs>
+                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.4}/>
+                  </linearGradient>
+                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#f87171" stopOpacity={0.4}/>
+                  </linearGradient>
+                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickMargin={10} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={formatCompact} width={60} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
+                <Bar dataKey="totalIncome" fill="url(#colorIncome)" name="Thu nhập" radius={[4, 4, 0, 0]} isAnimationActive={true} />
+                <Bar dataKey="expense" fill="url(#colorExpense)" name="Chi tiêu" radius={[4, 4, 0, 0]} isAnimationActive={true} />
+                <Bar dataKey="net" fill="url(#colorNet)" name="Tiền nhàn rỗi" radius={[4, 4, 0, 0]} isAnimationActive={true} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -257,14 +280,20 @@ export default function CashFlowPage() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={200}>
-              <LineChart data={cashFlowData.map(d => ({ ...d, target: savingsTargetPct }))} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
-                <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={v => `${v}%`} width={40} domain={[0, 100]} />
-                <Tooltip formatter={(v, name) => [`${v.toFixed(1)}%`, name]} />
-                <Line type="monotone" dataKey="savingsRate" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} name="Thực tế" />
-                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} name="Mục tiêu" />
-              </LineChart>
+              <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
+                <defs>
+                  <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickMargin={10} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={v => `${v}%`} width={40} domain={[dataMin => Math.min(0, dataMin), 100]} />
+                <Tooltip formatter={(v, name) => [`${typeof v === 'number' ? v.toFixed(1) : v}%`, name]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={cashFlowData.length === 1 ? { r: 4, fill: '#10b981', stroke: 'none' } : false} activeDot={false} name="Mục tiêu" />
+                <Area type="monotone" dataKey="savingsRate" fill="url(#colorSavings)" stroke="#3b82f6" strokeWidth={3} dot={cashFlowData.length === 1 ? { r: 4, fill: '#3b82f6', stroke: 'none' } : false} activeDot={{ r: 4, fill: '#3b82f6', stroke: 'none' }} name="Thực tế" isAnimationActive={true} />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
 

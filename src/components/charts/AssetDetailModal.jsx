@@ -11,8 +11,8 @@ function AssetTooltip({ active, payload, label }) {
     if (data.currentValue === null) {
       return (
         <div className="bg-white p-3 rounded-xl shadow-xl border border-slate-100 min-w-[150px]">
-          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-          <p className="text-xs font-bold text-slate-400">Chưa sở hữu tài sản</p>
+          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+          <p className="text-xs font-semibold text-slate-400">Chưa sở hữu tài sản</p>
         </div>
       );
     }
@@ -20,34 +20,34 @@ function AssetTooltip({ active, payload, label }) {
     const isGain = data.profit >= 0;
     return (
       <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 min-w-[200px] space-y-2">
-        <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
         
         <div className="border-b border-slate-100 pb-2">
-          <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Giá trị tài sản</p>
-          <p className="text-lg font-black text-slate-800 tracking-tight">{formatVND(data.currentValue)}</p>
+          <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Giá trị tài sản</p>
+          <p className="text-base font-bold text-slate-800 tracking-tight">{formatVND(data.currentValue)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs">
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Vốn đầu tư</p>
-            <p className="font-bold text-slate-700 font-mono">{formatVND(data.costBasis)}</p>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Vốn đầu tư</p>
+            <p className="font-semibold text-slate-700 font-mono">{formatVND(data.costBasis)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Giá thị trường</p>
-            <p className="font-bold text-slate-700 font-mono">{formatVND(data.price)}</p>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Giá thị trường</p>
+            <p className="font-semibold text-slate-700 font-mono">{formatVND(data.price)}</p>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-slate-100">
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Số lượng sở hữu</p>
-            <p className="font-bold text-slate-700 font-mono">{data.quantity}</p>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Số lượng sở hữu</p>
+            <p className="font-semibold text-slate-700 font-mono">{data.quantity}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-extrabold text-slate-400">Lãi / Lỗ</p>
-            <p className={`font-black font-mono ${isGain ? 'text-emerald-600' : 'text-red-500'}`}>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Lãi / Lỗ</p>
+            <p className={`font-bold font-mono ${isGain ? 'text-emerald-600' : 'text-red-500'}`}>
               {isGain ? '+' : ''}{formatVND(data.profit)}
-              <span className="text-[10px] block font-bold">({isGain ? '+' : ''}{data.profitPct.toFixed(2)}%)</span>
+              <span className="text-[10px] block font-medium">({isGain ? '+' : ''}{data.profitPct.toFixed(2)}%)</span>
             </p>
           </div>
         </div>
@@ -258,8 +258,8 @@ export default function AssetDetailModal({ asset, onClose }) {
         {/* Header */}
         <div className="p-6 sm:p-8 pb-4 border-b border-slate-100 flex items-start justify-between">
           <div>
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight">{asset.name}</h2>
-            <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mt-1">{asset.category}</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">{asset.name}</h2>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mt-1">{asset.category}</p>
           </div>
           <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -272,16 +272,16 @@ export default function AssetDetailModal({ asset, onClose }) {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-6">
             <div className="flex flex-wrap gap-8">
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Giá hiện tại</p>
-                <p className="text-3xl font-black text-slate-800 tracking-tight font-mono">{formatVND(asset.current_price)}</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Giá hiện tại</p>
+                <p className="text-3xl font-bold text-slate-800 tracking-tight font-mono">{formatVND(asset.current_price)}</p>
               </div>
               <div>
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Lãi / Lỗ đầu tư của bạn</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Lãi / Lỗ đầu tư của bạn</p>
                 <div className="flex items-end gap-2">
-                  <p className={`text-3xl font-black tracking-tight font-mono ${isOverallPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <p className={`text-3xl font-bold tracking-tight font-mono ${isOverallPositive ? 'text-emerald-600' : 'text-red-500'}`}>
                     {isOverallPositive ? '+' : ''}{formatVND(currentProfit)}
                   </p>
-                  <p className={`text-sm font-bold mb-1 ${isOverallPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <p className={`text-sm font-medium mb-1 ${isOverallPositive ? 'text-emerald-500' : 'text-red-500'}`}>
                     ({isOverallPositive ? '+' : ''}{currentProfitPct.toFixed(2)}%)
                   </p>
                 </div>
@@ -374,22 +374,22 @@ export default function AssetDetailModal({ asset, onClose }) {
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-8 border-t border-slate-100">
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Đỉnh tài sản ({FILTERS.find(f=>f.value===filter)?.label})</p>
-                <p className="text-lg font-black text-slate-800 tracking-tight font-mono">{formatVND(stats.high)}</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Đỉnh tài sản ({FILTERS.find(f=>f.value===filter)?.label})</p>
+                <p className="text-lg font-bold text-slate-800 tracking-tight font-mono">{formatVND(stats.high)}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Đáy tài sản ({FILTERS.find(f=>f.value===filter)?.label})</p>
-                <p className="text-lg font-black text-slate-800 tracking-tight font-mono">{formatVND(stats.low)}</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Đáy tài sản ({FILTERS.find(f=>f.value===filter)?.label})</p>
+                <p className="text-lg font-bold text-slate-800 tracking-tight font-mono">{formatVND(stats.low)}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Khối lượng đang giữ</p>
-                <p className="text-lg font-black text-slate-800 tracking-tight font-mono">
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Khối lượng đang giữ</p>
+                <p className="text-lg font-bold text-slate-800 tracking-tight font-mono">
                   {asset.total_quantity} <span className="text-xs font-normal text-slate-500">{asset.unit || 'đơn vị'}</span>
                 </p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-extrabold text-slate-400 mb-1">Giá vốn TB</p>
-                <p className="text-lg font-black text-slate-800 tracking-tight font-mono">{formatVND(asset.avg_cost)}</p>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Giá vốn TB</p>
+                <p className="text-lg font-bold text-slate-800 tracking-tight font-mono">{formatVND(asset.avg_cost)}</p>
               </div>
             </div>
           )}
