@@ -172,6 +172,31 @@ export default function SavingsSection() {
     }
   }
 
+  async function handleDeleteTransaction(accountId, id) {
+    if (!confirm('Bạn có chắc chắn muốn xóa giao dịch này? Số tiền gốc của sổ sẽ tự động thay đổi.')) return;
+    try {
+      await apiClient.savings.deleteTransaction(id);
+      loadData();
+      // Reload active account transactions by finding it
+      const updated = await apiClient.savings.get();
+      const match = updated.find(a => a.id === accountId);
+      if (match) {
+        // If we need to update state, it is reloaded by loadData()
+      }
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    }
+  }
+
+  async function handleUpdateTransactionDate(id, date) {
+    try {
+      await apiClient.savings.updateTransactionDate(id, date);
+      loadData();
+    } catch (err) {
+      alert('Lỗi: ' + err.message);
+    }
+  }
+
   async function handleDeposit(id) {
     const amount = parseNumberInput(depositForm.amount);
     if (!amount || amount <= 0) return;
@@ -696,12 +721,7 @@ export default function SavingsSection() {
 
         {/* Interest projection summary */}
         {savingsAccounts.length > 0 && (() => {
-          const totalProjected = savingsAccounts.reduce((s, a) => {
-            if (a.type === 'term' && a.term_months > 0 && a.interest_rate > 0) {
-              return s + Math.round(a.principal * (a.interest_rate / 100) * (a.term_months / 12));
-            }
-            return s + (a.accrued_interest || 0);
-          }, 0);
+          const totalProjected = savingsAccounts.reduce((s, a) => s + (a.projected_interest || a.accrued_interest || 0), 0);
           return (
             <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
@@ -790,6 +810,37 @@ export default function SavingsSection() {
                                 </label>
                               </div>
                             </div>
+                            {a.transactions && a.transactions.length > 0 && (
+                              <div className="mt-3 border-t border-slate-200 pt-3">
+                                <p className="text-xs font-semibold text-slate-600 mb-2">Lịch sử giao dịch sổ (Tính lãi theo từng ngày)</p>
+                                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                  {[...a.transactions]
+                                    .sort((x, y) => new Date(x.date) - new Date(y.date) || x.id - y.id)
+                                    .map(t => (
+                                    <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100 text-xs">
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-slate-700">{t.type === 'deposit' ? 'Gửi tiền' : t.type === 'withdraw' ? 'Rút tiền' : 'Lãi'}</span>
+                                        <span className="text-slate-300">|</span>
+                                        <span className="text-slate-500">{t.note || 'Giao dịch'}</span>
+                                        <span className="text-slate-300">|</span>
+                                        <div className="flex items-center gap-1">
+                                          <span className="text-slate-400">Ngày:</span>
+                                          <input type="date" value={t.date} onChange={e => handleUpdateTransactionDate(t.id, e.target.value)} className="border border-slate-200 rounded px-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary-500" style={{ padding: '2px 4px' }} />
+                                        </div>
+                                      </div>
+                                      <div className="flex items-center gap-2 flex-shrink-0">
+                                        <span className={t.type === 'deposit' ? 'text-emerald-600 font-bold' : t.type === 'withdraw' ? 'text-rose-600 font-bold' : 'text-blue-600 font-bold'}>
+                                          {t.type === 'deposit' ? '+' : t.type === 'withdraw' ? '-' : ''}{formatVND(t.amount)}
+                                        </span>
+                                        {a.transactions.length > 1 && (
+                                          <button onClick={() => handleDeleteTransaction(a.id, t.id)} className="text-rose-500 hover:text-rose-700 font-medium ml-2">Xóa</button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <button onClick={() => handleSaveEdit(a.id)} className="btn-primary text-sm">Lưu</button>
                               <button onClick={() => setEditingId(null)} className="btn-ghost text-sm">Hủy</button>

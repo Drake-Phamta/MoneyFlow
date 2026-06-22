@@ -1942,14 +1942,16 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       ORDER BY sa.status ASC, sa.maturity_date ASC
     `);
     return accounts.map(a => {
-      const accrued = this.calculateAccruedInterest(a);
       const transactions = this.query('SELECT * FROM savings_transactions WHERE savings_account_id = ? ORDER BY date DESC', [a.id]);
+      const accrued = this.calculateAccruedInterest(a, transactions);
+      const projected = this.calculateAccruedInterest(a, transactions, true);
       const totalDeposited = transactions.filter(t => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
       const totalWithdrawn = transactions.filter(t => t.type === 'withdraw').reduce((s, t) => s + t.amount, 0);
       const totalInterest = transactions.filter(t => t.type === 'interest').reduce((s, t) => s + t.amount, 0);
       return {
         ...a,
         accrued_interest: accrued,
+        projected_interest: projected,
         total_deposited: totalDeposited,
         total_withdrawn: totalWithdrawn,
         total_interest: totalInterest,
@@ -1962,9 +1964,10 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   getSavingsAccount(id) {
     const a = this.queryOne('SELECT * FROM savings_accounts WHERE id = ?', [id]);
     if (!a) return null;
-    const accrued = this.calculateAccruedInterest(a);
     const transactions = this.query('SELECT * FROM savings_transactions WHERE savings_account_id = ? ORDER BY date DESC', [a.id]);
-    return { ...a, accrued_interest: accrued, transactions };
+    const accrued = this.calculateAccruedInterest(a, transactions);
+    const projected = this.calculateAccruedInterest(a, transactions, true);
+    return { ...a, accrued_interest: accrued, projected_interest: projected, transactions };
   }
 
   addSavingsTransaction(accountId, type, amount, date, note) {
@@ -1984,29 +1987,73 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     return this.query('SELECT * FROM savings_transactions WHERE savings_account_id = ? ORDER BY date DESC', [accountId]);
   }
 
-  calculateAccruedInterest(account) {
-    if (!account || account.status !== 'active' || account.interest_rate <= 0 || account.principal <= 0) return 0;
-    const start = new Date(account.start_date);
-    const now = new Date();
-    const daysElapsed = Math.floor((now - start) / 86400000);
-    if (daysElapsed <= 0) return 0;
-
-    if (account.type === 'liquid') {
-      // Liquid: simple interest, prorated daily
-      return Math.round(account.principal * (account.interest_rate / 100) * (daysElapsed / 365));
-    } else {
-      // Term: if matured, full interest; otherwise prorate
-      if (account.term_months <= 0) return 0;
-      const fullInterest = Math.round(account.principal * (account.interest_rate / 100) * (account.term_months / 12));
-      if (account.maturity_date) {
-        const maturity = new Date(account.maturity_date);
-        if (now >= maturity) return fullInterest;
-      }
-      // Prorate based on days elapsed vs term days (use 365-day year)
-      const termDays = Math.round(account.term_months * 365 / 12);
-      const prorated = Math.round(fullInterest * Math.min(daysElapsed / termDays, 1));
-      return prorated;
+  deleteSavingsTransaction(id) {
+    const txn = this.queryOne('SELECT * FROM savings_transactions WHERE id = ?', [id]);
+    if (!txn) return false;
+    
+    // Decrease/increase principal depending on transaction type
+    if (txn.type === 'deposit') {
+      this.run('UPDATE savings_accounts SET principal = MAX(0, principal - ?) WHERE id = ?', [txn.amount, txn.savings_account_id]);
+    } else if (txn.type === 'withdraw') {
+      this.run('UPDATE savings_accounts SET principal = principal + ? WHERE id = ?', [txn.amount, txn.savings_account_id]);
     }
+    
+    this.run('DELETE FROM savings_transactions WHERE id = ?', [id]);
+    this.save();
+    return true;
+  }
+
+  updateSavingsTransactionDate(id, date) {
+    this.run('UPDATE savings_transactions SET date = ? WHERE id = ?', [date, id]);
+    this.save();
+    return true;
+  }
+
+  calculateAccruedInterest(account, transactions, toMaturity = false) {
+    if (!account || account.status !== 'active' || account.interest_rate <= 0) return 0;
+    
+    // Sort transactions oldest first
+    const txns = (transactions || account.transactions || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    const now = new Date();
+    // For accrued: end date is today (or maturity if past maturity).
+    // For projected: end date is maturity date (if exists) or today (if liquid).
+    let endDate = now;
+    if (account.maturity_date) {
+      const maturity = new Date(account.maturity_date);
+      if (toMaturity || now > maturity) {
+        endDate = maturity;
+      }
+    }
+    
+    let currentBalance = 0;
+    let totalInterest = 0;
+    let lastDate = new Date(account.start_date);
+    
+    for (const txn of txns) {
+      if (txn.type === 'interest') continue; // Interest payout doesn't accrue unless reinvested
+      
+      const txnDate = new Date(txn.date);
+      if (txnDate > endDate) break; // Stop computing if transaction is in the future relative to endDate
+      
+      const days = Math.max(0, Math.floor((txnDate - lastDate) / 86400000));
+      if (days > 0 && currentBalance > 0) {
+        totalInterest += currentBalance * (account.interest_rate / 100) * (days / 365);
+      }
+      
+      if (txn.type === 'deposit') currentBalance += txn.amount;
+      if (txn.type === 'withdraw') currentBalance = Math.max(0, currentBalance - txn.amount);
+      
+      lastDate = txnDate;
+    }
+    
+    // Add interest from last transaction date to endDate
+    const remainingDays = Math.max(0, Math.floor((endDate - lastDate) / 86400000));
+    if (remainingDays > 0 && currentBalance > 0) {
+      totalInterest += currentBalance * (account.interest_rate / 100) * (remainingDays / 365);
+    }
+    
+    return Math.round(totalInterest);
   }
 
   getSavingsSummary() {
@@ -2182,7 +2229,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     for (const a of matured) {
       if (a.auto_renew) {
         // Auto-renew: record interest, reset start date
-        const interest = this.calculateAccruedInterest(a);
+        const interest = this.calculateAccruedInterest(a, a.transactions);
         if (interest > 0) {
           this.run(`INSERT INTO savings_transactions (savings_account_id, type, amount, date, note) VALUES (?, 'interest', ?, ?, ?)`,
             [a.id, interest, today, 'Tự động tất toán - tái tục']);
@@ -2192,7 +2239,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         results.push({ id: a.id, name: a.name, action: 'renewed', interest });
       } else {
         // Mark as matured
-        const interest = this.calculateAccruedInterest(a);
+        const interest = this.calculateAccruedInterest(a, a.transactions);
         if (interest > 0) {
           this.run(`INSERT INTO savings_transactions (savings_account_id, type, amount, date, note) VALUES (?, 'interest', ?, ?, ?)`,
             [a.id, interest, today, 'Tất toán']);

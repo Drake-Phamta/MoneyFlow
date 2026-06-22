@@ -111,6 +111,8 @@ export const api = {
     delete: (id) => del(`/savings/${id}`),
     addTransaction: (accountId, type, amount, date, note) =>
       post(`/savings/${accountId}/transactions`, { type, amount, date, note }),
+    deleteTransaction: (id) => del(`/savings/transactions/${id}`),
+    updateTransactionDate: (id, date) => put(`/savings/transactions/${id}/date`, { date }),
     summary: () => get('/savings/summary'),
     overview: () => get('/savings/overview'),
     maturities: (days) => get(`/savings/maturities?days=${days || 30}`),

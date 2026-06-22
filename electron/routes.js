@@ -395,6 +395,16 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  app.delete('/api/savings/transactions/:id', (req, res) => {
+    try { res.json(db.deleteSavingsTransaction(parseInt(req.params.id))); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.put('/api/savings/transactions/:id/date', (req, res) => {
+    try { res.json(db.updateSavingsTransactionDate(parseInt(req.params.id), req.body.date)); }
+    catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post('/api/savings/process-matured', (req, res) => {
     try { res.json(db.processMaturedAccounts()); }
     catch (e) { res.status(500).json({ error: e.message }); }
