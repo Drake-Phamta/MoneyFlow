@@ -3,8 +3,19 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
-import AppIcon, { Check, CheckCircle, Warning } from '../utils/iconMap';
+import AppIcon, { Check, CheckCircle, Warning, ArrowClockwise } from '../utils/iconMap';
+import { Faders } from '@phosphor-icons/react';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
+
+// ── Adjustment reasons ─────────────────────────────────────────────────────
+const ADJUST_REASONS = [
+  { key: 'market_dip', icon: '📈', label: 'Thị trường giảm, tăng mua CK' },
+  { key: 'emergency', icon: '🛡️', label: 'Chi phí đột xuất, tăng dự phòng' },
+  { key: 'gold_buy', icon: '🥇', label: 'Mua vàng đợt giảm giá' },
+  { key: 'sniper', icon: '🎯', label: 'Triển khai Bắn Tỉa' },
+  { key: 'bonus', icon: '💰', label: 'Thưởng/bonus lớn, phân bổ khác' },
+  { key: 'other', icon: '✏️', label: 'Lý do khác' },
+];
 
 // ── Per-category metadata ──────────────────────────────────────────────────
 // Returns short action hint shown in Step 2
@@ -56,6 +67,11 @@ export default function MonthlyEntry() {
   const [bonus, setBonus] = useState('');
   const [note, setNote] = useState('');
   const [allocs, setAllocs] = useState([]);
+
+  // Adjustment mode for Step 2
+  const [adjustMode, setAdjustMode] = useState(false);
+  const [adjustReason, setAdjustReason] = useState('');
+  const [customReason, setCustomReason] = useState('');
 
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState(null);
@@ -152,6 +168,7 @@ export default function MonthlyEntry() {
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
     setAllocs([]);
+    setAdjustMode(false); setAdjustReason(''); setCustomReason('');
     allocsInitialized.current = false;
     setStep(1);
     loadAll();
@@ -183,11 +200,57 @@ export default function MonthlyEntry() {
     } catch { setExpandedAllocs([]); } finally { setLoadingExpand(false); }
   }
 
+  // Build final note with adjustment reason appended
+  function buildFinalNote() {
+    let finalNote = note || '';
+    if (adjustMode && adjustReason) {
+      const reason = ADJUST_REASONS.find(r => r.key === adjustReason);
+      const reasonText = adjustReason === 'other' && customReason
+        ? customReason
+        : reason?.label || '';
+      if (reasonText) {
+        const tag = `[Điều chỉnh: ${reasonText}]`;
+        finalNote = finalNote ? `${finalNote} ${tag}` : tag;
+      }
+    }
+    return finalNote;
+  }
+
+  // Auto-balance: when one alloc changes, redistribute remainder proportionally
+  function adjustAlloc(targetCatId, newAmount) {
+    setAllocs(prev => {
+      const target = prev.find(a => a.category_id === targetCatId);
+      if (!target) return prev;
+      const clamped = Math.max(0, Math.min(newAmount, totalInflow));
+      const oldOthersTotal = prev
+        .filter(a => a.category_id !== targetCatId)
+        .reduce((s, a) => s + (a.planned_amount || 0), 0);
+      const newOthersTotal = totalInflow - clamped;
+      return prev.map(a => {
+        if (a.category_id === targetCatId) return { ...a, planned_amount: clamped };
+        if (oldOthersTotal > 0) {
+          return { ...a, planned_amount: Math.round((a.planned_amount / oldOthersTotal) * newOthersTotal) };
+        }
+        // Edge: all others were 0 — split equally
+        const othersCount = prev.length - 1;
+        return { ...a, planned_amount: othersCount > 0 ? Math.round(newOthersTotal / othersCount) : 0 };
+      });
+    });
+  }
+
+  // Step +/- by 5% of totalInflow
+  function stepAdjust(catId, direction) {
+    const stepAmount = Math.round(totalInflow * 0.05);
+    const current = allocs.find(a => a.category_id === catId)?.planned_amount || 0;
+    adjustAlloc(catId, current + direction * stepAmount);
+  }
+
   async function handleSave() {
     const target = editMode ? editMonth : nextMonth;
     if (!target || totalInflow <= 0) return;
 
     try {
+      const finalNote = buildFinalNote();
       await apiClient.monthly.save({
         month_index: target.month_index,
         month_label: target.month_label,
@@ -195,7 +258,7 @@ export default function MonthlyEntry() {
         expense: parseNumberInput(expense),
         bonus: parseNumberInput(bonus),
         total_inflow: totalInflow,
-        note,
+        note: finalNote,
         phase_id: phase?.id,
         status: 'confirmed',
       });
@@ -221,6 +284,7 @@ export default function MonthlyEntry() {
     setEditMonth(null);
     setIncome(''); setExpense(''); setBonus(''); setNote('');
     setAllocs([]);
+    setAdjustMode(false); setAdjustReason(''); setCustomReason('');
     allocsInitialized.current = false;
     setStep(1);
     loadAll();
@@ -244,14 +308,14 @@ export default function MonthlyEntry() {
         {STEPS.map((s, i) => (
           <div key={s.id} className="flex items-center flex-1">
             <div className="flex items-center gap-2">
-              <div className={step > s.id ? 'step-dot-done' : step === s.id ? 'step-dot-active' : 'step-dot-pending'}>
-                {step > s.id ? <Check size={14} className="text-emerald-500" /> : s.id}
+              <div className={(step > s.id || (step === 3 && s.id === 3)) ? 'step-dot-done' : step === s.id ? 'step-dot-active' : 'step-dot-pending'}>
+                {(step > s.id || (step === 3 && s.id === 3)) ? <Check size={14} className="text-emerald-500" /> : s.id}
               </div>
               <div className="hidden sm:block">
-                <p className={`text-xs font-semibold ${step >= s.id ? 'text-slate-700' : 'text-slate-400'}`}>{s.label}</p>
+                <p className={`text-xs font-semibold ${(step >= s.id) ? 'text-slate-700' : 'text-slate-400'}`}>{s.label}</p>
               </div>
             </div>
-            {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 mx-3 rounded ${step > s.id ? 'bg-emerald-400' : 'bg-slate-200'}`} />}
+            {i < STEPS.length - 1 && <div className={`flex-1 h-0.5 mx-3 rounded ${(step > s.id || (step === 3 && s.id === 3 && i < 2)) ? 'bg-emerald-400' : 'bg-slate-200'}`} />}
           </div>
         ))}
       </div>
@@ -302,13 +366,17 @@ export default function MonthlyEntry() {
           </div>
         )}
 
-        {/* STEP 2: Allocation — editable with hints */}
+        {/* STEP 2: Allocation — Smart Adjustment */}
         {step === 2 && (() => {
           const totalAlloced = allocs.reduce((s, a) => s + (a.planned_amount || 0), 0);
           const diff = totalAlloced - totalInflow;
           const hasDiff = Math.abs(diff) > 1;
+          const isAdjusted = allocs.some(a => {
+            const expected = Math.round(totalInflow * (a.ratio || 0));
+            return Math.abs((a.planned_amount || 0) - expected) > 1;
+          });
           return (
-            <div className="space-y-5 animate-fade-in">
+            <div className="space-y-4 animate-fade-in">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Phân bổ dòng tiền</h2>
                 <p className="text-sm text-slate-500">
@@ -316,84 +384,196 @@ export default function MonthlyEntry() {
                 </p>
               </div>
 
-              <div className="space-y-3">
-                {allocs.map(a => (
-                  <div
-                    key={a.category_id}
-                    className="p-3.5 rounded-xl border"
-                    style={{ borderColor: a.color + '30', background: a.color + '08' }}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      {/* Left: icon + name + hint */}
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div
-                          className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                          style={{ background: a.color }}
+              {/* Adjustment mode banner */}
+              {adjustMode && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 animate-fade-in">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Faders size={16} weight="bold" className="text-amber-600" />
+                    <span className="text-sm font-semibold text-amber-800">Điều chỉnh tạm tháng này</span>
+                  </div>
+                  <p className="text-[11px] text-amber-600 mb-3">Tỷ lệ gốc sẽ được giữ nguyên cho các tháng sau.</p>
+                  <div className="space-y-2">
+                    <label className="text-xs font-medium text-amber-700">Lý do điều chỉnh</label>
+                    <div className="grid grid-cols-2 gap-1.5">
+                      {ADJUST_REASONS.map(r => (
+                        <button
+                          key={r.key}
+                          onClick={() => { setAdjustReason(r.key); if (r.key !== 'other') setCustomReason(''); }}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left ${
+                            adjustReason === r.key
+                              ? 'bg-amber-200/60 text-amber-900 ring-1 ring-amber-400'
+                              : 'bg-white/80 text-slate-600 hover:bg-amber-100/50'
+                          }`}
                         >
-                          <AppIcon emoji={a.icon} size={18} color="white" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate">{a.category_name}</p>
-                          <p className="text-[10px] text-slate-400 truncate">
-                            {(a.ratio * 100).toFixed(0)}% · {getCategoryHint(a.category_name)}
-                          </p>
-                        </div>
-                      </div>
-                      {/* Right: editable amount */}
+                          <span>{r.icon}</span>
+                          <span className="truncate">{r.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {adjustReason === 'other' && (
                       <input
                         type="text"
-                        inputMode="numeric"
-                        value={formatNumberInput(a.planned_amount?.toString() || '0')}
-                        onChange={e => {
-                          const val = parseNumberInput(e.target.value) || 0;
-                          setAllocs(prev => prev.map(x =>
-                            x.category_id === a.category_id ? { ...x, planned_amount: val } : x
-                          ));
-                        }}
-                        className="input text-right font-bold w-36 shrink-0"
-                        style={{ color: a.color }}
+                        value={customReason}
+                        onChange={e => setCustomReason(e.target.value)}
+                        placeholder="Nhập lý do..."
+                        className="input text-xs mt-1"
+                        autoFocus
                       />
-                    </div>
+                    )}
                   </div>
-                ))}
+                </div>
+              )}
+
+              {/* Allocation rows */}
+              <div className="rounded-xl border border-slate-200 overflow-hidden divide-y divide-slate-100">
+                {allocs.map(a => {
+                  const pct = totalInflow > 0 ? Math.min((a.planned_amount || 0) / totalInflow * 100, 100) : 0;
+                  const originalAmount = Math.round(totalInflow * (a.ratio || 0));
+                  const isChanged = Math.abs((a.planned_amount || 0) - originalAmount) > 1;
+                  return (
+                    <div
+                      key={a.category_id}
+                      className="relative group transition-colors duration-150 hover:bg-slate-50/80"
+                    >
+                      {/* Color accent strip */}
+                      <div
+                        className="absolute left-0 top-0 bottom-0 w-1 rounded-r"
+                        style={{ background: a.color }}
+                      />
+                      <div className="flex items-center gap-3 pl-4 pr-3 py-3">
+                        {/* Icon */}
+                        <div
+                          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
+                          style={{ background: a.color + '18' }}
+                        >
+                          <AppIcon emoji={a.icon} size={16} color={a.color} />
+                        </div>
+                        {/* Name + ratio badge */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-slate-700 truncate">{a.category_name}</p>
+                            <span
+                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                              style={{ background: a.color + '15', color: a.color }}
+                            >
+                              {(a.ratio * 100).toFixed(0)}%
+                            </span>
+                            {adjustMode && isChanged && (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">
+                                → {pct.toFixed(0)}%
+                              </span>
+                            )}
+                          </div>
+                          {/* Mini progress bar */}
+                          <div className="h-1 bg-slate-100 rounded-full mt-1.5 overflow-hidden" style={{ maxWidth: '140px' }}>
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{ width: `${pct}%`, background: a.color }}
+                            />
+                          </div>
+                        </div>
+                        {/* Amount display or edit controls */}
+                        {adjustMode ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => stepAdjust(a.category_id, -1)}
+                              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-sm font-bold transition-colors"
+                              disabled={(a.planned_amount || 0) <= 0}
+                            >−</button>
+                            <input
+                              type="text"
+                              inputMode="numeric"
+                              value={formatNumberInput(a.planned_amount?.toString() || '0')}
+                              onChange={e => {
+                                const val = parseNumberInput(e.target.value) || 0;
+                                adjustAlloc(a.category_id, val);
+                              }}
+                              className="w-24 text-right font-bold text-sm bg-transparent border-0 outline-none py-1 px-1 rounded-lg transition-colors focus:bg-white focus:ring-2 focus:ring-offset-0"
+                              style={{ color: a.color, '--tw-ring-color': a.color + '30' }}
+                            />
+                            <button
+                              onClick={() => stepAdjust(a.category_id, 1)}
+                              className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 text-sm font-bold transition-colors"
+                              disabled={(a.planned_amount || 0) >= totalInflow}
+                            >+</button>
+                          </div>
+                        ) : (
+                          <span className="text-sm font-bold shrink-0 tabular-nums" style={{ color: a.color }}>
+                            {formatVND(a.planned_amount || 0)}
+                          </span>
+                        )}
+                      </div>
+                      {/* Hover hint tooltip */}
+                      <div className="hidden group-hover:block absolute left-10 -bottom-1 translate-y-full z-10 px-3 py-1.5 bg-slate-800 text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap max-w-[280px] truncate pointer-events-none">
+                        {getCategoryHint(a.category_name)}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
 
-              {/* Total vs inflow */}
+              {/* Total row */}
               <div className={`p-3 rounded-xl flex items-center justify-between ${
-                hasDiff ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50'
+                hasDiff ? 'bg-amber-50 border border-amber-200' : 'bg-slate-50 border border-slate-100'
               }`}>
                 <div>
-                  <span className="text-sm text-slate-600">Tổng phân bổ</span>
+                  <span className="text-sm text-slate-600 font-medium">Tổng phân bổ</span>
                   {hasDiff && (
                     <p className="text-xs text-amber-600 flex items-center gap-1 mt-0.5">
                       <Warning size={12} weight="fill" />
-                      {diff > 0 ? `Vượt ${formatVND(diff)} so với tiền nhàn rỗi` : `Thiếu ${formatVND(-diff)} so với tiền nhàn rỗi`}
+                      {diff > 0 ? `Vượt ${formatVND(diff)}` : `Thiếu ${formatVND(-diff)}`}
                     </p>
                   )}
                 </div>
                 <div className="text-right">
-                  <span className={`text-sm font-bold ${ hasDiff ? 'text-amber-600' : 'text-slate-800' }`}>
+                  <span className={`text-base font-bold ${ hasDiff ? 'text-amber-600' : 'text-slate-800' }`}>
                     {formatVND(totalAlloced)}
                   </span>
-                  {!hasDiff && <p className="text-[10px] text-emerald-500">✓ Khớp với tiền nhàn rỗi</p>}
                 </div>
               </div>
 
-              <div className="flex justify-between">
+              {/* Actions */}
+              <div className="flex items-center justify-between pt-1">
                 <div className="flex gap-2">
-                  <button onClick={() => setStep(1)} className="btn-ghost">← Quày lại</button>
-                  <button
-                    onClick={() => setAllocs(prev => prev.map(a => ({
-                      ...a,
-                      planned_amount: Math.round(totalInflow * (a.ratio || 0)),
-                    })))}
-                    className="btn-ghost text-xs"
-                  >
-                    🔄 Reset tỷ lệ
-                  </button>
+                  <button onClick={() => setStep(1)} className="btn-ghost text-sm">← Quay lại</button>
+                  {adjustMode ? (
+                    <button
+                      onClick={() => {
+                        setAdjustMode(false);
+                        setAdjustReason('');
+                        setCustomReason('');
+                        setAllocs(prev => prev.map(a => ({
+                          ...a,
+                          planned_amount: Math.round(totalInflow * (a.ratio || 0)),
+                        })));
+                      }}
+                      className="btn-ghost text-xs flex items-center gap-1.5"
+                    >
+                      <ArrowClockwise size={14} weight="bold" />
+                      Hủy điều chỉnh
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setAdjustMode(true)}
+                      className="btn-ghost text-xs flex items-center gap-1.5"
+                    >
+                      <Faders size={14} weight="bold" />
+                      Điều chỉnh tạm
+                    </button>
+                  )}
                 </div>
-                <button onClick={handleSave} className="btn-primary-lg">Lưu & Hoàn tất →</button>
+                <button
+                  onClick={handleSave}
+                  disabled={adjustMode && !adjustReason}
+                  className="btn-primary-lg"
+                  title={adjustMode && !adjustReason ? 'Chọn lý do điều chỉnh trước' : ''}
+                >
+                  Lưu & Hoàn tất →
+                </button>
               </div>
+              {adjustMode && !adjustReason && (
+                <p className="text-[11px] text-amber-500 text-right -mt-2">Vui lòng chọn lý do điều chỉnh phía trên</p>
+              )}
             </div>
           );
         })()}
