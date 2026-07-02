@@ -14,18 +14,21 @@ export default function CashFlowPage() {
   const [activeSection, setActiveSection] = useState('charts'); // 'charts' | 'ledger'
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
+  const [realInvested, setRealInvested] = useState(0);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     try {
-      const [f, params, p] = await Promise.all([
+      const [f, params, p, portfolioSum] = await Promise.all([
         apiClient.monthly.filled(),
         apiClient.params.get(),
         apiClient.phases.active().catch(() => null),
+        apiClient.portfolio.summary().catch(() => null),
       ]);
       setFilled(f);
       setPhase(p);
+      setRealInvested(portfolioSum?.totalInvested || 0);
       const paramMap = {};
       for (const param of params) paramMap[param.key] = param.value;
       setTotalMonths(paramMap.TOTAL_MONTHS || 120);
@@ -75,16 +78,18 @@ export default function CashFlowPage() {
     const avgSav = inc > 0 ? (net / inc) * 100 : 0;
     const avgMon = filled.length > 0 ? net / filled.length : 0;
     
+    // Tỷ lệ đầu tư mục tiêu từ phase allocations (loại trừ Dự phòng & Tiết kiệm)
     const iRatio = phaseAllocs
       .filter(pa => {
         const name = pa.category_name?.toLowerCase() || '';
         return !name.includes('dự phòng') && !name.includes('tiết kiệm');
       })
       .reduce((s, pa) => s + (pa.ratio || 0), 0);
-      
-    const tInvested = filled.reduce((s, m) => s + (m.total_inflow || 0) * iRatio, 0);
-    const avgInv = inc > 0 ? (tInvested / inc) * 100 : 0;
     const invTarget = Math.round(iRatio * 100);
+
+    // Tỷ lệ đầu tư thực tế = Vốn đầu tư thực (từ giao dịch) / Tổng thu nhập
+    const tInvested = realInvested;
+    const avgInv = inc > 0 ? (tInvested / inc) * 100 : 0;
 
     let str = 0;
     for (let i = cashFlowData.length - 1; i >= 0; i--) {
@@ -98,7 +103,7 @@ export default function CashFlowPage() {
       totalInvested: tInvested, avgInvestRate: avgInv, investTargetPct: invTarget,
       streak: str, bestMonth: sorted[0] || null, worstMonth: sorted[sorted.length - 1] || null
     };
-  }, [filled, cashFlowData, phaseAllocs]);
+  }, [filled, cashFlowData, phaseAllocs, realInvested]);
 
   // Empty state
   if (filled.length === 0) {
@@ -224,7 +229,7 @@ export default function CashFlowPage() {
               </span>
             )}
             {totalInvested > 0 && (
-              <p className="text-[10px] text-slate-400 w-full">≈ {formatVND(totalInvested)} đã phân bổ</p>
+              <p className="text-[10px] text-slate-400 w-full">= {formatVND(totalInvested)} đã đầu tư</p>
             )}
           </div>
         </div>

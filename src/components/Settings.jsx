@@ -275,7 +275,7 @@ export default function Settings() {
           <strong>Kỳ vọng</strong> = mức bạn muốn/target (dùng cho phase detection & mục tiêu).{' '}
           <strong>Thực tế</strong> = trung bình từ dữ liệu nhập hàng tháng (tham khảo).
         </p>
-        <div className="grid grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-3 gap-4 mb-4">
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Chi tiêu kỳ vọng (₫)</label>
             <FormattedInput
@@ -289,6 +289,20 @@ export default function Settings() {
               placeholder="4,000,000"
             />
             <p className="text-[10px] text-slate-400 mt-1">Dùng để đặt mục tiêu tham chiếu</p>
+          </div>
+          <div>
+            <label className="text-xs text-slate-400 mb-1 block">Dòng tiền nhàn rỗi kỳ vọng (₫)</label>
+            <FormattedInput
+              value={params.DEFAULT_INFLOW || 3700000}
+              onChange={val => setParams(p => ({ ...p, DEFAULT_INFLOW: val }))}
+              onBlur={async val => {
+                await apiClient.params.update('DEFAULT_INFLOW', val || 3700000);
+                loadData();
+              }}
+              className="input input-lg"
+              placeholder="3,700,000"
+            />
+            <p className="text-[10px] text-slate-400 mt-1">Dùng để tính kịch bản tương lai</p>
           </div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Chi tiêu thực tế trung bình (₫)</label>

@@ -17,9 +17,24 @@ function NetWorthTooltip({ active, payload, label }) {
       );
     }
     return (
-      <div className="bg-white p-3 rounded-xl shadow-xl border border-slate-100 min-w-[150px]">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
-        <p className="text-base font-bold text-slate-800 tracking-tight">{formatVND(payload[0].value)}</p>
+      <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 min-w-[220px] space-y-2">
+        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
+        
+        <div className="border-b border-slate-100 pb-2">
+          <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Tổng tài sản ròng</p>
+          <p className="text-base font-bold text-slate-800 tracking-tight font-mono">{formatVND(data.netWorth)}</p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 text-xs pt-1">
+          <div>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Tiền mặt & Tiết kiệm</p>
+            <p className="font-semibold text-slate-700 font-mono">{formatVND(data.cashAndSavings)}</p>
+          </div>
+          <div>
+            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Giá trị đầu tư</p>
+            <p className="font-semibold text-slate-700 font-mono">{formatVND(data.investmentValue)}</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -138,13 +153,47 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
       return latest || { quantity: 0, avgCost: 0 };
     };
 
+    const parseMonthLabel = (label) => {
+      const m = label.match(/T(\d+)\/(\d+)/);
+      if (m) {
+        const month = m[1].padStart(2, '0');
+        const year = m[2];
+        return `${year}-${month}-01`;
+      }
+      return null;
+    };
+
+    const parseMonthEnd = (label) => {
+      const m = label.match(/T(\d+)\/(\d+)/);
+      if (m) {
+        const month = parseInt(m[1]);
+        const year = parseInt(m[2]);
+        const lastDay = new Date(year, month, 0).getDate();
+        return `${year}-${m[1].padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      }
+      return null;
+    };
+
+    const getYearMonth = (dateStr) => {
+      return dateStr.substring(0, 7); // "YYYY-MM"
+    };
+
     // Chế độ Daily Hybrid: Tiền mặt/Tiết kiệm cố định + giá tài sản biến động theo ngày
     const currentPortfolioValue = portfolio.reduce((sum, p) => sum + (p.current_value || 0), 0);
     const baseCashAndSavings = grandTotal - currentPortfolioValue;
 
-    // Thu thập tất cả các ngày duy nhất từ tất cả tài sản
+    // Thu thập tất cả các ngày duy nhất từ tất cả tài sản, các tháng đã ghi nhận và hôm nay
     const dateSet = new Set();
     Object.values(allPriceData).forEach(arr => arr.forEach(d => dateSet.add(d.date)));
+    
+    filled.forEach(m => {
+      const parsed = parseMonthLabel(m.month_label);
+      if (parsed) dateSet.add(parsed);
+    });
+    
+    const todayStr = new Date().toISOString().split('T')[0];
+    dateSet.add(todayStr);
+
     let allDates = [...dateSet].sort();
 
     // Tìm ngày giao dịch đầu tiên hoặc ngày ghi nhận đầu tiên
@@ -153,15 +202,6 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
       earliestDate = transactions[0].date;
     }
     if (filled.length > 0) {
-      const parseMonthLabel = (label) => {
-        const m = label.match(/T(\d+)\/(\d+)/);
-        if (m) {
-          const month = m[1].padStart(2, '0');
-          const year = m[2];
-          return `${year}-${month}-01`;
-        }
-        return null;
-      };
       const firstMonthDate = parseMonthLabel(filled[0].month_label);
       if (firstMonthDate && (!earliestDate || firstMonthDate < earliestDate)) {
         earliestDate = firstMonthDate;
@@ -212,6 +252,8 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
 
       // Điều chỉnh tiền ngược dòng thời gian (Reverse adjustments)
       let adjustedCashAndSavings = baseCashAndSavings;
+      
+      // 1. Điều chỉnh theo các giao dịch mua/bán tài sản
       transactions.forEach(t => {
         if (t.date > dateStr) {
           const amt = Number(t.total_amount) + Number(t.fee || 0);
@@ -223,6 +265,43 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
         }
       });
 
+      // 2. Điều chỉnh theo dòng tiền tích lũy hàng tháng (income + bonus - expense)
+      // Dùng nội suy tuyến tính (Linear Interpolation) để phân bổ dòng tiền đều đặn mỗi ngày
+      // Tránh việc biểu đồ bị "nhảy bậc" (jump) vào đầu/cuối tháng
+      const currentYearMonth = getYearMonth(todayStr);
+      filled.forEach(m => {
+        const mDateStr = parseMonthLabel(m.month_label);
+        if (mDateStr) {
+          const mYearMonth = getYearMonth(mDateStr);
+          // Không điều chỉnh đối với tháng hiện tại của thời gian thực (tránh làm lệch số dư Hiện tại)
+          if (mYearMonth !== currentYearMonth) {
+            const mStart = mDateStr;
+            const mEnd = parseMonthEnd(m.month_label);
+            const netFlow = (m.income || 0) + (m.bonus || 0) - (m.expense || 0);
+
+            if (mEnd && mStart) {
+              if (dateStr < mStart) {
+                // Nếu đang xem một ngày TRƯỚC tháng này -> tháng này chưa tích lũy tí nào -> trừ toàn bộ
+                adjustedCashAndSavings -= netFlow;
+              } else if (dateStr >= mStart && dateStr <= mEnd) {
+                // Nếu đang TRONG tháng này -> Nội suy tuyến tính (Linear Interpolation)
+                const startDt = new Date(mStart);
+                const endDt = new Date(mEnd);
+                const currentDt = new Date(dateStr);
+                
+                const totalDays = endDt.getDate(); // Tổng số ngày trong tháng (vd: 30, 31)
+                const currentDay = currentDt.getDate(); // Ngày đang xét
+                
+                // Số tiền CHƯA được tích lũy tính từ currentDay đến cuối tháng
+                const unaccumulatedRatio = (totalDays - currentDay) / totalDays;
+                adjustedCashAndSavings -= (netFlow * unaccumulatedRatio);
+              }
+              // Nếu dateStr > mEnd -> Tháng này ĐÃ tích lũy xong -> Không trừ (giữ nguyên trong số dư)
+            }
+          }
+        }
+      });
+
       return {
         date: dateStr,
         dateLabel: new Date(dateStr).toLocaleDateString('vi-VN', { 
@@ -230,7 +309,9 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
           month: '2-digit',
           year: '2-digit'
         }),
-        netWorth: (earliestDate && dateStr < earliestDate) ? null : (adjustedCashAndSavings + dailyPortfolioValue)
+        netWorth: (earliestDate && dateStr < earliestDate) ? null : (adjustedCashAndSavings + dailyPortfolioValue),
+        cashAndSavings: (earliestDate && dateStr < earliestDate) ? null : adjustedCashAndSavings,
+        investmentValue: (earliestDate && dateStr < earliestDate) ? null : dailyPortfolioValue
       };
     });
 
@@ -339,16 +420,13 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
                     minTickGap={minTickGap}
                   />
                   <YAxis 
-                    domain={['auto', 'auto']}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(val) => (val / 1000000).toLocaleString('vi-VN') + 'tr'}
+                    tickLine={false} 
+                    axisLine={false} 
                     tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
-                    width={55}
-                    orientation="right"
+                    tickFormatter={(v) => formatVND(v)}
+                    width={80}
                   />
                   <Tooltip content={<NetWorthTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }} />
-                  <ReferenceLine y={stats?.startPrice} stroke="#cbd5e1" strokeDasharray="3 3" />
                   <Area 
                     type="monotone" 
                     dataKey="netWorth" 

@@ -978,10 +978,10 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     }
   }
 
-  // Recalculate all phase goals based on actual average expense
+  // Recalculate all phase goals based on user's TARGET expected expense
   recalculateAllPhaseGoals() {
-    const avgExpense = this.getAverageExpense();
-    this.recalculatePhaseGoals(avgExpense);
+    const targetExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
+    this.recalculatePhaseGoals(targetExpense);
     this.save();
   }
 

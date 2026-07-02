@@ -151,6 +151,8 @@ export default function Scenarios() {
   const [totalMonths, setTotalMonths] = useState(120);
   const [avgExpense, setAvgExpense] = useState(4000000);
   const [expectedExpense, setExpectedExpense] = useState(4000000);
+  const [expectedInflow, setExpectedInflow] = useState(3700000);
+  const [useExpectedInflow, setUseExpectedInflow] = useState(false);
   const [expandedPhase, setExpandedPhase] = useState(null);
   const [expandedKnowledge, setExpandedKnowledge] = useState(null);
   const [allocsByCategory, setAllocsByCategory] = useState({});
@@ -185,6 +187,7 @@ export default function Scenarios() {
       const paramMap = {};
       for (const param of params) paramMap[param.key] = param.value;
       setExpectedExpense(paramMap.FI_MONTHLY_EXPENSE || 4000000);
+      setExpectedInflow(paramMap.DEFAULT_INFLOW || 3700000);
       setTotalMonths(paramMap.TOTAL_MONTHS || 120);
       if (ph) {
         setExpandedPhase(ph.sort_order);
@@ -220,27 +223,29 @@ export default function Scenarios() {
   const fiNumber = expectedExpense * 12 / 0.04;
   const fiRatio = fiNumber > 0 ? (totalCurrentValue / fiNumber) * 100 : 0;
 
-  // Projection scenarios
+  // Projection scenarios using Real Return (Lợi suất thực = Lợi suất - Lạm phát)
+  // Giữ nguyên mốc mục tiêu (fiNumber) theo giá trị tiền hiện tại để người dùng dễ hiểu
   function calcScenario(monthlyContrib, annualReturn) {
     let balance = totalCurrentValue;
-    const monthlyReturn = annualReturn / 12;
-    const inflationMonthly = 0.035 / 12;
+    const realReturn = annualReturn - 0.035; // Lạm phát 3.5%
+    const monthlyReturn = realReturn / 12;
     let monthsToFI = 0;
-    let currentExpense = expectedExpense;
+    const targetFI = expectedExpense * 12 / 0.04;
 
     for (let m = 0; m < 600; m++) {
       balance = balance * (1 + monthlyReturn) + monthlyContrib;
-      currentExpense *= (1 + inflationMonthly);
       monthsToFI = m + 1;
-      if (balance * 0.04 / 12 >= currentExpense) break;
+      if (balance >= targetFI) break;
     }
     return { monthsToFI, yearsToFI: (monthsToFI / 12).toFixed(1), finalBalance: balance };
   }
 
+  const baseInflow = useExpectedInflow ? expectedInflow : avgInflow;
+
   const scenarios = [
-    { name: 'Thận trọng', monthly: avgInflow * 0.8, rate: 0.05, color: 'text-slate-600', bg: 'bg-slate-50' },
-    { name: 'Cơ sở', monthly: avgInflow, rate: 0.07, color: 'text-primary-600', bg: 'bg-primary-50' },
-    { name: 'Lạc quan', monthly: avgInflow * 1.2, rate: 0.10, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+    { name: 'Thận trọng', monthly: baseInflow * 0.8, rate: 0.05, color: 'text-slate-600', bg: 'bg-slate-50' },
+    { name: 'Cơ sở', monthly: baseInflow, rate: 0.07, color: 'text-primary-600', bg: 'bg-primary-50' },
+    { name: 'Lạc quan', monthly: baseInflow * 1.2, rate: 0.10, color: 'text-emerald-600', bg: 'bg-emerald-50' },
   ].map(s => ({ ...s, ...calcScenario(s.monthly, s.rate) }));
 
   function getPhaseStatus(phaseSortOrder) {
@@ -411,8 +416,24 @@ export default function Scenarios() {
 
       {/* ===== Section 5: Projection Scenarios ===== */}
       <div className="card">
-        <h3 className="text-sm font-semibold text-slate-700 mb-2">Kịch bản tự do tài chính</h3>
-        <p className="text-xs text-slate-400 mb-4">Dự báo dựa trên lãi kép, lạm phát 3.5%/năm, và quy tắc 4%</p>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-semibold text-slate-700">Kịch bản tự do tài chính</h3>
+          <div className="flex bg-slate-100 p-0.5 rounded-lg">
+            <button
+              onClick={() => setUseExpectedInflow(false)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${!useExpectedInflow ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Theo thực tế
+            </button>
+            <button
+              onClick={() => setUseExpectedInflow(true)}
+              className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${useExpectedInflow ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              Theo kỳ vọng
+            </button>
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mb-4">Dự báo dựa trên lãi kép, lạm phát 3.5%/năm, quy tắc 4% và chi tiêu mục tiêu {formatVND(expectedExpense)}/tháng</p>
 
         <div className="grid grid-cols-3 gap-4">
           {scenarios.map(s => (
