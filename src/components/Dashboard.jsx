@@ -110,6 +110,7 @@ export default function Dashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const [savingsSummary, setSavingsSummary] = useState(null);
+  const [savingsOverview, setSavingsOverview] = useState(null);
   const [maturities, setMaturities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState(null);
@@ -160,7 +161,7 @@ export default function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [s, p, f, a, n, ac, ss, mats, phases, alertsData] = await Promise.all([
+      const [s, p, f, a, n, ac, ss, so, mats, phases, alertsData] = await Promise.all([
         apiClient.portfolio.summary().catch(e => { console.error('portfolio.summary error:', e); return null; }),
         apiClient.phases.active(),
         apiClient.monthly.filled(),
@@ -168,6 +169,7 @@ export default function Dashboard() {
         apiClient.monthly.next(),
         apiClient.alerts.count().catch(() => ({ count: 0 })),
         apiClient.savings.summary().catch(() => null),
+        apiClient.savings.overview().catch(() => null),
         apiClient.savings.maturities(30).catch(() => []),
         apiClient.phases.get().catch(() => []),
         apiClient.alerts.get().catch(() => []),
@@ -179,6 +181,7 @@ export default function Dashboard() {
       setNextMonth(n);
       setAlertCount(ac?.count || 0);
       setSavingsSummary(ss);
+      setSavingsOverview(so);
       setMaturities(mats);
       setAllPhases(phases);
       setAlerts(alertsData || []);
@@ -253,9 +256,16 @@ export default function Dashboard() {
   const totalSavingsAccrued = savingsSummary?.totalAccrued || 0;
   const totalSavingsBalance = savingsSummary?.totalBalance || 0;
   
-  // Tiền mặt = Tổng Thu - Tổng Chi - Dòng tiền ra ròng đầu tư - Vốn tiết kiệm
+  // Tiền mặt chưa phân bổ = Tổng nhàn rỗi − Tổng phân bổ tất cả danh mục
+  const totalAllocatedAll = (savingsOverview?.totalAllocated || 0) + (savingsOverview?.totalOtherAllocated || 0);
+  const totalCashUnallocated = Math.max(0, totalNet - totalAllocatedAll);
+  
+  // Tiền chờ đầu tư = Phân bổ cho đầu tư − Tiền đã mua tài sản
   const netCashOutflow = summary?.netCashOutflow !== undefined ? summary.netCashOutflow : totalInvested;
-  const totalCashOnHand = Math.max(0, totalNet - netCashOutflow - totalSavingsPrincipal);
+  const uninvestedCash = Math.max(0, (savingsOverview?.totalOtherAllocated || 0) - netCashOutflow);
+  
+  // Tiền mặt tổng = chưa phân bổ + chờ đầu tư
+  const totalCashOnHand = totalCashUnallocated + uninvestedCash;
   
   // Tổng lợi nhuận = Lãi đầu tư + Lãi tiết kiệm dự kiến
   const totalOverallGain = totalGain + totalSavingsAccrued;
@@ -681,11 +691,19 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between">
               <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Tiền mặt
-                <InfoTooltip content="Lượng tiền nhàn rỗi có sẵn (Tổng Thu - Tổng Chi - Vốn Đầu tư - Vốn Tiết kiệm)." />
+                <InfoTooltip content="Tổng tiền chưa triển khai: gồm tiền chưa phân bổ và tiền đã chuyển vào TK chứng khoán nhưng chưa giao dịch." />
               </p>
               <div>
                 <p className="text-xl font-bold text-amber-600 tracking-tight">{formatVND(totalCashOnHand)}</p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiền nhàn rỗi</p>
+                {uninvestedCash > 0 && (
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiền nhàn rỗi: {formatVND(uninvestedCash)}</p>
+                )}
+                {totalCashUnallocated > 0 && (
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Chưa phân bổ: {formatVND(totalCashUnallocated)}</p>
+                )}
+                {totalCashOnHand === 0 && (
+                  <p className="text-[10px] text-slate-400 mt-1 font-medium">Đã phân bổ hết</p>
+                )}
               </div>
             </div>
             <div className="flex flex-col justify-between">
