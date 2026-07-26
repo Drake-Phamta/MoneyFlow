@@ -2012,31 +2012,54 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   calculateAccruedInterest(account, transactions, toMaturity = false) {
     if (!account || account.status !== 'active' || account.interest_rate <= 0) return 0;
     
+    const parseDate = (dStr) => {
+      if (!dStr) return new Date();
+      if (dStr instanceof Date) return new Date(dStr.getFullYear(), dStr.getMonth(), dStr.getDate());
+      const parts = String(dStr).split('T')[0].split('-');
+      return new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    };
+
     // Sort transactions oldest first
-    const txns = (transactions || account.transactions || []).slice().sort((a, b) => new Date(a.date) - new Date(b.date));
+    const txns = (transactions || account.transactions || []).slice().sort((a, b) => parseDate(a.date) - parseDate(b.date));
     
-    const now = new Date();
-    // For accrued: end date is today (or maturity if past maturity).
-    // For projected: end date is maturity date (if exists) or today (if liquid).
-    let endDate = now;
+    const today = new Date();
+    const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    
+    // Find latest transaction date
+    let maxTxnDate = todayNormalized;
+    for (const t of txns) {
+      const d = parseDate(t.date);
+      if (d > maxTxnDate) maxTxnDate = d;
+    }
+
+    let endDate = todayNormalized;
     if (account.maturity_date) {
-      const maturity = new Date(account.maturity_date);
-      if (toMaturity || now > maturity) {
+      const maturity = parseDate(account.maturity_date);
+      if (toMaturity || todayNormalized >= maturity) {
         endDate = maturity;
+      } else {
+        // For current accrued: take max of today and maxTxnDate (capped at maturity)
+        endDate = maxTxnDate < maturity ? maxTxnDate : maturity;
+      }
+    } else {
+      if (toMaturity) {
+        endDate = todayNormalized;
+      } else {
+        endDate = maxTxnDate;
       }
     }
     
     let currentBalance = 0;
     let totalInterest = 0;
-    let lastDate = new Date(account.start_date);
+    let lastDate = parseDate(account.start_date);
     
     for (const txn of txns) {
       if (txn.type === 'interest') continue; // Interest payout doesn't accrue unless reinvested
       
-      const txnDate = new Date(txn.date);
+      const txnDate = parseDate(txn.date);
       if (txnDate > endDate) break; // Stop computing if transaction is in the future relative to endDate
       
-      const days = Math.max(0, Math.floor((txnDate - lastDate) / 86400000));
+      const days = Math.max(0, Math.round((txnDate - lastDate) / (1000 * 60 * 60 * 24)));
       if (days > 0 && currentBalance > 0) {
         totalInterest += currentBalance * (account.interest_rate / 100) * (days / 365);
       }
@@ -2048,7 +2071,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     }
     
     // Add interest from last transaction date to endDate
-    const remainingDays = Math.max(0, Math.floor((endDate - lastDate) / 86400000));
+    const remainingDays = Math.max(0, Math.round((endDate - lastDate) / (1000 * 60 * 60 * 24)));
     if (remainingDays > 0 && currentBalance > 0) {
       totalInterest += currentBalance * (account.interest_rate / 100) * (remainingDays / 365);
     }
