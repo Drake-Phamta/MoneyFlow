@@ -11,7 +11,7 @@
  */
 const fs = require('fs');
 const env = require('./env');
-const { post } = require('./http');
+const { post, del } = require('./http');
 
 async function reset() {
   if (!fs.existsSync(env.FIXTURE_DB)) {
@@ -29,12 +29,18 @@ async function reset() {
   return true;
 }
 
-/** Xoá sạch về DB rỗng (FinancialDB tự seed lại khi khởi tạo). */
+/**
+ * Đưa về trạng thái người dùng mới: chưa có tháng, giao dịch hay sổ tiết kiệm
+ * nào, nhưng vẫn còn danh mục và các giai đoạn.
+ *
+ * Dùng DELETE /api/data/all chứ KHÔNG xoá file DB: server giữ toàn bộ DB trong
+ * RAM, xoá file rồi bảo nó đọc lại là bảo nó đọc một file không còn tồn tại.
+ */
 async function resetEmpty() {
-  if (fs.existsSync(env.DEMO_DB)) fs.unlinkSync(env.DEMO_DB);
-  const r = await post('/api/demo/reload-db');
-  if (r.status !== 200) {
-    throw new Error(`reload-db (empty) thất bại: ${r.status}`);
+  await reset();
+  const r = await del('/api/data/all');
+  if (r.status < 200 || r.status >= 300) {
+    throw new Error(`Không xoá được dữ liệu (${r.status}): ${String(r.raw).slice(0, 160)}`);
   }
   return true;
 }

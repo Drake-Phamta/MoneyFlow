@@ -36,6 +36,9 @@ const SERVER_SUITES = [
   // A09 ghi price_snapshots và sửa peak_price dù trông như chỉ đọc — chạy sau
   // các nhóm khác để không làm lệch dữ liệu của chúng.
   { group: 'api', file: './api/A09-prices' },
+  { group: 'ui', file: './ui/U01-render' },
+  { group: 'ui', file: './ui/U02-numbers' },
+  { group: 'ui', file: './ui/U03-empty' },
   { group: 'consistency', file: './consistency/C01-categories' },
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },
@@ -106,6 +109,10 @@ function lintPorts() {
   const needServer = SERVER_SUITES.filter(wanted).length > 0;
   if (needServer) {
     await ensureFixture();
+    // Nhóm ui chạy trên trang thật nên cần một bản dựng trong thư mục scratch.
+    if (SERVER_SUITES.filter(wanted).some((x) => x.group === 'ui')) {
+      await require('./rig/build').ensureDist();
+    }
     await server.start();
     await guard.assertIsolated({ expectFixture: false });
 
@@ -125,8 +132,12 @@ function lintPorts() {
     fingerprintAfter: after.sha256,
   });
 
-  const pct = cov.total ? ((cov.covered / cov.total) * 100).toFixed(1) : '0.0';
-  console.log(`  📊 Độ phủ         ${cov.covered}/${cov.total} (${pct}%)`);
+  // Mẫu số bỏ các mục được miễn có lý do — chúng không test được, không phải
+  // chưa test. Cộng lại vẫn phải đủ tổng, nếu không là ma trận đã lỗi thời.
+  const testable = cov.total - cov.waived;
+  const pct = testable ? ((cov.covered / testable) * 100).toFixed(1) : '0.0';
+  console.log(`  📊 Độ phủ         ${cov.covered}/${testable} (${pct}%) trên số tính năng test được`);
+  console.log(`     ${cov.waived} mục được miễn có lý do · tổng ${cov.total}`);
   if (cov.uncovered.length) {
     console.log(`  ⚠️  Chưa phủ       ${cov.uncovered.length} tính năng`);
   }

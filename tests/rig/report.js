@@ -92,13 +92,19 @@ function writeAll(state, counts, matrix, meta = {}) {
 }
 
 function writeCoverageMd(cov, counts, meta) {
-  const pct = cov.total ? ((cov.covered / cov.total) * 100).toFixed(1) : '0.0';
+  const testable = cov.total - cov.waived;
+  const pct = testable ? ((cov.covered / testable) * 100).toFixed(1) : '0.0';
   const L = [];
   L.push('# Độ phủ kiểm thử');
   L.push('');
   L.push(`Sinh lúc ${ts()} · chế độ \`${meta.mode}\``);
   L.push('');
-  L.push(`## Độ phủ: ${cov.covered}/${cov.total} (${pct}%)`);
+  L.push(`## Độ phủ: ${cov.covered}/${testable} (${pct}%)`);
+  L.push('');
+  L.push(
+    `Tổng ${cov.total} tính năng trích từ mã nguồn, trong đó ${cov.waived} được miễn ` +
+      `có ghi lý do (xem cuối trang). ${cov.uncovered.length} mục chưa có test nào phủ.`
+  );
   L.push('');
   L.push('| Lớp | Số mục trong mã nguồn |');
   L.push('|---|---:|');
@@ -121,8 +127,15 @@ function writeCoverageMd(cov, counts, meta) {
     L.push('');
   }
 
-  if (cov.waived.length) {
-    L.push(`## Được miễn có lý do (${cov.waived})`);
+  const waivedRows = cov.rows.filter((r) => r.waiver);
+  if (waivedRows.length) {
+    L.push(`## Được miễn có lý do (${waivedRows.length})`);
+    L.push('');
+    L.push('| Tính năng | Lý do |');
+    L.push('|---|---|');
+    for (const r of waivedRows.sort((a, b) => a.id.localeCompare(b.id))) {
+      L.push(`| \`${r.id}\` | ${r.waiver} |`);
+    }
     L.push('');
   }
 
@@ -180,11 +193,14 @@ function writeAuditMd(state, counts, cov, meta) {
   L.push(`| Test hỏng ngoài dự kiến | ${counts.fail} |`);
   if (counts.fixed) L.push(`| Lỗi đã được sửa | ${counts.fixed} |`);
   L.push(`| Tổng số test | ${counts.total} |`);
+  const testable = cov.total - cov.waived;
   L.push(
-    `| Độ phủ tính năng | ${cov.covered}/${cov.total} (${
-      cov.total ? ((cov.covered / cov.total) * 100).toFixed(1) : 0
+    `| Độ phủ tính năng | ${cov.covered}/${testable} (${
+      testable ? ((cov.covered / testable) * 100).toFixed(1) : 0
     }%) |`
   );
+  L.push(`| Miễn có lý do | ${cov.waived} |`);
+  L.push(`| Chưa có test nào phủ | ${cov.uncovered.length} |`);
   L.push('');
 
   if (findings.length) {
