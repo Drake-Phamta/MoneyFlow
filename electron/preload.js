@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   portfolio: {
     get: () => ipcRenderer.invoke('portfolio:get'),
+    history: () => ipcRenderer.invoke('portfolio:history'),
     summary: () => ipcRenderer.invoke('portfolio:summary'),
   },
   activity: {

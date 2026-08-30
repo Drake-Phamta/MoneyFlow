@@ -46,6 +46,8 @@ const SERVER_SUITES = [
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },
   { group: 'consistency', file: './consistency/C04-integrity' },
+  { group: 'projection', file: './projection/J01-engine' },
+  { group: 'projection', file: './projection/J02-history' },
   { group: 'content', file: './content/T01-numbers' },
   { group: 'content', file: './content/T02-checklist-labels' },
   { group: 'content', file: './content/T03-generated' },

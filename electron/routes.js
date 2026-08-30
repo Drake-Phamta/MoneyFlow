@@ -222,6 +222,11 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: errText(e) }); }
   });
 
+  app.get('/api/portfolio/history', (req, res) => {
+    try { res.json(db.getPortfolioHistory()); }
+    catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
   // ===== ACTIVITY =====
   app.get('/api/activity', (req, res) => {
     try { res.json(db.getActivityLog(parseInt(req.query.limit) || 20)); }

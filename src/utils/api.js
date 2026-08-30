@@ -77,6 +77,7 @@ export const api = {
   portfolio: {
     get: () => get('/portfolio'),
     summary: () => get('/portfolio/summary'),
+    history: () => get('/portfolio/history'),
   },
   activity: {
     get: (limit) => get(`/activity?limit=${limit || 20}`),

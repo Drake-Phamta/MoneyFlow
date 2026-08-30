@@ -1219,7 +1219,49 @@ class FinancialDB {
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
       [logDate, 'MONTHLY_ENTRY',
        `Nhập liệu ${data.month_label || ''}: ${formatVND(data.total_inflow)}`, data.total_inflow || 0]);
+
+    this.snapshotPortfolio(data.month_index);
     this.save();
+  }
+
+  /**
+   * Chụp lại danh mục tại thời điểm chốt một tháng.
+   *
+   * Bảng portfolio_snapshots có từ đầu nhưng chưa ai ghi vào, nên app không có
+   * cách nào biết tài sản đã đi qua những mốc nào — mọi biểu đồ "tăng trưởng
+   * theo thời gian" đều phải suy ngược từ giao dịch, mà giá quá khứ từng ngày
+   * chốt tháng thì suy ngược không chính xác được. Ghi từ bây giờ.
+   *
+   * Cố ý KHÔNG bù ngược các tháng cũ: giá đóng cửa của những ngày đó không còn
+   * lấy lại được, bịa ra một con số trông có vẻ đúng còn tệ hơn là để trống.
+   */
+  snapshotPortfolio(monthIndex) {
+    if (!monthIndex) return;
+    // Bảng không có ràng buộc UNIQUE nên INSERT OR REPLACE không gộp dòng —
+    // phải xoá trước, nếu không sửa lại một tháng là nhân đôi số dòng.
+    this.run('DELETE FROM portfolio_snapshots WHERE month_index = ?', [monthIndex]);
+
+    const portfolio = this.getPortfolio();
+    for (const item of portfolio) {
+      this.run(
+        'INSERT INTO portfolio_snapshots (month_index, asset_type_id, quantity, avg_cost, market_value) VALUES (?, ?, ?, ?, ?)',
+        [monthIndex, item.asset_type_id, item.total_quantity || 0, item.avg_cost || 0, item.current_value || 0]
+      );
+    }
+  }
+
+  /** Lịch sử danh mục theo tháng, để vẽ đường tăng trưởng thật. */
+  getPortfolioHistory() {
+    return this.query(`
+      SELECT ps.month_index, me.month_label,
+             SUM(ps.market_value) as market_value,
+             SUM(ps.quantity * ps.avg_cost) as invested,
+             COUNT(*) as assets
+      FROM portfolio_snapshots ps
+      LEFT JOIN monthly_entries me ON me.month_index = ps.month_index
+      GROUP BY ps.month_index
+      ORDER BY ps.month_index
+    `);
   }
 
   // ===== ALLOCATIONS =====
