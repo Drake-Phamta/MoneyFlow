@@ -126,7 +126,7 @@ export default function CashFlowPage() {
         {!showWizard && (
           <div className="card text-center py-16">
             <div className="w-20 h-20 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-6">
-              <TrendUp size={40} className="text-primary-500" weight="duotone" />
+              <TrendUp size={40} className="text-primary-600" weight="duotone" />
             </div>
             <h2 className="text-xl font-bold text-slate-800 mb-2">Bắt đầu theo dõi dòng tiền</h2>
             <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
@@ -206,7 +206,7 @@ export default function CashFlowPage() {
               Mục tiêu ≥ {savingsTargetPct}%
             </span>
             {streak >= 3 ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-gradient-to-r from-amber-100 to-amber-50 text-amber-700">
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
                 {streak} tháng liên tục 🔥
               </span>
             ) : streak > 0 ? (
@@ -253,16 +253,16 @@ export default function CashFlowPage() {
               <BarChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor="#0F5D4A" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#0F5D4A" stopOpacity={0.4}/>
                   </linearGradient>
                   <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f87171" stopOpacity={0.9}/>
                     <stop offset="95%" stopColor="#f87171" stopOpacity={0.4}/>
                   </linearGradient>
                   <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                    <stop offset="5%" stopColor="#3A6B8A" stopOpacity={0.9}/>
+                    <stop offset="95%" stopColor="#3A6B8A" stopOpacity={0.4}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
@@ -289,16 +289,16 @@ export default function CashFlowPage() {
               <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="#3A6B8A" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3A6B8A" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                 <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickMargin={10} />
                 <YAxis tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={v => `${v}%`} width={40} domain={[dataMin => Math.min(0, dataMin), 100]} />
                 <Tooltip formatter={(v, name) => [`${typeof v === 'number' ? v.toFixed(1) : v}%`, name]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="target" stroke="#10b981" strokeWidth={2} strokeDasharray="5 5" dot={cashFlowData.length === 1 ? { r: 4, fill: '#10b981', stroke: 'none' } : false} activeDot={false} name="Mục tiêu" />
-                <Area type="monotone" dataKey="savingsRate" fill="url(#colorSavings)" stroke="#3b82f6" strokeWidth={3} dot={cashFlowData.length === 1 ? { r: 4, fill: '#3b82f6', stroke: 'none' } : false} activeDot={{ r: 4, fill: '#3b82f6', stroke: 'none' }} name="Thực tế" isAnimationActive={true} />
+                <Line type="monotone" dataKey="target" stroke="#0F5D4A" strokeWidth={2} strokeDasharray="5 5" dot={cashFlowData.length === 1 ? { r: 4, fill: '#0F5D4A', stroke: 'none' } : false} activeDot={false} name="Mục tiêu" />
+                <Area type="monotone" dataKey="savingsRate" fill="url(#colorSavings)" stroke="#3A6B8A" strokeWidth={3} dot={cashFlowData.length === 1 ? { r: 4, fill: '#3A6B8A', stroke: 'none' } : false} activeDot={{ r: 4, fill: '#3A6B8A', stroke: 'none' }} name="Thực tế" isAnimationActive={true} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
@@ -333,7 +333,7 @@ export default function CashFlowPage() {
                       <div className="flex items-center justify-between text-[11px]">
                         <span className="text-primary-600">{formatVND(have)} / {formatVND(goal)}</span>
                         {!reached && monthsToGoal && (
-                          <span className="text-primary-500">còn {formatVND(gap)} · ~{monthsToGoal} tháng</span>
+                          <span className="text-primary-600">còn {formatVND(gap)} · ~{monthsToGoal} tháng</span>
                         )}
                         {reached && <span className="text-emerald-600 font-medium">Đã đạt</span>}
                       </div>

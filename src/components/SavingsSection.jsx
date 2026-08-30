@@ -336,7 +336,7 @@ export default function SavingsSection() {
     <div className="space-y-6">
       {/* ===== Dòng tiền Tiết kiệm — split by bucket ===== */}
       {overview && (
-        <div className="card bg-gradient-to-r from-blue-50 to-violet-50 border-blue-200">
+        <div className="card bg-primary-50 border-primary-200">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Dòng tiền Tiết kiệm</h3>
 
           {/* Visual flow overview (3 cards layout) */}
@@ -352,7 +352,7 @@ export default function SavingsSection() {
             <div className="card bg-white/70 border-blue-100 p-4">
               <div className="flex items-center justify-between mb-3 pb-2 border-b border-blue-50">
                 <div className="flex items-center gap-2">
-                  <AppIcon name="wallet" className="text-blue-500" size={18} />
+                  <AppIcon name="wallet" className="text-blue-600" size={18} />
                   <div>
                     <p className="text-sm font-semibold text-slate-700">Quỹ Dự phòng</p>
                     <p className="text-[10px] text-slate-400">Sổ không kỳ hạn</p>
@@ -385,7 +385,7 @@ export default function SavingsSection() {
               <div className="h-1.5 bg-blue-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{
                   width: `${duPhongAllocated > 0 ? Math.min((duPhongInSavings / duPhongAllocated) * 100, 100) : 0}%`,
-                  background: duPhongInSavings >= duPhongAllocated ? '#10b981' : '#3b82f6',
+                  background: duPhongInSavings >= duPhongAllocated ? '#0F5D4A' : '#3A6B8A',
                 }} />
               </div>
               {availableForDuPhong > 0 && (
@@ -432,7 +432,7 @@ export default function SavingsSection() {
               <div className="h-1.5 bg-violet-100 rounded-full overflow-hidden">
                 <div className="h-full rounded-full transition-all" style={{
                   width: `${tktpAllocated > 0 ? Math.min((tktpInSavings / tktpAllocated) * 100, 100) : 0}%`,
-                  background: tktpInSavings >= tktpAllocated ? '#10b981' : '#8b5cf6',
+                  background: tktpInSavings >= tktpAllocated ? '#0F5D4A' : '#67558F',
                 }} />
               </div>
               {availableForTKTP > 0 && (
@@ -506,7 +506,7 @@ export default function SavingsSection() {
           </div>
 
           {/* Gold Tracker — dùng 15% Vàng allocation */}
-          <div className="card bg-gradient-to-br from-amber-50 to-yellow-50 border-amber-200">
+          <div className="card bg-amber-50 border-amber-200">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600"><Diamond size={18} weight="regular" /></div>
               <div className="flex-1">
@@ -523,7 +523,7 @@ export default function SavingsSection() {
               </p>
             )}
             <div className="mt-2 h-2 bg-amber-200 rounded-full overflow-hidden">
-              <div className="h-full rounded-full transition-all" style={{ width: `${goldProgress}%`, background: canBuyGold ? '#10b981' : '#f59e0b' }} />
+              <div className="h-full rounded-full transition-all" style={{ width: `${goldProgress}%`, background: canBuyGold ? '#0F5D4A' : '#B06D22' }} />
             </div>
             <div className="flex justify-between mt-1">
               <span className="text-[10px] text-amber-600">{goldProgress.toFixed(0)}%</span>
@@ -536,7 +536,7 @@ export default function SavingsSection() {
             {canBuyGold && (
               <button
                 onClick={() => setShowGoldBuyModal(true)}
-                className="mt-3 w-full py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white transition-colors"
+                className="mt-3 w-full py-1.5 rounded-lg text-xs font-semibold bg-warning hover:bg-warning text-oncolor transition-colors"
               >
                 🥇 Ghi nhận mua 1 chỉ vàng SJC
               </button>
@@ -617,7 +617,7 @@ export default function SavingsSection() {
                   const tktpCat = categories.find(c => c.name.includes('Tiết kiệm'));
                   setSavingsForm(f => ({ ...f, principal: availableForTKTP.toString(), type: 'term', category_id: tktpCat?.id?.toString() || '' }));
                   setAddingSavings(true);
-                }} className="btn-primary text-sm shrink-0" style={{ background: '#8b5cf6' }}>Tạo sổ TKTP</button>
+                }} className="btn-primary text-sm shrink-0" style={{ background: '#67558F' }}>Tạo sổ TKTP</button>
               </div>
             )}
           </div>
@@ -922,7 +922,7 @@ export default function SavingsSection() {
                         ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-3 text-center">
-                        <span className={`text-xs ${a.type === 'liquid' ? 'text-blue-500' : 'text-slate-500'}`}>
+                        <span className={`text-xs ${a.type === 'liquid' ? 'text-blue-600' : 'text-slate-500'}`}>
                           {a.type === 'liquid' ? 'Không kỳ hạn' : `${a.term_months} tháng`}
                         </span>
                       </td>
@@ -942,7 +942,7 @@ export default function SavingsSection() {
                       <td className="py-3 px-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
-                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
+                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
                           <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition">Xóa</button>
                         </div>
                       </td>
@@ -1079,7 +1079,7 @@ export default function SavingsSection() {
               <button
                 onClick={handleBuyGold}
                 disabled={goldBuying}
-                className="flex-1 py-2 rounded-xl text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white transition disabled:opacity-60"
+                className="flex-1 py-2 rounded-xl text-sm font-bold bg-warning hover:bg-warning text-oncolor transition disabled:opacity-60"
               >
                 {goldBuying ? 'Đang lưu...' : '✓ Xác nhận mua'}
               </button>

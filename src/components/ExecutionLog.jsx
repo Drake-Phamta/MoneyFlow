@@ -235,7 +235,7 @@ export default function ExecutionLog({ embedded }) {
               className="h-full rounded-full transition-all"
               style={{
                 width: `${Math.min((totalInvested / investmentAllocated) * 100, 100)}%`,
-                background: totalInvested >= investmentAllocated ? '#10b981' : '#3b82f6',
+                background: totalInvested >= investmentAllocated ? '#0F5D4A' : '#3A6B8A',
               }}
             />
           </div>
@@ -250,7 +250,7 @@ export default function ExecutionLog({ embedded }) {
         <div className={`card animate-fade-in ${discrepancy > 0 ? 'border-amber-200 bg-amber-50/50' : 'border-blue-200 bg-blue-50/50'}`}>
           <div className="flex items-start gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${discrepancy > 0 ? 'bg-amber-100' : 'bg-blue-100'}`}>
-              <Warning size={16} className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-500'} weight="fill" />
+              <Warning size={16} className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-600'} weight="fill" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-700">
@@ -259,7 +259,7 @@ export default function ExecutionLog({ embedded }) {
               <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
                 <span>Phân bổ: <strong className="text-slate-700">{formatVND(investmentAllocated)}</strong></span>
                 <span>Đã đầu tư: <strong className="text-slate-700">{formatVND(totalInvested)}</strong></span>
-                <span className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-500'}>
+                <span className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-600'}>
                   Còn lại: <strong>{formatVND(Math.abs(discrepancy))}</strong>
                 </span>
               </div>
@@ -526,7 +526,7 @@ export default function ExecutionLog({ embedded }) {
                     <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors last:border-b-0">
                       <td className="px-4 py-3 text-sm font-semibold text-slate-700">{log.month_label}</td>
                       <td className="px-4 py-3 text-sm text-slate-600 truncate" title={log.category_name}>{log.category_name || '—'}</td>
-                      <td className={`px-4 py-3 text-sm text-right font-semibold whitespace-nowrap ${log.amount > 0 ? 'text-amber-600' : 'text-blue-500'}`}>
+                      <td className={`px-4 py-3 text-sm text-right font-semibold whitespace-nowrap ${log.amount > 0 ? 'text-amber-600' : 'text-blue-600'}`}>
                         {log.amount > 0 ? '+' : ''}{formatVND(log.amount)}
                       </td>
                       <td className="px-4 py-3 text-sm text-slate-500 truncate" title={log.reason}>{log.reason || '—'}</td>

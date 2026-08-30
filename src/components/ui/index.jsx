@@ -172,7 +172,7 @@ export function Tabs({ tabs, value, onChange, className = '' }) {
             onClick={() => onChange(t.id)}
             data-testid={`tab-${t.id}`}
             className={`px-4 py-2 rounded-input text-sm font-medium transition ${
-              active ? 'bg-primary-600 text-white' : 'text-slate-600 hover:bg-slate-100'
+              active ? 'bg-primary-600 text-oncolor' : 'text-slate-600 hover:bg-slate-100'
             }`}
           >
             {t.label}

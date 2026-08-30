@@ -396,7 +396,7 @@ export default function Settings() {
               onClick={() => setTotalMonths(p.months)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 totalMonths === p.months
-                  ? 'bg-primary-600 text-white shadow-sm'
+                  ? 'bg-primary-600 text-oncolor shadow-sm'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -461,7 +461,7 @@ export default function Settings() {
               <div key={p.id} className={`p-4 rounded-xl border ${p.is_active ? 'border-primary-300 bg-primary-50' : 'border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className={`badge ${p.is_active ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600'}`}>{p.sort_order}</span>
+                    <span className={`badge ${p.is_active ? 'bg-primary-600 text-oncolor' : 'bg-slate-100 text-slate-600'}`}>{p.sort_order}</span>
                     <h4 className="text-sm font-bold text-slate-800">{p.name}</h4>
                     {p.is_active === 1 && <span className="badge-success">Hiện tại</span>}
                   </div>
@@ -496,7 +496,7 @@ export default function Settings() {
         <div className="grid grid-cols-2 gap-3">
           {categories.map(c => (
             <div key={c.id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-200">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white" style={{ background: c.color }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-oncolor" style={{ background: c.color }}>
                 <AppIcon emoji={c.icon} size={20} color="white" />
               </div>
               <div>
@@ -551,7 +551,7 @@ export default function Settings() {
             const count = tab.value === 'all' ? childAssets.length : childAssets.filter(a => a.asset_class === tab.value).length;
             return (
               <button key={tab.value} onClick={() => { setAssetFilter(tab.value); setSelectedAssets(new Set()); }}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition ${assetFilter === tab.value ? 'bg-primary-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition ${assetFilter === tab.value ? 'bg-primary-600 text-oncolor' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
                 {tab.label} ({count})
               </button>
             );

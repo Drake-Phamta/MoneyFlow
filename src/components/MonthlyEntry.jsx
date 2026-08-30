@@ -518,7 +518,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                         )}
                       </div>
                       {/* Hover hint tooltip */}
-                      <div className="hidden group-hover:block absolute left-10 -bottom-1 translate-y-full z-10 px-3 py-1.5 bg-slate-800 text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap max-w-[280px] truncate pointer-events-none">
+                      <div className="hidden group-hover:block absolute left-10 -bottom-1 translate-y-full z-10 px-3 py-1.5 bg-slate-800 text-oncolor text-[11px] rounded-lg shadow-lg whitespace-nowrap max-w-[280px] truncate pointer-events-none">
                         {actionFor(a.category_name, { goldUnitPrice: snap?.prices?.goldUnit })}
                       </div>
                     </div>

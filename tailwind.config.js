@@ -129,20 +129,21 @@ export default {
         'white': 'rgb(var(--c-white) / <alpha-value>)',
         'black': 'rgb(var(--c-black) / <alpha-value>)',
         'page': 'rgb(var(--c-page) / <alpha-value>)',
-        'surface': 'rgb(var(--c-surface) / <alpha-value>)'
+        'surface': 'rgb(var(--c-surface) / <alpha-value>)',
+        'oncolor': 'rgb(var(--c-oncolor) / <alpha-value>)',
+        'accent': 'rgb(var(--c-accent) / <alpha-value>)',
+        'success': 'rgb(var(--c-success) / <alpha-value>)',
+        'warning': 'rgb(var(--c-warning) / <alpha-value>)',
+        'danger': 'rgb(var(--c-danger) / <alpha-value>)'
 },
       fontFamily: {
-        sans: ['Inter', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+        sans: ['Be Vietnam Pro', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Newsreader', 'Georgia', 'serif'],
       },
       fontSize: {
-        'fs-1': 'var(--fs-1)',
-        'fs-2': 'var(--fs-2)',
-        'fs-3': 'var(--fs-3)',
-        'fs-4': 'var(--fs-4)',
-        'fs-5': 'var(--fs-5)',
-        'fs-6': 'var(--fs-6)',
-        'fs-7': 'var(--fs-7)',
-        'fs-8': 'var(--fs-8)',
+        'fs-1': 'var(--fs-1)', 'fs-2': 'var(--fs-2)', 'fs-3': 'var(--fs-3)',
+        'fs-4': 'var(--fs-4)', 'fs-5': 'var(--fs-5)', 'fs-6': 'var(--fs-6)',
+        'fs-7': 'var(--fs-7)', 'fs-8': 'var(--fs-8)',
       },
       borderRadius: {
         input: 'var(--r-input)',

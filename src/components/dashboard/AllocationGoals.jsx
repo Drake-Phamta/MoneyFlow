@@ -4,7 +4,9 @@ import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AppIcon, { CheckCircle } from '../../utils/iconMap';
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+// Dự phòng khi một danh mục chưa có màu riêng. Cùng bảng màu giấy với
+// categories.color, xem migrateToV9.
+const COLORS = ['#0F5D4A', '#3A6B8A', '#B06D22', '#A93E27', '#67558F'];
 
 export default function AllocationGoals() {
   const [loading, setLoading] = useState(true);
@@ -307,7 +309,7 @@ export default function AllocationGoals() {
               <div key={m.name || i} className={`p-3 rounded-xl border ${reached ? 'bg-emerald-50 border-emerald-200' : 'border-slate-200'}`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-3">
-                    <span className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${reached ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                    <span className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${reached ? 'bg-emerald-500 text-oncolor' : 'bg-slate-100 text-slate-500'}`}>
                       {reached ? <CheckCircle size={16} weight="fill" /> : m.label}
                     </span>
                     <div>
@@ -327,7 +329,7 @@ export default function AllocationGoals() {
                         const duPhongRatio = phaseAllocs.find(a => a.category_name === 'Dự Phòng')?.ratio || 0.7;
                         const monthlyRate = phaseNum === 1 ? avgMonthlySavings * duPhongRatio : avgMonthlySavings;
                         const months = monthlyRate > 0 ? Math.ceil(gap / monthlyRate) : 999;
-                        return <p className="text-[10px] text-blue-500">Đạt trong ~{months} tháng</p>;
+                        return <p className="text-[10px] text-blue-600">Đạt trong ~{months} tháng</p>;
                       })()}
                     </div>
                   )}
@@ -341,7 +343,7 @@ export default function AllocationGoals() {
                   <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all duration-1000"
-                      style={{ width: `${pct}%`, background: reached ? '#10b981' : '#3b82f6' }}
+                      style={{ width: `${pct}%`, background: reached ? '#0F5D4A' : '#3A6B8A' }}
                     />
                   </div>
                 )}
@@ -395,7 +397,7 @@ export default function AllocationGoals() {
                       className="h-full rounded-full"
                       style={{
                         width: `${pct}%`,
-                        background: pct > 40 ? '#ef4444' : pct > 25 ? '#f59e0b' : '#10b981',
+                        background: pct > 40 ? '#A93E27' : pct > 25 ? '#B06D22' : '#0F5D4A',
                       }}
                     />
                   </div>

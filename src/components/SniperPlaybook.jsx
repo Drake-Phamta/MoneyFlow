@@ -214,7 +214,7 @@ export default function SniperPlaybook({ embedded }) {
           {unreadAlerts.length > 0 && (
             <button onClick={() => setShowAlerts(!showAlerts)} className="relative btn-ghost text-sm">
               <Bell size={18} />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{unreadAlerts.length}</span>
+              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{unreadAlerts.length}</span>
             </button>
           )}
           <button onClick={handleRefreshPrices} disabled={refreshing} className="btn-ghost text-sm">
@@ -362,7 +362,7 @@ export default function SniperPlaybook({ embedded }) {
               <button
                 key={tab.value}
                 onClick={() => setCatalogFilter(tab.value)}
-                className={`text-xs px-3 py-1.5 rounded-lg transition ${catalogFilter === tab.value ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 border border-slate-200 hover:border-primary-300'}`}
+                className={`text-xs px-3 py-1.5 rounded-lg transition ${catalogFilter === tab.value ? 'bg-primary-600 text-oncolor' : 'bg-white text-slate-600 border border-slate-200 hover:border-primary-300'}`}
               >
                 {tab.label}
               </button>
@@ -571,13 +571,13 @@ export default function SniperPlaybook({ embedded }) {
           toast.type === 'success' ? 'bg-emerald-500' :
           toast.type === 'warning' ? 'bg-amber-500' :
           toast.type === 'info' ? 'bg-slate-500' : 'bg-slate-700'
-        } text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
+        } text-oncolor px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
           {toast.type === 'success' && <CheckCircle size={20} weight="fill" />}
           {toast.type === 'error' && <XCircle size={20} weight="fill" />}
           {toast.type === 'warning' && <Warning size={20} weight="fill" />}
           {toast.type === 'info' && <Info size={20} weight="fill" />}
           <span className="text-sm font-medium">{toast.message}</span>
-          <button onClick={() => setToast(null)} className="text-white/70 hover:text-white">
+          <button onClick={() => setToast(null)} className="text-oncolor/70 hover:text-oncolor">
             <X size={18} />
           </button>
         </div>

@@ -1,353 +1,383 @@
 /**
- * tokens.css — Bảng màu ngữ nghĩa. Nền sáng và nền tối là CÙNG một bộ tên,
+ * tokens.css — Bảng màu và thang chữ. Nền sáng và nền tối là CÙNG một bộ tên,
  * chỉ khác giá trị.
+ *
+ * Hướng "Sổ cái": nền giấy ấm thay cho xám lạnh, nhấn xanh rêu thay cho xanh
+ * dương. Phân cấp dựng bằng cỡ chữ và đường kẻ mảnh, không bằng đổ bóng.
  *
  * Vì sao đảo cả thang màu thay vì rải `dark:` khắp JSX: app có hơn 800 chỗ
  * dùng `text-slate-*` và `bg-slate-*`. Thêm một biến thể tối cho từng chỗ là
- * 800 cơ hội bỏ sót, và mỗi màn hình mới lại là một cơ hội nữa. Đổi ở gốc thì
- * mọi thứ đã viết và sẽ viết đều theo.
+ * 800 cơ hội bỏ sót, và mỗi màn hình mới lại là một cơ hội nữa.
  *
  * Quy ước giữ nguyên ở cả hai nền: số nhỏ là nền, số lớn là chữ.
  */
 
+@import './fonts.css';
+
 :root {
   color-scheme: light;
-  --c-slate-50: 248 250 252;
-  --c-slate-100: 241 245 249;
-  --c-slate-200: 226 232 240;
-  --c-slate-300: 135 148 168;
-  --c-slate-400: 103 118 137;
-  --c-slate-500: 90 103 121;
-  --c-slate-600: 71 85 105;
-  --c-slate-700: 51 65 85;
-  --c-slate-800: 30 41 59;
-  --c-slate-900: 15 23 42;
-  --c-primary-50: 239 246 255;
-  --c-primary-100: 219 234 254;
-  --c-primary-200: 191 219 254;
-  --c-primary-300: 147 197 253;
-  --c-primary-400: 96 165 250;
-  --c-primary-500: 59 130 246;
-  --c-primary-600: 37 99 235;
-  --c-primary-700: 29 78 216;
-  --c-primary-800: 30 64 175;
-  --c-primary-900: 30 58 138;
-  --c-blue-50: 239 246 255;
-  --c-blue-100: 219 234 254;
-  --c-blue-200: 191 219 254;
-  --c-blue-300: 147 197 253;
-  --c-blue-400: 96 165 250;
-  --c-blue-500: 59 130 246;
-  --c-blue-600: 37 99 235;
-  --c-blue-700: 29 78 216;
-  --c-blue-800: 30 64 175;
-  --c-blue-900: 30 58 138;
-  --c-emerald-50: 236 253 245;
-  --c-emerald-100: 209 250 229;
-  --c-emerald-200: 167 243 208;
-  --c-emerald-300: 110 231 183;
-  --c-emerald-400: 52 211 153;
-  --c-emerald-500: 10 143 104;
-  --c-emerald-600: 4 120 87;
-  --c-emerald-700: 3 98 73;
-  --c-emerald-800: 6 95 70;
-  --c-emerald-900: 6 78 59;
-  --c-amber-50: 255 251 235;
-  --c-amber-100: 254 243 199;
-  --c-amber-200: 253 230 138;
-  --c-amber-300: 252 211 77;
-  --c-amber-400: 251 191 36;
-  --c-amber-500: 245 158 11;
-  --c-amber-600: 217 119 6;
-  --c-amber-700: 180 83 9;
-  --c-amber-800: 146 64 14;
-  --c-amber-900: 120 53 15;
-  --c-red-50: 254 242 242;
-  --c-red-100: 254 226 226;
-  --c-red-200: 254 202 202;
-  --c-red-300: 252 165 165;
-  --c-red-400: 248 113 113;
-  --c-red-500: 211 43 43;
-  --c-red-600: 185 28 28;
-  --c-red-700: 157 22 22;
-  --c-red-800: 153 27 27;
-  --c-red-900: 127 29 29;
-  --c-violet-50: 245 243 255;
-  --c-violet-100: 237 233 254;
-  --c-violet-200: 221 214 254;
-  --c-violet-300: 196 181 253;
-  --c-violet-400: 167 139 250;
-  --c-violet-500: 139 92 246;
-  --c-violet-600: 124 58 237;
-  --c-violet-700: 109 40 217;
-  --c-violet-800: 91 33 182;
-  --c-violet-900: 76 29 149;
-  --c-orange-50: 255 247 237;
-  --c-orange-100: 255 237 213;
-  --c-orange-200: 254 215 170;
-  --c-orange-300: 253 186 116;
-  --c-orange-400: 251 146 60;
-  --c-orange-500: 249 115 22;
-  --c-orange-600: 234 88 12;
-  --c-orange-700: 194 65 12;
-  --c-orange-800: 154 52 18;
-  --c-orange-900: 124 45 18;
-  --c-rose-50: 255 241 242;
-  --c-rose-100: 255 228 230;
-  --c-rose-200: 254 205 211;
-  --c-rose-300: 253 164 175;
-  --c-rose-400: 251 113 133;
-  --c-rose-500: 244 63 94;
-  --c-rose-600: 225 29 72;
-  --c-rose-700: 190 18 60;
-  --c-rose-800: 159 18 57;
-  --c-rose-900: 136 19 55;
-  --c-yellow-50: 254 252 232;
-  --c-yellow-100: 254 249 195;
-  --c-yellow-200: 254 240 138;
-  --c-yellow-300: 253 224 71;
-  --c-yellow-400: 250 204 21;
-  --c-yellow-500: 234 179 8;
-  --c-yellow-600: 202 138 4;
-  --c-yellow-700: 161 98 7;
-  --c-yellow-800: 133 77 14;
-  --c-yellow-900: 113 63 18;
+  --c-slate-50: 250 249 246;
+  --c-slate-100: 242 239 232;
+  --c-slate-200: 227 223 215;
+  --c-slate-300: 140 134 126;
+  --c-slate-400: 107 102 96;
+  --c-slate-500: 90 85 79;
+  --c-slate-600: 74 69 62;
+  --c-slate-700: 58 54 48;
+  --c-slate-800: 46 43 37;
+  --c-slate-900: 26 24 21;
+  --c-primary-50: 237 243 240;
+  --c-primary-100: 214 229 223;
+  --c-primary-200: 175 204 193;
+  --c-primary-300: 127 174 156;
+  --c-primary-400: 78 140 118;
+  --c-primary-500: 42 113 89;
+  --c-primary-600: 15 93 74;
+  --c-primary-700: 12 74 59;
+  --c-primary-800: 9 56 44;
+  --c-primary-900: 6 37 29;
+  --c-blue-50: 237 243 240;
+  --c-blue-100: 214 229 223;
+  --c-blue-200: 175 204 193;
+  --c-blue-300: 127 174 156;
+  --c-blue-400: 78 140 118;
+  --c-blue-500: 42 113 89;
+  --c-blue-600: 15 93 74;
+  --c-blue-700: 12 74 59;
+  --c-blue-800: 9 56 44;
+  --c-blue-900: 6 37 29;
+  --c-emerald-50: 236 245 240;
+  --c-emerald-100: 211 232 222;
+  --c-emerald-200: 169 210 193;
+  --c-emerald-300: 116 180 155;
+  --c-emerald-400: 63 147 119;
+  --c-emerald-500: 30 122 94;
+  --c-emerald-600: 15 93 74;
+  --c-emerald-700: 11 74 59;
+  --c-emerald-800: 8 56 45;
+  --c-emerald-900: 6 42 34;
+  --c-amber-50: 251 244 233;
+  --c-amber-100: 245 230 206;
+  --c-amber-200: 235 203 156;
+  --c-amber-300: 223 172 104;
+  --c-amber-400: 206 139 60;
+  --c-amber-500: 176 109 34;
+  --c-amber-600: 142 85 24;
+  --c-amber-700: 111 65 19;
+  --c-amber-800: 84 49 15;
+  --c-amber-900: 61 36 11;
+  --c-red-50: 251 239 236;
+  --c-red-100: 245 217 210;
+  --c-red-200: 233 176 162;
+  --c-red-300: 216 128 107;
+  --c-red-400: 196 85 60;
+  --c-red-500: 169 62 39;
+  --c-red-600: 138 47 29;
+  --c-red-700: 107 36 22;
+  --c-red-800: 81 27 17;
+  --c-red-900: 59 20 12;
+  --c-violet-50: 243 240 247;
+  --c-violet-100: 226 220 238;
+  --c-violet-200: 198 186 220;
+  --c-violet-300: 164 147 196;
+  --c-violet-400: 130 112 169;
+  --c-violet-500: 103 85 143;
+  --c-violet-600: 81 64 116;
+  --c-violet-700: 62 48 90;
+  --c-violet-800: 45 34 66;
+  --c-violet-900: 31 23 46;
+  --c-orange-50: 252 242 232;
+  --c-orange-100: 246 223 199;
+  --c-orange-200: 235 190 146;
+  --c-orange-300: 220 154 92;
+  --c-orange-400: 200 120 52;
+  --c-orange-500: 168 92 31;
+  --c-orange-600: 135 72 24;
+  --c-orange-700: 104 54 18;
+  --c-orange-800: 78 40 13;
+  --c-orange-900: 57 29 9;
+  --c-rose-50: 251 239 241;
+  --c-rose-100: 244 216 221;
+  --c-rose-200: 231 174 184;
+  --c-rose-300: 213 126 142;
+  --c-rose-400: 191 84 104;
+  --c-rose-500: 163 60 80;
+  --c-rose-600: 133 48 63;
+  --c-rose-700: 103 36 49;
+  --c-rose-800: 78 27 37;
+  --c-rose-900: 56 19 26;
+  --c-yellow-50: 251 246 230;
+  --c-yellow-100: 244 235 196;
+  --c-yellow-200: 232 214 139;
+  --c-yellow-300: 217 188 85;
+  --c-yellow-400: 196 159 44;
+  --c-yellow-500: 165 130 27;
+  --c-yellow-600: 133 103 22;
+  --c-yellow-700: 102 78 17;
+  --c-yellow-800: 76 58 13;
+  --c-yellow-900: 55 42 9;
 
   --c-white: 255 255 255;
-  --c-black: 0 0 0;
-  --c-page: 248 250 252;
+  /* Chữ nằm TRÊN nền màu (nút, huy hiệu, chip). Không đảo theo nền trang —
+     nếu đảo thì chữ trắng trên nút đỏ biến thành chữ đen trên nút đỏ. */
+  --c-oncolor: 250 249 246;
+  --c-black: 26 24 21;
+  --c-page: 250 249 246;
   --c-surface: 255 255 255;
-  --c-shadow: 15 23 42;
+  --c-shadow: 26 24 21;
+  /* Nền của nút và huy hiệu. KHÔNG đảo theo nền trang: thang màu đảo thì
+     bậc 600 ở nền sáng là màu đậm, ở nền tối lại là màu nhạt — chữ trắng trên
+     đó biến thành chữ trắng trên hồng. Bốn màu này giữ nguyên ở cả hai nền và
+     luôn đi cùng `oncolor`. */
+  --c-accent: 15 93 74;
+  --c-success: 15 93 74;
+  --c-warning: 142 85 24;
+  --c-danger: 138 47 29;
 }
 
 [data-theme='dark'] {
   color-scheme: dark;
-  --c-slate-50: 17 23 38;
-  --c-slate-100: 24 32 48;
-  --c-slate-200: 34 44 62;
-  --c-slate-300: 61 76 104;
-  --c-slate-400: 124 139 163;
-  --c-slate-500: 157 171 191;
-  --c-slate-600: 184 196 212;
-  --c-slate-700: 204 214 226;
-  --c-slate-800: 228 235 243;
-  --c-slate-900: 244 247 251;
-  --c-primary-50: 19 31 62;
-  --c-primary-100: 21 39 92;
-  --c-primary-200: 23 55 142;
-  --c-primary-300: 37 99 235;
-  --c-primary-400: 59 130 246;
-  --c-primary-500: 96 165 250;
-  --c-primary-600: 147 197 253;
-  --c-primary-700: 191 219 254;
-  --c-primary-800: 219 234 254;
-  --c-primary-900: 239 246 255;
-  --c-blue-50: 19 31 62;
-  --c-blue-100: 21 39 92;
-  --c-blue-200: 23 55 142;
-  --c-blue-300: 37 99 235;
-  --c-blue-400: 59 130 246;
-  --c-blue-500: 96 165 250;
-  --c-blue-600: 147 197 253;
-  --c-blue-700: 191 219 254;
-  --c-blue-800: 219 234 254;
-  --c-blue-900: 239 246 255;
-  --c-emerald-50: 12 37 40;
-  --c-emerald-100: 11 52 48;
-  --c-emerald-200: 8 67 57;
-  --c-emerald-300: 4 120 87;
-  --c-emerald-400: 10 143 104;
-  --c-emerald-500: 52 211 153;
-  --c-emerald-600: 110 231 183;
-  --c-emerald-700: 167 243 208;
-  --c-emerald-800: 209 250 229;
-  --c-emerald-900: 236 253 245;
-  --c-amber-50: 44 30 27;
-  --c-amber-100: 70 39 24;
-  --c-amber-200: 114 58 18;
-  --c-amber-300: 217 119 6;
-  --c-amber-400: 245 158 11;
-  --c-amber-500: 251 191 36;
-  --c-amber-600: 252 211 77;
-  --c-amber-700: 253 230 138;
-  --c-amber-800: 254 243 199;
-  --c-amber-900: 255 251 235;
-  --c-red-50: 46 23 31;
-  --c-red-100: 73 24 30;
-  --c-red-200: 100 22 26;
-  --c-red-300: 185 28 28;
-  --c-red-400: 211 43 43;
-  --c-red-500: 248 113 113;
-  --c-red-600: 252 165 165;
-  --c-red-700: 254 202 202;
-  --c-red-800: 254 226 226;
-  --c-red-900: 254 242 242;
-  --c-violet-50: 32 23 65;
-  --c-violet-100: 47 26 95;
-  --c-violet-200: 71 32 143;
-  --c-violet-300: 124 58 237;
-  --c-violet-400: 139 92 246;
-  --c-violet-500: 167 139 250;
-  --c-violet-600: 196 181 253;
-  --c-violet-700: 221 214 254;
-  --c-violet-800: 237 233 254;
-  --c-violet-900: 245 243 255;
-  --c-orange-50: 46 28 28;
-  --c-orange-100: 73 34 26;
-  --c-orange-200: 122 47 20;
-  --c-orange-300: 234 88 12;
-  --c-orange-400: 249 115 22;
-  --c-orange-500: 251 146 60;
-  --c-orange-600: 253 186 116;
-  --c-orange-700: 254 215 170;
-  --c-orange-800: 255 237 213;
-  --c-orange-900: 255 247 237;
-  --c-rose-50: 49 20 38;
-  --c-rose-100: 75 20 42;
-  --c-rose-200: 120 19 49;
-  --c-rose-300: 225 29 72;
-  --c-rose-400: 244 63 94;
-  --c-rose-500: 251 113 133;
-  --c-rose-600: 253 164 175;
-  --c-rose-700: 254 205 211;
-  --c-rose-800: 255 228 230;
-  --c-rose-900: 255 241 242;
-  --c-yellow-50: 42 33 28;
-  --c-yellow-100: 65 45 24;
-  --c-yellow-200: 103 67 17;
-  --c-yellow-300: 202 138 4;
-  --c-yellow-400: 234 179 8;
-  --c-yellow-500: 250 204 21;
-  --c-yellow-600: 253 224 71;
-  --c-yellow-700: 254 240 138;
-  --c-yellow-800: 254 249 195;
-  --c-yellow-900: 254 252 232;
+  --c-slate-50: 23 21 15;
+  --c-slate-100: 31 29 22;
+  --c-slate-200: 43 40 32;
+  --c-slate-300: 61 57 47;
+  --c-slate-400: 143 136 124;
+  --c-slate-500: 169 162 150;
+  --c-slate-600: 194 188 177;
+  --c-slate-700: 214 209 199;
+  --c-slate-800: 232 228 220;
+  --c-slate-900: 245 242 236;
+  --c-primary-50: 18 25 19;
+  --c-primary-100: 17 36 27;
+  --c-primary-200: 16 53 41;
+  --c-primary-300: 15 93 74;
+  --c-primary-400: 42 113 89;
+  --c-primary-500: 78 140 118;
+  --c-primary-600: 127 174 156;
+  --c-primary-700: 175 204 193;
+  --c-primary-800: 214 229 223;
+  --c-primary-900: 237 243 240;
+  --c-blue-50: 18 25 19;
+  --c-blue-100: 17 36 27;
+  --c-blue-200: 16 53 41;
+  --c-blue-300: 15 93 74;
+  --c-blue-400: 42 113 89;
+  --c-blue-500: 78 140 118;
+  --c-blue-600: 127 174 156;
+  --c-blue-700: 175 204 193;
+  --c-blue-800: 214 229 223;
+  --c-blue-900: 237 243 240;
+  --c-emerald-50: 18 27 20;
+  --c-emerald-100: 17 36 28;
+  --c-emerald-200: 16 53 41;
+  --c-emerald-300: 15 93 74;
+  --c-emerald-400: 30 122 94;
+  --c-emerald-500: 63 147 119;
+  --c-emerald-600: 116 180 155;
+  --c-emerald-700: 169 210 193;
+  --c-emerald-800: 211 232 222;
+  --c-emerald-900: 236 245 240;
+  --c-amber-50: 34 25 14;
+  --c-amber-100: 49 33 15;
+  --c-amber-200: 76 47 17;
+  --c-amber-300: 142 85 24;
+  --c-amber-400: 176 109 34;
+  --c-amber-500: 206 139 60;
+  --c-amber-600: 223 172 104;
+  --c-amber-700: 235 203 156;
+  --c-amber-800: 245 230 206;
+  --c-amber-900: 251 244 233;
+  --c-red-50: 33 21 14;
+  --c-red-100: 47 24 16;
+  --c-red-200: 73 30 19;
+  --c-red-300: 138 47 29;
+  --c-red-400: 169 62 39;
+  --c-red-500: 196 85 60;
+  --c-red-600: 216 128 107;
+  --c-red-700: 233 176 162;
+  --c-red-800: 245 217 210;
+  --c-red-900: 251 239 236;
+  --c-violet-50: 25 22 24;
+  --c-violet-100: 32 26 36;
+  --c-violet-200: 46 37 60;
+  --c-violet-300: 81 64 116;
+  --c-violet-400: 103 85 143;
+  --c-violet-500: 130 112 169;
+  --c-violet-600: 164 147 196;
+  --c-violet-700: 198 186 220;
+  --c-violet-800: 226 220 238;
+  --c-violet-900: 243 240 247;
+  --c-orange-50: 33 23 13;
+  --c-orange-100: 46 29 14;
+  --c-orange-200: 72 41 17;
+  --c-orange-300: 135 72 24;
+  --c-orange-400: 168 92 31;
+  --c-orange-500: 200 120 52;
+  --c-orange-600: 220 154 92;
+  --c-orange-700: 235 190 146;
+  --c-orange-800: 246 223 199;
+  --c-orange-900: 252 242 232;
+  --c-rose-50: 32 20 18;
+  --c-rose-100: 46 24 24;
+  --c-rose-200: 71 30 35;
+  --c-rose-300: 133 48 63;
+  --c-rose-400: 163 60 80;
+  --c-rose-500: 191 84 104;
+  --c-rose-600: 213 126 142;
+  --c-rose-700: 231 174 184;
+  --c-rose-800: 244 216 221;
+  --c-rose-900: 251 239 241;
+  --c-yellow-50: 32 27 13;
+  --c-yellow-100: 45 37 14;
+  --c-yellow-200: 70 55 16;
+  --c-yellow-300: 133 103 22;
+  --c-yellow-400: 165 130 27;
+  --c-yellow-500: 196 159 44;
+  --c-yellow-600: 217 188 85;
+  --c-yellow-700: 232 214 139;
+  --c-yellow-800: 244 235 196;
+  --c-yellow-900: 251 246 230;
 
-  /* Trắng thành mặt phẳng nổi, không phải trắng — nếu không thì mọi thẻ đều
-     chói trên nền tối. */
-  --c-white: 23 30 44;
-  --c-black: 255 255 255;
-  --c-page: 15 21 32;
-  --c-surface: 23 30 44;
+  --c-white: 31 29 22;
+  --c-oncolor: 250 249 246;
+  --c-black: 245 242 236;
+  --c-page: 23 21 15;
+  --c-surface: 31 29 22;
   --c-shadow: 0 0 0;
+  /* Nền của nút và huy hiệu. KHÔNG đảo theo nền trang: thang màu đảo thì
+     bậc 600 ở nền sáng là màu đậm, ở nền tối lại là màu nhạt — chữ trắng trên
+     đó biến thành chữ trắng trên hồng. Bốn màu này giữ nguyên ở cả hai nền và
+     luôn đi cùng `oncolor`. */
+  --c-accent: 15 93 74;
+  --c-success: 15 93 74;
+  --c-warning: 142 85 24;
+  --c-danger: 138 47 29;
 }
 
 /* Người dùng chưa chọn gì thì đi theo hệ điều hành. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
     color-scheme: dark;
-    --c-slate-50: 17 23 38;
-    --c-slate-100: 24 32 48;
-    --c-slate-200: 34 44 62;
-    --c-slate-300: 61 76 104;
-    --c-slate-400: 124 139 163;
-    --c-slate-500: 157 171 191;
-    --c-slate-600: 184 196 212;
-    --c-slate-700: 204 214 226;
-    --c-slate-800: 228 235 243;
-    --c-slate-900: 244 247 251;
-    --c-primary-50: 19 31 62;
-    --c-primary-100: 21 39 92;
-    --c-primary-200: 23 55 142;
-    --c-primary-300: 37 99 235;
-    --c-primary-400: 59 130 246;
-    --c-primary-500: 96 165 250;
-    --c-primary-600: 147 197 253;
-    --c-primary-700: 191 219 254;
-    --c-primary-800: 219 234 254;
-    --c-primary-900: 239 246 255;
-    --c-blue-50: 19 31 62;
-    --c-blue-100: 21 39 92;
-    --c-blue-200: 23 55 142;
-    --c-blue-300: 37 99 235;
-    --c-blue-400: 59 130 246;
-    --c-blue-500: 96 165 250;
-    --c-blue-600: 147 197 253;
-    --c-blue-700: 191 219 254;
-    --c-blue-800: 219 234 254;
-    --c-blue-900: 239 246 255;
-    --c-emerald-50: 12 37 40;
-    --c-emerald-100: 11 52 48;
-    --c-emerald-200: 8 67 57;
-    --c-emerald-300: 4 120 87;
-    --c-emerald-400: 10 143 104;
-    --c-emerald-500: 52 211 153;
-    --c-emerald-600: 110 231 183;
-    --c-emerald-700: 167 243 208;
-    --c-emerald-800: 209 250 229;
-    --c-emerald-900: 236 253 245;
-    --c-amber-50: 44 30 27;
-    --c-amber-100: 70 39 24;
-    --c-amber-200: 114 58 18;
-    --c-amber-300: 217 119 6;
-    --c-amber-400: 245 158 11;
-    --c-amber-500: 251 191 36;
-    --c-amber-600: 252 211 77;
-    --c-amber-700: 253 230 138;
-    --c-amber-800: 254 243 199;
-    --c-amber-900: 255 251 235;
-    --c-red-50: 46 23 31;
-    --c-red-100: 73 24 30;
-    --c-red-200: 100 22 26;
-    --c-red-300: 185 28 28;
-    --c-red-400: 211 43 43;
-    --c-red-500: 248 113 113;
-    --c-red-600: 252 165 165;
-    --c-red-700: 254 202 202;
-    --c-red-800: 254 226 226;
-    --c-red-900: 254 242 242;
-    --c-violet-50: 32 23 65;
-    --c-violet-100: 47 26 95;
-    --c-violet-200: 71 32 143;
-    --c-violet-300: 124 58 237;
-    --c-violet-400: 139 92 246;
-    --c-violet-500: 167 139 250;
-    --c-violet-600: 196 181 253;
-    --c-violet-700: 221 214 254;
-    --c-violet-800: 237 233 254;
-    --c-violet-900: 245 243 255;
-    --c-orange-50: 46 28 28;
-    --c-orange-100: 73 34 26;
-    --c-orange-200: 122 47 20;
-    --c-orange-300: 234 88 12;
-    --c-orange-400: 249 115 22;
-    --c-orange-500: 251 146 60;
-    --c-orange-600: 253 186 116;
-    --c-orange-700: 254 215 170;
-    --c-orange-800: 255 237 213;
-    --c-orange-900: 255 247 237;
-    --c-rose-50: 49 20 38;
-    --c-rose-100: 75 20 42;
-    --c-rose-200: 120 19 49;
-    --c-rose-300: 225 29 72;
-    --c-rose-400: 244 63 94;
-    --c-rose-500: 251 113 133;
-    --c-rose-600: 253 164 175;
-    --c-rose-700: 254 205 211;
-    --c-rose-800: 255 228 230;
-    --c-rose-900: 255 241 242;
-    --c-yellow-50: 42 33 28;
-    --c-yellow-100: 65 45 24;
-    --c-yellow-200: 103 67 17;
-    --c-yellow-300: 202 138 4;
-    --c-yellow-400: 234 179 8;
-    --c-yellow-500: 250 204 21;
-    --c-yellow-600: 253 224 71;
-    --c-yellow-700: 254 240 138;
-    --c-yellow-800: 254 249 195;
-    --c-yellow-900: 254 252 232;
+    --c-slate-50: 23 21 15;
+    --c-slate-100: 31 29 22;
+    --c-slate-200: 43 40 32;
+    --c-slate-300: 61 57 47;
+    --c-slate-400: 143 136 124;
+    --c-slate-500: 169 162 150;
+    --c-slate-600: 194 188 177;
+    --c-slate-700: 214 209 199;
+    --c-slate-800: 232 228 220;
+    --c-slate-900: 245 242 236;
+    --c-primary-50: 18 25 19;
+    --c-primary-100: 17 36 27;
+    --c-primary-200: 16 53 41;
+    --c-primary-300: 15 93 74;
+    --c-primary-400: 42 113 89;
+    --c-primary-500: 78 140 118;
+    --c-primary-600: 127 174 156;
+    --c-primary-700: 175 204 193;
+    --c-primary-800: 214 229 223;
+    --c-primary-900: 237 243 240;
+    --c-blue-50: 18 25 19;
+    --c-blue-100: 17 36 27;
+    --c-blue-200: 16 53 41;
+    --c-blue-300: 15 93 74;
+    --c-blue-400: 42 113 89;
+    --c-blue-500: 78 140 118;
+    --c-blue-600: 127 174 156;
+    --c-blue-700: 175 204 193;
+    --c-blue-800: 214 229 223;
+    --c-blue-900: 237 243 240;
+    --c-emerald-50: 18 27 20;
+    --c-emerald-100: 17 36 28;
+    --c-emerald-200: 16 53 41;
+    --c-emerald-300: 15 93 74;
+    --c-emerald-400: 30 122 94;
+    --c-emerald-500: 63 147 119;
+    --c-emerald-600: 116 180 155;
+    --c-emerald-700: 169 210 193;
+    --c-emerald-800: 211 232 222;
+    --c-emerald-900: 236 245 240;
+    --c-amber-50: 34 25 14;
+    --c-amber-100: 49 33 15;
+    --c-amber-200: 76 47 17;
+    --c-amber-300: 142 85 24;
+    --c-amber-400: 176 109 34;
+    --c-amber-500: 206 139 60;
+    --c-amber-600: 223 172 104;
+    --c-amber-700: 235 203 156;
+    --c-amber-800: 245 230 206;
+    --c-amber-900: 251 244 233;
+    --c-red-50: 33 21 14;
+    --c-red-100: 47 24 16;
+    --c-red-200: 73 30 19;
+    --c-red-300: 138 47 29;
+    --c-red-400: 169 62 39;
+    --c-red-500: 196 85 60;
+    --c-red-600: 216 128 107;
+    --c-red-700: 233 176 162;
+    --c-red-800: 245 217 210;
+    --c-red-900: 251 239 236;
+    --c-violet-50: 25 22 24;
+    --c-violet-100: 32 26 36;
+    --c-violet-200: 46 37 60;
+    --c-violet-300: 81 64 116;
+    --c-violet-400: 103 85 143;
+    --c-violet-500: 130 112 169;
+    --c-violet-600: 164 147 196;
+    --c-violet-700: 198 186 220;
+    --c-violet-800: 226 220 238;
+    --c-violet-900: 243 240 247;
+    --c-orange-50: 33 23 13;
+    --c-orange-100: 46 29 14;
+    --c-orange-200: 72 41 17;
+    --c-orange-300: 135 72 24;
+    --c-orange-400: 168 92 31;
+    --c-orange-500: 200 120 52;
+    --c-orange-600: 220 154 92;
+    --c-orange-700: 235 190 146;
+    --c-orange-800: 246 223 199;
+    --c-orange-900: 252 242 232;
+    --c-rose-50: 32 20 18;
+    --c-rose-100: 46 24 24;
+    --c-rose-200: 71 30 35;
+    --c-rose-300: 133 48 63;
+    --c-rose-400: 163 60 80;
+    --c-rose-500: 191 84 104;
+    --c-rose-600: 213 126 142;
+    --c-rose-700: 231 174 184;
+    --c-rose-800: 244 216 221;
+    --c-rose-900: 251 239 241;
+    --c-yellow-50: 32 27 13;
+    --c-yellow-100: 45 37 14;
+    --c-yellow-200: 70 55 16;
+    --c-yellow-300: 133 103 22;
+    --c-yellow-400: 165 130 27;
+    --c-yellow-500: 196 159 44;
+    --c-yellow-600: 217 188 85;
+    --c-yellow-700: 232 214 139;
+    --c-yellow-800: 244 235 196;
+    --c-yellow-900: 251 246 230;
 
-    --c-white: 23 30 44;
-    --c-black: 255 255 255;
-    --c-page: 15 21 32;
-    --c-surface: 23 30 44;
+    --c-white: 31 29 22;
+    --c-oncolor: 250 249 246;
+    --c-black: 245 242 236;
+    --c-page: 23 21 15;
+    --c-surface: 31 29 22;
     --c-shadow: 0 0 0;
+    /* Nền của nút và huy hiệu. KHÔNG đảo theo nền trang: thang màu đảo thì
+       bậc 600 ở nền sáng là màu đậm, ở nền tối lại là màu nhạt — chữ trắng trên
+       đó biến thành chữ trắng trên hồng. Bốn màu này giữ nguyên ở cả hai nền và
+       luôn đi cùng `oncolor`. */
+    --c-accent: 15 93 74;
+    --c-success: 15 93 74;
+    --c-warning: 142 85 24;
+    --c-danger: 138 47 29;
   }
 }
 
 /* ── Cỡ chữ ────────────────────────────────────────────────────────────────
-   143 chỗ dùng text-[10px] và 8 chỗ dùng 9px. Dưới 11px thì dấu tiếng Việt
-   dính vào nhau và người trên 40 tuổi phải nheo mắt. */
+   Sàn 11px: dưới mức đó dấu tiếng Việt dính vào nhau. */
 :root {
   --fs-1: 0.6875rem;  /* 11px — nhãn phụ, đơn vị */
   --fs-2: 0.75rem;    /* 12px — chú thích */
@@ -358,15 +388,25 @@
   --fs-7: 1.5rem;     /* 24px */
   --fs-8: 2rem;       /* 32px — con số lớn nhất màn hình */
 
-  /* Bán kính: thẻ và ô nhập KHÁC nhau. Trước đây cả hai cùng 1rem nên không
-     phân biệt được cái nào bấm được. */
-  --r-input: 0.625rem;
-  --r-card: 1rem;
+  /* Bán kính: thẻ và ô nhập KHÁC nhau, để phân biệt được cái nào bấm được. */
+  --r-input: 0.5rem;
+  --r-card: 0.75rem;
   --r-pill: 9999px;
+
+  --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
 }
 
 /* Số tiền phải thẳng cột khi xếp chồng. */
 .tabular {
   font-variant-numeric: tabular-nums;
   font-feature-settings: 'tnum' 1;
+}
+
+/* Con số lớn và tiêu đề trang dùng phông chữ có chân — đây là thứ phân biệt
+   một cuốn sổ với một bảng điều khiển. */
+.display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
 }

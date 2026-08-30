@@ -1,25 +1,19 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 
 /**
- * Nền sáng / nền tối / theo hệ thống.
+ * Nền sáng hoặc nền tối.
  *
  * Lựa chọn nằm ở MỘT thuộc tính data-theme trên <html>, không phải ở lớp
  * `dark:` rải khắp JSX. Nhờ vậy màn hình mới viết ra tự có nền tối, không ai
  * phải nhớ thêm gì.
+ *
+ * Chưa chọn lần nào thì đi theo hệ điều hành. Bấm một lần là thành lựa chọn
+ * của người dùng và app nhớ luôn — không có nấc "theo máy" riêng, vì hai nấc
+ * đã đủ và ba nấc thì phải giải thích.
  */
-const ThemeContext = createContext({ theme: 'system', resolved: 'light', setTheme: () => {} });
+const ThemeContext = createContext({ theme: 'light', setTheme: () => {}, toggle: () => {} });
 
 const STORAGE_KEY = 'moneyflow.theme';
-const VALID = ['light', 'dark', 'system'];
-
-function readStored() {
-  try {
-    const v = localStorage.getItem(STORAGE_KEY);
-    return VALID.includes(v) ? v : 'system';
-  } catch {
-    return 'system';
-  }
-}
 
 function systemPrefersDark() {
   try {
@@ -29,11 +23,21 @@ function systemPrefersDark() {
   }
 }
 
+/** Lựa chọn đã lưu, hoặc null nếu người dùng chưa từng chọn. */
+function readStored() {
+  try {
+    const v = localStorage.getItem(STORAGE_KEY);
+    return v === 'light' || v === 'dark' ? v : null;
+  } catch {
+    return null;
+  }
+}
+
 export function ThemeProvider({ children }) {
-  const [theme, setThemeState] = useState(readStored);
+  const [chosen, setChosen] = useState(readStored);
   const [systemDark, setSystemDark] = useState(systemPrefersDark);
 
-  // Theo hệ thống thì phải theo cả khi người dùng đổi giữa chừng.
+  // Chưa chọn thì vẫn theo hệ điều hành, kể cả khi người dùng đổi giữa chừng.
   useEffect(() => {
     let mq;
     try {
@@ -46,17 +50,15 @@ export function ThemeProvider({ children }) {
     return () => mq.removeEventListener?.('change', onChange);
   }, []);
 
-  const resolved = theme === 'system' ? (systemDark ? 'dark' : 'light') : theme;
+  const theme = chosen ?? (systemDark ? 'dark' : 'light');
 
   useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'system') root.removeAttribute('data-theme');
-    else root.setAttribute('data-theme', theme);
+    document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   const setTheme = useCallback((next) => {
-    if (!VALID.includes(next)) return;
-    setThemeState(next);
+    if (next !== 'light' && next !== 'dark') return;
+    setChosen(next);
     try {
       localStorage.setItem(STORAGE_KEY, next);
     } catch {
@@ -64,10 +66,12 @@ export function ThemeProvider({ children }) {
     }
   }, []);
 
+  const toggle = useCallback(() => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  }, [theme, setTheme]);
+
   return (
-    <ThemeContext.Provider value={{ theme, resolved, setTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={{ theme, setTheme, toggle }}>{children}</ThemeContext.Provider>
   );
 }
 

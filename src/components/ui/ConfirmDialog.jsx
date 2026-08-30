@@ -68,7 +68,7 @@ export function ConfirmProvider({ children }) {
             )}
             <button
               type="button"
-              className={state?.tone === 'danger' ? 'btn bg-red-600 text-white hover:bg-red-700' : 'btn-primary'}
+              className={state?.tone === 'danger' ? 'btn bg-red-600 text-oncolor hover:bg-red-700' : 'btn-primary'}
               onClick={() => close(true)}
             >
               {state?.confirmLabel}

@@ -169,7 +169,7 @@ const ICON_MAP = {
  *   <AppIcon name="shield-check" size={20} />
  *   <AppIcon emoji="🛡️" size={20} />        // emoji string
  *   <AppIcon emoji="shield-check" size={20} /> // icon name from database
- *   <AppIcon name="trend-up" size={16} color="#10b981" weight="bold" />
+ *   <AppIcon name="trend-up" size={16} color="#0F5D4A" weight="bold" />
  */
 export default function AppIcon({ name, emoji, size = 16, color, weight = 'regular', className = '', ...props }) {
   let IconComponent = null;

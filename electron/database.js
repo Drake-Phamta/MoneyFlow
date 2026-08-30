@@ -47,6 +47,7 @@ class FinancialDB {
     this.migrateToV6();
     this.migrateToV7();
     this.migrateToV8();
+    this.migrateToV9();
     this.seedDefaults();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
@@ -111,7 +112,7 @@ class FinancialDB {
         category TEXT NOT NULL,
         ticker TEXT,
         unit TEXT DEFAULT 'đơn vị',
-        color TEXT DEFAULT '#3b82f6',
+        color TEXT DEFAULT '#6B6660',
         icon TEXT DEFAULT '📦',
         active INTEGER DEFAULT 1,
         sort_order INTEGER DEFAULT 0,
@@ -125,7 +126,7 @@ class FinancialDB {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         description TEXT,
-        color TEXT DEFAULT '#3b82f6',
+        color TEXT DEFAULT '#6B6660',
         icon TEXT DEFAULT '💰',
         sort_order INTEGER DEFAULT 0
       )
@@ -378,7 +379,7 @@ class FinancialDB {
           [w.current_price, w.peak_price || 0, existing.id]);
       } else {
         this.run(`INSERT INTO asset_types (name, category, ticker, unit, color, icon, sort_order, current_price, peak_price, is_tracked, asset_class)
-          VALUES (?, 'Giao dịch', ?, ?, '#10b981', 'chart-line', 50, ?, ?, 1, 'stock')`,
+          VALUES (?, 'Giao dịch', ?, ?, '#3A6B8A', 'chart-line', 50, ?, ?, 1, 'stock')`,
           [w.name, w.ticker, w.unit || 'CP', w.current_price || 0, w.peak_price || 0]);
       }
     }
@@ -398,41 +399,41 @@ class FinancialDB {
     // Seed curated catalog — full VN30 + ETFs + Gold
     const catalog = [
       // VN30 Stocks
-      ['ACB', 'ACB - Ngân hàng Á Châu', 'stock', 'CP', '#10b981', 'chart-line', 10],
-      ['BCM', 'Becamex IDC', 'stock', 'CP', '#10b981', 'chart-line', 11],
-      ['BID', 'BIDV', 'stock', 'CP', '#10b981', 'chart-line', 12],
-      ['BVH', 'BVH - Bảo Việt', 'stock', 'CP', '#10b981', 'chart-line', 13],
-      ['CTG', 'VietinBank', 'stock', 'CP', '#10b981', 'chart-line', 14],
-      ['FPT', 'FPT Corporation', 'stock', 'CP', '#10b981', 'chart-line', 15],
-      ['GAS', 'PV Gas', 'stock', 'CP', '#10b981', 'chart-line', 16],
-      ['GVR', 'Tập đoàn Cao su', 'stock', 'CP', '#10b981', 'chart-line', 17],
-      ['HDB', 'HDBank', 'stock', 'CP', '#10b981', 'chart-line', 18],
-      ['HPG', 'Hòa Phát Group', 'stock', 'CP', '#10b981', 'chart-line', 19],
-      ['KDH', 'Khang Điền House', 'stock', 'CP', '#10b981', 'chart-line', 20],
-      ['MBB', 'MB Bank', 'stock', 'CP', '#10b981', 'chart-line', 21],
-      ['MSN', 'Masan Group', 'stock', 'CP', '#10b981', 'chart-line', 22],
-      ['MWG', 'Thế Giới Di Động', 'stock', 'CP', '#10b981', 'chart-line', 23],
-      ['NVL', 'Novaland', 'stock', 'CP', '#10b981', 'chart-line', 24],
-      ['PDR', 'Phát Đạt', 'stock', 'CP', '#10b981', 'chart-line', 25],
-      ['PLX', 'Petrolimex', 'stock', 'CP', '#10b981', 'chart-line', 26],
-      ['POW', 'PV Power', 'stock', 'CP', '#10b981', 'chart-line', 27],
-      ['SAB', 'Sabeco', 'stock', 'CP', '#10b981', 'chart-line', 28],
-      ['SSI', 'SSI Securities', 'stock', 'CP', '#10b981', 'chart-line', 29],
-      ['STB', 'Sacombank', 'stock', 'CP', '#10b981', 'chart-line', 30],
-      ['TCB', 'Techcombank', 'stock', 'CP', '#10b981', 'chart-line', 31],
-      ['TPB', 'TPBank', 'stock', 'CP', '#10b981', 'chart-line', 32],
-      ['VCB', 'Vietcombank', 'stock', 'CP', '#10b981', 'chart-line', 33],
-      ['VHM', 'Vinhomes', 'stock', 'CP', '#10b981', 'chart-line', 34],
-      ['VIB', 'VIB Bank', 'stock', 'CP', '#10b981', 'chart-line', 35],
-      ['VIC', 'Vingroup', 'stock', 'CP', '#10b981', 'chart-line', 36],
-      ['VJC', 'Vietjet Air', 'stock', 'CP', '#10b981', 'chart-line', 37],
-      ['VNM', 'Vinamilk', 'stock', 'CP', '#10b981', 'chart-line', 38],
-      ['VRE', 'Vincom Retail', 'stock', 'CP', '#10b981', 'chart-line', 39],
+      ['ACB', 'ACB - Ngân hàng Á Châu', 'stock', 'CP', '#3A6B8A', 'chart-line', 10],
+      ['BCM', 'Becamex IDC', 'stock', 'CP', '#3A6B8A', 'chart-line', 11],
+      ['BID', 'BIDV', 'stock', 'CP', '#3A6B8A', 'chart-line', 12],
+      ['BVH', 'BVH - Bảo Việt', 'stock', 'CP', '#3A6B8A', 'chart-line', 13],
+      ['CTG', 'VietinBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 14],
+      ['FPT', 'FPT Corporation', 'stock', 'CP', '#3A6B8A', 'chart-line', 15],
+      ['GAS', 'PV Gas', 'stock', 'CP', '#3A6B8A', 'chart-line', 16],
+      ['GVR', 'Tập đoàn Cao su', 'stock', 'CP', '#3A6B8A', 'chart-line', 17],
+      ['HDB', 'HDBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 18],
+      ['HPG', 'Hòa Phát Group', 'stock', 'CP', '#3A6B8A', 'chart-line', 19],
+      ['KDH', 'Khang Điền House', 'stock', 'CP', '#3A6B8A', 'chart-line', 20],
+      ['MBB', 'MB Bank', 'stock', 'CP', '#3A6B8A', 'chart-line', 21],
+      ['MSN', 'Masan Group', 'stock', 'CP', '#3A6B8A', 'chart-line', 22],
+      ['MWG', 'Thế Giới Di Động', 'stock', 'CP', '#3A6B8A', 'chart-line', 23],
+      ['NVL', 'Novaland', 'stock', 'CP', '#3A6B8A', 'chart-line', 24],
+      ['PDR', 'Phát Đạt', 'stock', 'CP', '#3A6B8A', 'chart-line', 25],
+      ['PLX', 'Petrolimex', 'stock', 'CP', '#3A6B8A', 'chart-line', 26],
+      ['POW', 'PV Power', 'stock', 'CP', '#3A6B8A', 'chart-line', 27],
+      ['SAB', 'Sabeco', 'stock', 'CP', '#3A6B8A', 'chart-line', 28],
+      ['SSI', 'SSI Securities', 'stock', 'CP', '#3A6B8A', 'chart-line', 29],
+      ['STB', 'Sacombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 30],
+      ['TCB', 'Techcombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 31],
+      ['TPB', 'TPBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 32],
+      ['VCB', 'Vietcombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 33],
+      ['VHM', 'Vinhomes', 'stock', 'CP', '#3A6B8A', 'chart-line', 34],
+      ['VIB', 'VIB Bank', 'stock', 'CP', '#3A6B8A', 'chart-line', 35],
+      ['VIC', 'Vingroup', 'stock', 'CP', '#3A6B8A', 'chart-line', 36],
+      ['VJC', 'Vietjet Air', 'stock', 'CP', '#3A6B8A', 'chart-line', 37],
+      ['VNM', 'Vinamilk', 'stock', 'CP', '#3A6B8A', 'chart-line', 38],
+      ['VRE', 'Vincom Retail', 'stock', 'CP', '#3A6B8A', 'chart-line', 39],
       // ETFs
-      ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
-      ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
+      ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#4E8C76', 'chart-pie', 50],
+      ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#4E8C76', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#B06D22', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -556,6 +557,35 @@ class FinancialDB {
    * cần 300× — chênh hơn mười lần. Người dùng vào giai đoạn 4 tưởng mình đã
    * xong trong khi mới đi được một phần chặng.
    */
+  /**
+   * V9 — màu danh mục theo bảng màu giấy.
+   *
+   * Năm màu cũ lấy thẳng từ bảng mặc định của Tailwind: xanh lá neon, xanh
+   * dương, vàng chanh, đỏ tươi, tím. Chúng chói trên nền giấy, và đỏ với lục
+   * cạnh nhau thì người mù màu đỏ-lục không tách được hai lát biểu đồ.
+   *
+   * Bộ mới lệch nhau cả về sắc lẫn độ sáng, nên phân biệt được kể cả khi in
+   * đen trắng.
+   */
+  migrateToV9() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 9) return;
+
+    const colors = [
+      ['Dự Phòng', '#0F5D4A'],               // rêu đậm — lớp đệm
+      ['Chứng Khoán', '#3A6B8A'],            // xanh mực
+      ['Vàng', '#B06D22'],                   // hổ phách đất nung
+      ['Bắn Tỉa', '#A93E27'],                // gạch nung
+      ['Tiết kiệm & Trái phiếu', '#67558F'], // tím mực
+    ];
+    for (const [name, color] of colors) {
+      this.run('UPDATE categories SET color = ? WHERE name = ?', [color, name]);
+    }
+
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 9, 'Database schema version')");
+    this.save();
+  }
+
   migrateToV8() {
     const version = this.getParam('SCHEMA_VERSION') || 1;
     if (version >= 8) return;
@@ -623,14 +653,14 @@ class FinancialDB {
 
     // Asset type presets — parent categories
     const assetPresets = [
-      ['Cổ phiếu', 'Giao dịch', 'stock', 'CP', '#10b981', 'chart-line', 1],
-      ['ETF / Quỹ', 'Giao dịch', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 2],
-      ['Vàng', 'Tích trữ', 'gold', 'chỉ', '#f59e0b', 'gem', 3],
-      ['Crypto', 'Giao dịch', 'crypto', 'coin', '#8b5cf6', 'currency-btc', 4],
-      ['Trái phiếu', 'Tích trữ', 'bond', 'VNĐ', '#ec4899', 'scroll', 5],
-      ['Tiết kiệm ngân hàng', 'Tích trữ', 'savings', 'VNĐ', '#8b5cf6', 'bank', 6],
-      ['Bất động sản', 'Tích trữ', 'realestate', 'VNĐ', '#f97316', 'house', 7],
-      ['Khác', 'Tích trữ', 'other', 'đơn vị', '#64748b', 'package', 8],
+      ['Cổ phiếu', 'Giao dịch', 'stock', 'CP', '#3A6B8A', 'chart-line', 1],
+      ['ETF / Quỹ', 'Giao dịch', 'etf', 'CCQ', '#4E8C76', 'chart-pie', 2],
+      ['Vàng', 'Tích trữ', 'gold', 'chỉ', '#B06D22', 'gem', 3],
+      ['Crypto', 'Giao dịch', 'crypto', 'coin', '#67558F', 'currency-btc', 4],
+      ['Trái phiếu', 'Tích trữ', 'bond', 'VNĐ', '#5A554F', 'scroll', 5],
+      ['Tiết kiệm ngân hàng', 'Tích trữ', 'savings', 'VNĐ', '#0F5D4A', 'bank', 6],
+      ['Bất động sản', 'Tích trữ', 'realestate', 'VNĐ', '#8E5518', 'house', 7],
+      ['Khác', 'Tích trữ', 'other', 'đơn vị', '#6B6660', 'package', 8],
     ];
     for (const [name, cat, assetClass, unit, color, icon, order] of assetPresets) {
       this.db.run(
@@ -642,41 +672,41 @@ class FinancialDB {
     // Curated catalog — full VN30 + ETFs + Gold
     const catalog = [
       // VN30 Stocks
-      ['ACB', 'ACB - Ngân hàng Á Châu', 'stock', 'CP', '#10b981', 'chart-line', 10],
-      ['BCM', 'Becamex IDC', 'stock', 'CP', '#10b981', 'chart-line', 11],
-      ['BID', 'BIDV', 'stock', 'CP', '#10b981', 'chart-line', 12],
-      ['BVH', 'BVH - Bảo Việt', 'stock', 'CP', '#10b981', 'chart-line', 13],
-      ['CTG', 'VietinBank', 'stock', 'CP', '#10b981', 'chart-line', 14],
-      ['FPT', 'FPT Corporation', 'stock', 'CP', '#10b981', 'chart-line', 15],
-      ['GAS', 'PV Gas', 'stock', 'CP', '#10b981', 'chart-line', 16],
-      ['GVR', 'Tập đoàn Cao su', 'stock', 'CP', '#10b981', 'chart-line', 17],
-      ['HDB', 'HDBank', 'stock', 'CP', '#10b981', 'chart-line', 18],
-      ['HPG', 'Hòa Phát Group', 'stock', 'CP', '#10b981', 'chart-line', 19],
-      ['KDH', 'Khang Điền House', 'stock', 'CP', '#10b981', 'chart-line', 20],
-      ['MBB', 'MB Bank', 'stock', 'CP', '#10b981', 'chart-line', 21],
-      ['MSN', 'Masan Group', 'stock', 'CP', '#10b981', 'chart-line', 22],
-      ['MWG', 'Thế Giới Di Động', 'stock', 'CP', '#10b981', 'chart-line', 23],
-      ['NVL', 'Novaland', 'stock', 'CP', '#10b981', 'chart-line', 24],
-      ['PDR', 'Phát Đạt', 'stock', 'CP', '#10b981', 'chart-line', 25],
-      ['PLX', 'Petrolimex', 'stock', 'CP', '#10b981', 'chart-line', 26],
-      ['POW', 'PV Power', 'stock', 'CP', '#10b981', 'chart-line', 27],
-      ['SAB', 'Sabeco', 'stock', 'CP', '#10b981', 'chart-line', 28],
-      ['SSI', 'SSI Securities', 'stock', 'CP', '#10b981', 'chart-line', 29],
-      ['STB', 'Sacombank', 'stock', 'CP', '#10b981', 'chart-line', 30],
-      ['TCB', 'Techcombank', 'stock', 'CP', '#10b981', 'chart-line', 31],
-      ['TPB', 'TPBank', 'stock', 'CP', '#10b981', 'chart-line', 32],
-      ['VCB', 'Vietcombank', 'stock', 'CP', '#10b981', 'chart-line', 33],
-      ['VHM', 'Vinhomes', 'stock', 'CP', '#10b981', 'chart-line', 34],
-      ['VIB', 'VIB Bank', 'stock', 'CP', '#10b981', 'chart-line', 35],
-      ['VIC', 'Vingroup', 'stock', 'CP', '#10b981', 'chart-line', 36],
-      ['VJC', 'Vietjet Air', 'stock', 'CP', '#10b981', 'chart-line', 37],
-      ['VNM', 'Vinamilk', 'stock', 'CP', '#10b981', 'chart-line', 38],
-      ['VRE', 'Vincom Retail', 'stock', 'CP', '#10b981', 'chart-line', 39],
+      ['ACB', 'ACB - Ngân hàng Á Châu', 'stock', 'CP', '#3A6B8A', 'chart-line', 10],
+      ['BCM', 'Becamex IDC', 'stock', 'CP', '#3A6B8A', 'chart-line', 11],
+      ['BID', 'BIDV', 'stock', 'CP', '#3A6B8A', 'chart-line', 12],
+      ['BVH', 'BVH - Bảo Việt', 'stock', 'CP', '#3A6B8A', 'chart-line', 13],
+      ['CTG', 'VietinBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 14],
+      ['FPT', 'FPT Corporation', 'stock', 'CP', '#3A6B8A', 'chart-line', 15],
+      ['GAS', 'PV Gas', 'stock', 'CP', '#3A6B8A', 'chart-line', 16],
+      ['GVR', 'Tập đoàn Cao su', 'stock', 'CP', '#3A6B8A', 'chart-line', 17],
+      ['HDB', 'HDBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 18],
+      ['HPG', 'Hòa Phát Group', 'stock', 'CP', '#3A6B8A', 'chart-line', 19],
+      ['KDH', 'Khang Điền House', 'stock', 'CP', '#3A6B8A', 'chart-line', 20],
+      ['MBB', 'MB Bank', 'stock', 'CP', '#3A6B8A', 'chart-line', 21],
+      ['MSN', 'Masan Group', 'stock', 'CP', '#3A6B8A', 'chart-line', 22],
+      ['MWG', 'Thế Giới Di Động', 'stock', 'CP', '#3A6B8A', 'chart-line', 23],
+      ['NVL', 'Novaland', 'stock', 'CP', '#3A6B8A', 'chart-line', 24],
+      ['PDR', 'Phát Đạt', 'stock', 'CP', '#3A6B8A', 'chart-line', 25],
+      ['PLX', 'Petrolimex', 'stock', 'CP', '#3A6B8A', 'chart-line', 26],
+      ['POW', 'PV Power', 'stock', 'CP', '#3A6B8A', 'chart-line', 27],
+      ['SAB', 'Sabeco', 'stock', 'CP', '#3A6B8A', 'chart-line', 28],
+      ['SSI', 'SSI Securities', 'stock', 'CP', '#3A6B8A', 'chart-line', 29],
+      ['STB', 'Sacombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 30],
+      ['TCB', 'Techcombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 31],
+      ['TPB', 'TPBank', 'stock', 'CP', '#3A6B8A', 'chart-line', 32],
+      ['VCB', 'Vietcombank', 'stock', 'CP', '#3A6B8A', 'chart-line', 33],
+      ['VHM', 'Vinhomes', 'stock', 'CP', '#3A6B8A', 'chart-line', 34],
+      ['VIB', 'VIB Bank', 'stock', 'CP', '#3A6B8A', 'chart-line', 35],
+      ['VIC', 'Vingroup', 'stock', 'CP', '#3A6B8A', 'chart-line', 36],
+      ['VJC', 'Vietjet Air', 'stock', 'CP', '#3A6B8A', 'chart-line', 37],
+      ['VNM', 'Vinamilk', 'stock', 'CP', '#3A6B8A', 'chart-line', 38],
+      ['VRE', 'Vincom Retail', 'stock', 'CP', '#3A6B8A', 'chart-line', 39],
       // ETFs
-      ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 50],
-      ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#3b82f6', 'chart-pie', 51],
+      ['E1VFVN30', 'VN30 ETF', 'etf', 'CCQ', '#4E8C76', 'chart-pie', 50],
+      ['FUEVN100', 'VN100 ETF', 'etf', 'CCQ', '#4E8C76', 'chart-pie', 51],
       // Gold
-      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#f59e0b', 'gem', 60],
+      ['SJC', 'Vàng SJC', 'gold', 'chỉ', '#B06D22', 'gem', 60],
     ];
     for (const [ticker, name, assetClass, unit, color, icon, order] of catalog) {
       const cat = assetClass === 'gold' ? 'Tích trữ' : 'Giao dịch';
@@ -691,11 +721,11 @@ class FinancialDB {
 
     // Default categories
     const cats = [
-      ['Dự Phòng', 'Gửi tiết kiệm ngân hàng. Không đụng trừ khẩn cấp.', '#10b981', 'shield-check', 1],
-      ['Chứng Khoán', 'Mua ETF, cổ phiếu tích sản. Giao dịch trên sàn.', '#3b82f6', 'trend-up', 2],
-      ['Vàng', 'Mua vàng miếng/SJC tích trữ dài hạn.', '#f59e0b', 'gem', 3],
-      ['Bắn Tỉa', 'Giữ tiền mặt. Chỉ dùng khi thị trường sập >15%.', '#ef4444', 'crosshair', 4],
-      ['Tiết kiệm & Trái phiếu', 'Gửi ngân hàng kỳ hạn hoặc mua trái phiếu. Ổn định.', '#8b5cf6', 'bank', 5],
+      ['Dự Phòng', 'Gửi tiết kiệm ngân hàng. Không đụng trừ khẩn cấp.', '#0F5D4A', 'shield-check', 1],
+      ['Chứng Khoán', 'Mua ETF, cổ phiếu tích sản. Giao dịch trên sàn.', '#3A6B8A', 'trend-up', 2],
+      ['Vàng', 'Mua vàng miếng/SJC tích trữ dài hạn.', '#B06D22', 'gem', 3],
+      ['Bắn Tỉa', 'Giữ tiền mặt. Chỉ dùng khi thị trường sập >15%.', '#A93E27', 'crosshair', 4],
+      ['Tiết kiệm & Trái phiếu', 'Gửi ngân hàng kỳ hạn hoặc mua trái phiếu. Ổn định.', '#67558F', 'bank', 5],
     ];
     for (const [name, desc, color, icon, order] of cats) {
       this.db.run(
@@ -906,7 +936,7 @@ class FinancialDB {
   }
   addAssetType(data) {
     this.run('INSERT INTO asset_types (name, category, ticker, unit, color, icon, sort_order, asset_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [data.name, data.category || 'Giao dịch', data.ticker ?? null, data.unit || 'đơn vị', data.color || '#3b82f6', data.icon || '📦', data.sort_order || 99, data.asset_class || 'other']);
+      [data.name, data.category || 'Giao dịch', data.ticker ?? null, data.unit || 'đơn vị', data.color || '#3A6B8A', data.icon || '📦', data.sort_order || 99, data.asset_class || 'other']);
     // Lấy id TRƯỚC khi save(): save() xuất lại toàn bộ DB và làm mất
     // last_insert_rowid(), nên đảo thứ tự là route trả về 0.
     const id = this.lastId();
@@ -937,7 +967,7 @@ class FinancialDB {
   getCategories() { return this.query('SELECT * FROM categories ORDER BY sort_order'); }
   addCategory(data) {
     this.run('INSERT INTO categories (name, description, color, icon, sort_order) VALUES (?, ?, ?, ?, ?)',
-      [data.name, data.description, data.color || '#3b82f6', data.icon || '💰', data.sort_order || 99]);
+      [data.name, data.description, data.color || '#3A6B8A', data.icon || '💰', data.sort_order || 99]);
     this.save();
     return this.lastId();
   }

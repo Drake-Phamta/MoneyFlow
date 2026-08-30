@@ -32,8 +32,8 @@ function formatRelativeTime(dateStr) {
 function InfoTooltip({ content }) {
   return (
     <div className="relative group inline-flex items-center justify-center ml-1.5 cursor-help">
-      <Info size={14} className="text-slate-400 hover:text-primary-500 transition-colors" weight="fill" />
-      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-800 text-white text-xs leading-relaxed rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none">
+      <Info size={14} className="text-slate-400 hover:text-primary-600 transition-colors" weight="fill" />
+      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-2.5 bg-slate-800 text-oncolor text-xs leading-relaxed rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 text-center pointer-events-none">
         {content}
         <div className="absolute top-full left-1/2 -translate-x-1/2 border-[5px] border-transparent border-t-slate-800"></div>
       </div>
@@ -90,11 +90,11 @@ function LoadingSkeleton() {
 // vì viết cứng đúng là thứ đã làm nhóm Chứng Khoán biến mất khỏi biểu đồ
 // (danh mục từng tên là 'Đầu Tư', migrateToV5 đổi tên mà chỗ này không đổi theo).
 const CATEGORY_FALLBACK = {
-  'Dự Phòng': { color: '#10b981', icon: 'wallet' },
-  'Chứng Khoán': { color: '#3b82f6', icon: 'chart-line' },
-  'Vàng': { color: '#f59e0b', icon: 'coins' },
-  'Bắn Tỉa': { color: '#ef4444', icon: 'crosshair' },
-  'Tiết kiệm & Trái phiếu': { color: '#8b5cf6', icon: 'bank' },
+  'Dự Phòng': { color: '#0F5D4A', icon: 'wallet' },
+  'Chứng Khoán': { color: '#3A6B8A', icon: 'chart-line' },
+  'Vàng': { color: '#B06D22', icon: 'coins' },
+  'Bắn Tỉa': { color: '#A93E27', icon: 'crosshair' },
+  'Tiết kiệm & Trái phiếu': { color: '#67558F', icon: 'bank' },
 };
 
 export default function Dashboard() {
@@ -402,7 +402,7 @@ export default function Dashboard() {
           <button onClick={() => setShowAlerts(!showAlerts)} className="relative btn-ghost text-sm">
             <Bell size={18} weight="regular" />
             {alertCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
+              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
             )}
           </button>
 
@@ -499,16 +499,16 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <button onClick={() => navigate('/cashflow')} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white rounded-xl transition-colors shadow-md">Nhập ngay</button>
+          <button onClick={() => navigate('/cashflow')} className="px-4 py-2 bg-accent hover:bg-accent text-xs font-bold text-oncolor rounded-xl transition-colors shadow-md">Nhập ngay</button>
         </div>
       )}
 
       {/* Phase Card — Enhanced */}
       {phase && (
-        <div className="bento-card bg-gradient-to-r from-primary-50 to-violet-50 border-primary-100">
+        <div className="bento-card bg-primary-50 border-primary-200">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-primary-500 mb-1">{phase.name}</p>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-primary-600 mb-1">{phase.name}</p>
               <h3 className="text-lg font-bold text-slate-800 tracking-tight">{phase.goal_description}</h3>
             </div>
             <div className="text-right">
@@ -528,7 +528,7 @@ export default function Dashboard() {
               </div>
               <div className="w-full h-3 bg-slate-200/60 rounded-full overflow-hidden shadow-inner">
                 <div
-                  className="h-full bg-gradient-to-r from-primary-500 to-violet-500 rounded-full transition-all duration-700 relative"
+                  className="h-full bg-primary-600 rounded-full transition-all duration-700 relative"
                   style={{ width: `${phaseProgress.pct}%` }}
                 >
                   <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
@@ -569,11 +569,9 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 mb-5">
         {/* Total Net Worth (Hero Bento) */}
         <div 
-          className="lg:col-span-3 bento-card relative bg-gradient-to-br from-white to-slate-50/50 flex flex-col justify-between overflow-hidden cursor-pointer hover:shadow-xl hover:-translate-y-0.5 transition-all group"
+          className="lg:col-span-3 bento-card relative flex flex-col justify-between overflow-hidden cursor-pointer transition-colors group"
           onClick={() => setShowNetWorthModal(true)}
         >
-          {/* Subtle light mesh gradient blob */}
-          <div className="absolute top-[-20%] right-[-10%] w-[60%] h-[150%] bg-gradient-to-bl from-primary-100/50 via-violet-100/30 to-transparent rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="relative z-10 space-y-8">
             <div>
@@ -745,7 +743,7 @@ export default function Dashboard() {
             {portfolio.length === 0 ? (
               <div className="text-center py-16 text-slate-400">
                 <p className="text-sm font-medium">Chưa có tài sản nào</p>
-                <button onClick={() => navigate('/cashflow')} className="px-5 py-3 bg-primary-600 text-white font-bold rounded-xl hover:bg-primary-700 transition-colors mt-4 shadow-sm text-sm">Nhập liệu tháng đầu tiên</button>
+                <button onClick={() => navigate('/cashflow')} className="px-5 py-3 bg-accent text-oncolor font-bold rounded-xl hover:bg-accent transition-colors mt-4 shadow-sm text-sm">Nhập liệu tháng đầu tiên</button>
               </div>
             ) : (
               <>
@@ -860,9 +858,9 @@ export default function Dashboard() {
                   <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 10 }} />
                   <YAxis tick={{ fill: '#94a3b8', fontSize: 10 }} tickFormatter={formatCompact} width={55} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="income" fill="#10b981" name="Thu nhập" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="income" fill="#0F5D4A" name="Thu nhập" radius={[3, 3, 0, 0]} />
                   <Bar dataKey="expense" fill="#f87171" name="Chi tiêu" radius={[3, 3, 0, 0]} />
-                  <Bar dataKey="net" fill="#3b82f6" name="Dòng tiền ròng" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="net" fill="#3A6B8A" name="Dòng tiền ròng" radius={[3, 3, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -943,7 +941,7 @@ export default function Dashboard() {
                             {formatVND(actual)} / {formatVND(catTarget)}
                           </span>
                           {diff !== null && diff !== 0 && (
-                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-600' : 'text-blue-500'}`}>
+                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
                               {diff > 0 ? '+' : ''}{formatVND(diff)}
                             </span>
                           )}
@@ -953,7 +951,7 @@ export default function Dashboard() {
                             className="h-full rounded-full transition-all duration-500"
                             style={{
                               width: `${targetPct}%`,
-                              background: diff > 0 ? '#10b981' : meta.color,
+                              background: diff > 0 ? '#0F5D4A' : meta.color,
                             }}
                           />
                         </div>
@@ -1065,13 +1063,13 @@ export default function Dashboard() {
           toast.type === 'success' ? 'bg-emerald-500' :
           toast.type === 'warning' ? 'bg-amber-500' :
           toast.type === 'info' ? 'bg-slate-500' : 'bg-slate-700'
-        } text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
+        } text-oncolor px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 max-w-sm`}>
           {toast.type === 'success' && <CheckCircle size={20} weight="fill" />}
           {toast.type === 'error' && <XCircle size={20} weight="fill" />}
           {toast.type === 'warning' && <Warning size={20} weight="fill" />}
           {toast.type === 'info' && <Info size={20} weight="fill" />}
           <span className="text-sm font-medium">{toast.message}</span>
-          <button onClick={() => setToast(null)} className="text-white/70 hover:text-white">
+          <button onClick={() => setToast(null)} className="text-oncolor/70 hover:text-oncolor">
             <X size={18} />
           </button>
         </div>

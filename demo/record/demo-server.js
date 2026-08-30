@@ -75,7 +75,7 @@ async function start() {
       // này thì tệp mẫu đứng mãi ở phiên bản schema lúc nó được tạo, và mọi
       // migration viết từ đó về sau không bao giờ được bộ test đi qua.
       db.createTables();
-      for (let v = 2; v <= 9; v++) {
+      for (let v = 2; v <= 12; v++) {
         const fn = db['migrateToV' + v];
         if (typeof fn === 'function') fn.call(db);
       }

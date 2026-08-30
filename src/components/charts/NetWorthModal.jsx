@@ -406,8 +406,8 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
                 <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorNwModal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={stats?.isPositive ? '#10b981' : '#f43f5e'} stopOpacity={0.4}/>
-                      <stop offset="95%" stopColor={stats?.isPositive ? '#10b981' : '#f43f5e'} stopOpacity={0}/>
+                      <stop offset="5%" stopColor={stats?.isPositive ? '#0F5D4A' : '#f43f5e'} stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor={stats?.isPositive ? '#0F5D4A' : '#f43f5e'} stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -430,7 +430,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
                   <Area 
                     type="monotone" 
                     dataKey="netWorth" 
-                    stroke={stats?.isPositive ? '#10b981' : '#f43f5e'} 
+                    stroke={stats?.isPositive ? '#0F5D4A' : '#f43f5e'} 
                     strokeWidth={2.5} 
                     fillOpacity={1} 
                     fill="url(#colorNwModal)" 

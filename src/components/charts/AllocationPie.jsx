@@ -7,7 +7,7 @@ export default function AllocationPie({ data = [], layout = 'vertical', theme = 
 
   const isDark = theme === 'dark';
   const textColor = isDark ? 'text-slate-200' : 'text-slate-600';
-  const valueColor = isDark ? 'text-white' : 'text-slate-800';
+  const valueColor = isDark ? 'text-oncolor' : 'text-slate-800';
   const emptyColor = isDark ? 'text-slate-400' : 'text-slate-400';
 
   if (filtered.length === 0) {

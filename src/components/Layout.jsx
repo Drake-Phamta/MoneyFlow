@@ -123,31 +123,30 @@ export default function Layout({ children }) {
   );
 }
 
-/** Ba trạng thái, không phải công tắc hai nấc: sáng · tối · theo máy. */
+/** Hai nấc. Chưa chọn lần nào thì đi theo hệ điều hành. */
 function ThemeToggle({ collapsed }) {
-  const { theme, setTheme } = useTheme();
-  const options = [
-    { id: 'light', label: 'Sáng', glyph: '☀' },
-    { id: 'dark', label: 'Tối', glyph: '☾' },
-    { id: 'system', label: 'Theo máy', glyph: '◐' },
-  ];
+  const { theme, setTheme, toggle } = useTheme();
 
   if (collapsed) {
-    const i = options.findIndex((o) => o.id === theme);
-    const next = options[(i + 1) % options.length];
+    const next = theme === 'dark' ? 'sáng' : 'tối';
     return (
       <button
         type="button"
-        onClick={() => setTheme(next.id)}
-        title={`Giao diện: ${options[i]?.label}. Bấm để chuyển sang ${next.label}.`}
+        onClick={toggle}
+        title={`Chuyển sang nền ${next}`}
         data-testid="theme-toggle"
         className="w-full flex items-center justify-center px-3 py-2 rounded-input text-slate-500 hover:bg-slate-100 transition"
       >
-        <span aria-hidden="true">{options[i]?.glyph}</span>
-        <span className="sr-only">Đổi giao diện</span>
+        <span aria-hidden="true">{theme === 'dark' ? '☾' : '☀'}</span>
+        <span className="sr-only">Chuyển sang nền {next}</span>
       </button>
     );
   }
+
+  const options = [
+    { id: 'light', label: 'Sáng', glyph: '☀' },
+    { id: 'dark', label: 'Tối', glyph: '☾' },
+  ];
 
   return (
     <div role="group" aria-label="Giao diện" className="flex gap-1" data-testid="theme-toggle">
@@ -157,8 +156,7 @@ function ThemeToggle({ collapsed }) {
           type="button"
           onClick={() => setTheme(o.id)}
           aria-pressed={theme === o.id}
-          title={o.label}
-          className={`flex-1 px-2 py-1.5 rounded-input text-fs-1 transition ${
+          className={`flex-1 px-2 py-1.5 rounded-input text-fs-2 transition ${
             theme === o.id
               ? 'bg-primary-50 text-primary-700 font-medium'
               : 'text-slate-400 hover:bg-slate-100'

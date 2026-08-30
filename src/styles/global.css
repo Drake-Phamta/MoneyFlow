@@ -11,7 +11,7 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-sans);
   background: rgb(var(--c-page));
   color: rgb(var(--c-slate-800));
   overflow: hidden;
@@ -76,43 +76,39 @@ body {
 
 /* Card styles */
 .card {
-  @apply bg-white rounded-card shadow-sm border border-slate-100 p-5 sm:p-6 transition-all duration-200;
+  @apply bg-white rounded-card border border-slate-200 p-5 sm:p-6 transition-colors duration-200;
 }
 
 .card:hover {
-  @apply shadow-md border-slate-200;
+  @apply border-slate-300;
 }
 
 .card-glass {
-  @apply bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-white/50 p-5;
+  @apply bg-white rounded-card border border-slate-200 p-5;
 }
 
 /* Bento Box styles */
 .bento-card {
-  @apply bg-white rounded-[2rem] border border-slate-100 p-6 lg:p-8 transition-all duration-300;
-  box-shadow: 0 8px 30px rgb(var(--c-shadow) / 0.06);
+  @apply bg-white rounded-card border border-slate-200 p-6 lg:p-8 transition-colors duration-300;
 }
 
 .bento-card:hover {
-  @apply border-slate-200 -translate-y-1;
-  box-shadow: 0 8px 30px rgb(var(--c-shadow) / 0.12);
+  @apply border-slate-300;
 }
 
 .bento-glass {
-  @apply bg-white/80 backdrop-blur-2xl rounded-[2rem] border border-white/60 p-6 lg:p-8 transition-all duration-300 relative overflow-hidden;
-  box-shadow: 0 8px 30px rgb(var(--c-shadow) / 0.06);
+  @apply bg-white rounded-card border border-slate-200 p-6 lg:p-8 transition-colors duration-300 relative overflow-hidden;
 }
 
 .bento-glass:hover {
-  @apply -translate-y-1 bg-white/90;
-  box-shadow: 0 8px 30px rgb(var(--c-shadow) / 0.12);
+  @apply border-slate-300;
 }
 
 /* Input styles */
 .input {
   @apply w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-input text-slate-800 text-sm
          placeholder:text-slate-400 transition-all duration-200
-         focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-400 focus:bg-white;
+         focus:outline-none focus:border-primary-600 focus:bg-white;
 }
 
 .input-lg {
@@ -138,7 +134,7 @@ select.input {
 }
 
 .btn-primary {
-  @apply btn bg-primary-600 text-white hover:bg-primary-700 shadow-sm hover:shadow-md;
+  @apply btn bg-accent text-oncolor hover:brightness-110;
 }
 
 .btn-primary-lg {
@@ -146,7 +142,7 @@ select.input {
 }
 
 .btn-secondary {
-  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200;
+  @apply btn bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200;
 }
 
 .btn-ghost {
@@ -154,7 +150,7 @@ select.input {
 }
 
 .btn-success {
-  @apply btn bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm;
+  @apply btn bg-success text-oncolor hover:brightness-110;
 }
 
 .btn-danger {
@@ -188,7 +184,7 @@ select.input {
 
 /* Table styles */
 .table-wrap {
-  @apply overflow-auto rounded-xl border border-slate-200;
+  @apply overflow-auto rounded-card border border-slate-200;
 }
 
 .table {
@@ -196,12 +192,12 @@ select.input {
 }
 
 .table th {
-  @apply bg-slate-50 text-slate-500 font-semibold px-4 py-3 text-left text-xs uppercase tracking-wider
-         sticky top-0 z-10 border-b border-slate-200 whitespace-nowrap;
+  @apply bg-white text-slate-400 font-medium px-4 py-2.5 text-left text-fs-1 uppercase tracking-widest
+         sticky top-0 z-10 border-b border-slate-300 whitespace-nowrap;
 }
 
 .table td {
-  @apply px-4 py-3 border-b border-slate-100 text-slate-700;
+  @apply px-4 py-2.5 border-b border-slate-200 text-slate-700;
 }
 
 .table tr:last-child td {
@@ -209,7 +205,7 @@ select.input {
 }
 
 .table tr:hover td {
-  @apply bg-slate-50/50;
+  @apply bg-slate-50;
 }
 
 /* KPI card */
@@ -218,11 +214,13 @@ select.input {
 }
 
 .kpi-label {
-  @apply text-[10px] sm:text-xs font-medium text-slate-400 uppercase tracking-wider;
+  @apply text-fs-1 font-medium text-slate-400 uppercase tracking-widest;
 }
 
 .kpi-value {
-  @apply text-2xl font-bold text-slate-800 tracking-tight;
+  @apply text-fs-7 text-slate-900 tracking-tight tabular;
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .kpi-change {
@@ -247,11 +245,11 @@ select.input {
 }
 
 .step-dot-active {
-  @apply step-dot bg-primary-600 text-white shadow-lg shadow-primary-600/30;
+  @apply step-dot bg-accent text-oncolor;
 }
 
 .step-dot-done {
-  @apply step-dot bg-emerald-500 text-white;
+  @apply step-dot bg-success text-oncolor;
 }
 
 .step-dot-pending {
@@ -264,7 +262,9 @@ select.input {
 }
 
 .page-title {
-  @apply text-2xl font-bold text-slate-800;
+  @apply text-fs-7 text-slate-900;
+  font-family: var(--font-display);
+  font-weight: 500;
 }
 
 .page-subtitle {
@@ -273,11 +273,11 @@ select.input {
 
 /* Portfolio card */
 .portfolio-card {
-  @apply bg-white rounded-xl border border-slate-100 p-4 transition-all duration-200 cursor-default;
+  @apply bg-white rounded-input border border-slate-200 p-4 transition-colors duration-200 cursor-default;
 }
 
 .portfolio-card:hover {
-  @apply border-slate-200 shadow-md -translate-y-0.5;
+  @apply border-slate-300;
 }
 
 /* Gain/Loss mini bar */
@@ -290,11 +290,11 @@ select.input {
 }
 
 .gain-bar-fill.positive {
-  @apply bg-gradient-to-r from-emerald-400 to-emerald-500;
+  @apply bg-emerald-600;
 }
 
 .gain-bar-fill.negative {
-  @apply bg-gradient-to-r from-red-400 to-red-500;
+  @apply bg-red-600;
 }
 
 /* Asset icon circle */
@@ -304,11 +304,11 @@ select.input {
 
 /* Utility */
 .text-gradient {
-  @apply bg-gradient-to-r from-primary-600 to-violet-600 bg-clip-text text-transparent;
+  @apply text-primary-700;
 }
 
 .divider {
-  @apply border-t border-slate-100 my-4;
+  @apply border-t border-slate-200 my-4;
 }
 
 /* ── Nền sáng / nền tối ────────────────────────────────────────────────────

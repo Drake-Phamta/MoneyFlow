@@ -267,9 +267,9 @@ function Timeline({ snap, result, bands, phases }) {
                 <span
                   className={`w-7 h-7 rounded-full flex items-center justify-center text-fs-2 font-bold shrink-0 ${
                     done
-                      ? 'bg-emerald-500 text-white'
+                      ? 'bg-emerald-500 text-oncolor'
                       : active
-                        ? 'bg-primary-600 text-white'
+                        ? 'bg-primary-600 text-oncolor'
                         : 'bg-slate-200 text-slate-500'
                   }`}
                 >
