@@ -373,7 +373,7 @@ export function sensitivity(input, opts = {}) {
     {
       id: 'fiExpense',
       label: 'Chi tiêu mục tiêu',
-      note: 'Ăn hai đầu — hạ đích và nâng tiền để dành',
+      note: 'Kéo đích lại gần, không cần kiếm thêm đồng nào',
       make: (f) => ({ ...input, fiExpense: (input.fiExpense || 0) * (1 - f) }),
     },
     {

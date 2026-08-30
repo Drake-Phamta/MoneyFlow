@@ -366,7 +366,7 @@ function Controls(props) {
               { at: actualExpense, label: `thực tế ${money(actualExpense)}` },
               { at: targetExpense, label: `mục tiêu ${money(targetExpense)}` },
             ]}
-            note="Ăn hai đầu: hạ đích cần đạt, đồng thời nâng tiền để dành mỗi tháng."
+            note="Chỉ kéo đích lại gần — tiền để dành mỗi tháng vẫn là con số đo từ sổ của bạn. Đây là đòn bẩy duy nhất không đòi bạn kiếm thêm đồng nào."
           />
 
           <div>
