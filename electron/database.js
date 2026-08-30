@@ -41,6 +41,7 @@ class FinancialDB {
     this.migrateToV5();
     this.migrateToV6();
     this.migrateToV7();
+    this.migrateToV8();
     this.seedDefaults();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
@@ -51,7 +52,6 @@ class FinancialDB {
     // Ensure SJC gold name is "Vàng SJC" instead of "Vàng miếng SJC"
     try {
       this.run("UPDATE asset_types SET name = 'Vàng SJC' WHERE ticker = 'SJC'");
-      this.run("UPDATE phases SET guidance = REPLACE(guidance, 'vàng miếng SJC', 'vàng SJC')");
     } catch (e) {}
 
     // One-time fix: Correct the date of existing monthly entries in activity_log
@@ -126,7 +126,8 @@ class FinancialDB {
       )
     `);
 
-    // Phases with clear goals and action guidance
+    // Bốn giai đoạn của lộ trình. Chữ hướng dẫn không nằm ở đây —
+    // nó sinh từ phase_allocations ở src/content/phases.js.
     this.db.run(`
       CREATE TABLE IF NOT EXISTS phases (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +137,6 @@ class FinancialDB {
         goal_multiplier REAL DEFAULT 0,
         goal_description TEXT,
         entry_condition TEXT,
-        guidance TEXT,
         is_active INTEGER DEFAULT 0
       )
     `);
@@ -462,7 +462,7 @@ class FinancialDB {
       this.db.run('INSERT INTO phase_allocations (phase_id, category_id, ratio) VALUES (?, ?, ?)', [phaseId, catId, ratio]);
     }
 
-    // Update phase guidance and goals
+    // Cập nhật mục tiêu của từng giai đoạn
     const phases = this.query('SELECT id, sort_order FROM phases ORDER BY sort_order');
     const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
 
@@ -471,86 +471,21 @@ class FinancialDB {
         goal_desc: 'Dự phòng = 3× chi tiêu mục tiêu',
         entry: 'Bắt đầu ngay',
         goal_multiplier: 3,
-        guidance: `Mục tiêu: Dự phòng 3 tháng chi tiêu mục tiêu (~12M với mục tiêu 4M/tháng). Xây thói quen tài chính.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 70% → Dự Phòng → gửi tiết kiệm ngân hàng (ưu tiên số 1)
-• 30% → Đầu tư → mua ETF/cổ phiếu số nhỏ
-
-Hành động cụ thể:
-1. Mở TK tiết kiệm online (Timo, MBBank...)
-2. Mở TK chứng khoán (SSI, VPS, TCBS — miễn phí)
-3. Tháng đầu: chỉ tiết kiệm, chưa mua gì
-4. Tháng 2: bắt đầu mua ETF E1VFVN30 hoặc FPT (500K-1tr/lệnh)
-5. Ghi chép mọi khoản vào Money_Flow
-
-Chuyển sang Giai đoạn 2 khi: Dự phòng ≥ 3× chi tiêu mục tiêu
-
-Nguyên tắc:
-• Không rút dự phòng để đầu tư
-• Không FOMO khi thấy người khác kiếm lời
-• Số nhỏ không sao — quan trọng là bắt đầu`,
       },
       {
         goal_desc: 'Danh mục đầu tư đa dạng',
         entry: 'Dự phòng ≥ 3× chi tiêu mục tiêu',
         goal_multiplier: 6,
-        guidance: `Dự phòng đã đủ. Chuyển trọng tâm sang đầu tư tăng trưởng.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
-• 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
-• 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
-• 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
-
-Hành động cụ thể:
-1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
-2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC
-3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
-4. Rebalance mỗi 3 tháng
-
-Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiêu`,
       },
       {
         goal_desc: 'Tài sản = 24× chi tiêu mục tiêu',
         entry: 'Tổng tài sản ≥ 6× chi tiêu mục tiêu',
         goal_multiplier: 24,
-        guidance: `Thu nhập đã tăng đáng kể. Bắt đầu đa dạng hóa và xây thu nhập thụ động.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
-• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
-• 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
-• 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
-• 5% → Dự Phòng — duy trì
-
-Hành động cụ thể:
-1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
-2. Vàng: mua 1-2 chỉ SJC/năm
-3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
-4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
-5. Rebalance mỗi quý
-
-Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục tiêu`,
       },
       {
         goal_desc: 'Thu nhập thụ động ≥ chi tiêu mục tiêu',
         entry: 'Tổng tài sản ≥ 24× chi tiêu mục tiêu',
         goal_multiplier: 0,
-        guidance: `Thu nhập thụ động từ đầu tư vượt chi tiêu sinh hoạt. Bạn không cần làm việc nếu không muốn.
-
-Công thức: Tài sản × (lãi năm / 12) ≥ chi tiêu/tháng
-Ví dụ: Chi tiêu mục tiêu 15M/tháng, lãi 5%/năm → cần 3.6 tỷ
-
-Phân bổ:
-• 40% → Đầu tư — tập trung cổ phiếu trả cổ tức, trái phiếu doanh nghiệp
-• 15% → Vàng — duy trì tỷ lệ, vàng là tài sản trú ẩn an toàn
-• 15% → Bắn Tỉa — vẫn triển khai khi có cơ hội lớn
-• 25% → Tiết kiệm & Trái phiếu — ưu tiên thu nhập thụ động ổn định
-• 5% → Dự Phòng — duy trì
-
-Bạn đã đạt tự do tài chính. Chúc mừng.`,
       },
     ];
 
@@ -558,8 +493,8 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       const p = phases[i];
       const u = updates[i];
       const goalAmount = u.goal_multiplier > 0 ? u.goal_multiplier * monthlyExpense : 0;
-      this.run('UPDATE phases SET goal_description = ?, entry_condition = ?, goal_multiplier = ?, goal_amount = ?, guidance = ? WHERE id = ?',
-        [u.goal_desc, u.entry, u.goal_multiplier, goalAmount, u.guidance, p.id]);
+      this.run('UPDATE phases SET goal_description = ?, entry_condition = ?, goal_multiplier = ?, goal_amount = ? WHERE id = ?',
+        [u.goal_desc, u.entry, u.goal_multiplier, goalAmount, p.id]);
     }
 
     // Update schema version
@@ -583,46 +518,6 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
 
     // Rename 'Đầu Tư' category to 'Chứng Khoán' for schema consistency
     this.run("UPDATE categories SET name = 'Chứng Khoán' WHERE name = 'Đầu Tư'");
-
-    // 2. Update existing databases' phase guidance for Phase 2 and Phase 3 to use "chỉ" and unified phrasing
-    const phase2Guidance = `Dự phòng đã đủ. Chuyển trọng tâm sang đầu tư tăng trưởng.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
-• 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
-• 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
-• 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
-
-Hành động cụ thể:
-1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
-2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC (thanh khoản tốt, dễ bán lại)
-3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
-4. Rebalance mỗi 3 tháng
-5. Không bán Đầu Tư để mua khi dip — dùng tiền từ Bắn Tỉa
-
-Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiêu (ví dụ: 24M nếu mục tiêu 4M/tháng)`;
-
-    const phase3Guidance = `Thu nhập đã tăng đáng kể. Bắt đầu đa dạng hóa và xây thu nhập thụ động.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
-• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
-• 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
-• 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
-• 5% → Dự Phòng — duy trì, điều chỉnh theo chi tiêu thực tế
-
-Hành động cụ thể:
-1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
-2. Vàng: mua 1-2 chỉ SJC/năm. Có thể đa dạng: vàng miếng + ETF vàng
-3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
-4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
-5. Rebalance mỗi quý
-
-Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục tiêu (ví dụ: 96M nếu mục tiêu 4M/tháng)`;
-
-    this.run('UPDATE phases SET guidance = ? WHERE sort_order = 2', [phase2Guidance]);
-    this.run('UPDATE phases SET guidance = ? WHERE sort_order = 3', [phase3Guidance]);
 
     // Update schema version
     this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 5, 'Database schema version')");
@@ -648,6 +543,33 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
    * seedDefaults() thoát sớm khi DB đã có TOTAL_MONTHS, nên cơ sở dữ liệu đang
    * dùng sẽ không bao giờ nhận được tham số mới nếu chỉ thêm vào seed.
    */
+  /**
+   * V8 — đổi tên Giai đoạn 4 và dọn chữ hướng dẫn chép tay khỏi bảng phases.
+   *
+   * Tên cũ "Tự do tài chính" mô tả ĐÍCH của cả lộ trình, không phải giai đoạn
+   * này. Nó bắt đầu khi tài sản đạt 24× chi tiêu mục tiêu, còn tự do tài chính
+   * cần 300× — chênh hơn mười lần. Người dùng vào giai đoạn 4 tưởng mình đã
+   * xong trong khi mới đi được một phần chặng.
+   */
+  migrateToV8() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 8) return;
+
+    this.run(
+      "UPDATE phases SET name = 'Giai đoạn 4: Thu nhập thụ động' WHERE sort_order = 4"
+    );
+
+    // Chữ hướng dẫn nay sinh từ phase_allocations lúc hiển thị. Bản chép tay
+    // trong cột này không còn được đọc ở đâu; để lại là một bản sao mâu thuẫn
+    // chờ ai đó đọc nhầm.
+    try {
+      this.run('UPDATE phases SET guidance = NULL');
+    } catch (e) {}
+
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 8, 'Database schema version')");
+    this.save();
+  }
+
   migrateToV7() {
     const version = this.getParam('SCHEMA_VERSION') || 1;
     if (version >= 7) return;
@@ -688,7 +610,10 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
       ['EXPECTED_RETURN_STOCK', 0.115, 'Lợi suất kỳ vọng của nhóm Chứng Khoán'],
     ];
     for (const [k, v, d] of params) {
-      this.db.run('INSERT INTO parameters (key, value, description) VALUES (?, ?, ?)', [k, v, d]);
+      // OR IGNORE: migrateToV7 chạy TRƯỚC hàm này và đã seed INFLATION_RATE
+      // cùng EXPECTED_RETURN_STOCK. INSERT trần ở đây làm cơ sở dữ liệu hoàn
+      // toàn mới chết ngay lúc khởi tạo vì trùng khoá.
+      this.db.run('INSERT OR IGNORE INTO parameters (key, value, description) VALUES (?, ?, ?)', [k, v, d]);
     }
 
     // Asset type presets — parent categories
@@ -782,25 +707,6 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
         goal_multiplier: 3,
         goal_desc: 'Dự phòng = 3× chi tiêu mục tiêu',
         entry: 'Bắt đầu ngay',
-        guidance: `Mục tiêu: Dự phòng 3 tháng chi tiêu mục tiêu (~12M với mục tiêu 4M/tháng). Xây thói quen tài chính.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 70% → Dự Phòng → gửi tiết kiệm ngân hàng (ưu tiên số 1)
-• 30% → Đầu tư → mua ETF/cổ phiếu số nhỏ
-
-Hành động cụ thể:
-1. Mở TK tiết kiệm online (Timo, MBBank...)
-2. Mở TK chứng khoán (SSI, VPS, TCBS — miễn phí)
-3. Tháng đầu: chỉ tiết kiệm, chưa mua gì
-4. Tháng 2: bắt đầu mua ETF E1VFVN30 hoặc FPT (500K-1tr/lệnh)
-5. Ghi chép mọi khoản vào Money_Flow
-
-Chuyển sang Giai đoạn 2 khi: Dự phòng ≥ 3× chi tiêu mục tiêu (ví dụ: 12M nếu mục tiêu 4M/tháng)
-
-Nguyên tắc:
-• Không rút dự phòng để đầu tư
-• Không FOMO khi thấy người khác kiếm lời
-• Số nhỏ không sao — quan trọng là bắt đầu`,
         active: 1,
       },
       {
@@ -809,23 +715,6 @@ Nguyên tắc:
         goal_multiplier: 6,
         goal_desc: 'Danh mục đầu tư đa dạng',
         entry: 'Dự phòng ≥ 3× chi tiêu mục tiêu',
-        guidance: `Dự phòng đã đủ. Chuyển trọng tâm sang đầu tư tăng trưởng.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 60% → Đầu tư (chứng khoán, ETF) — mua đều đặn hàng tháng
-• 15% → Vàng — tích lũy, khi đủ ~16 triệu mua 1 chỉ vàng SJC. Hoặc mua ETF vàng (E1VFVN30) với số tiền nhỏ hơn
-• 10% → Bắn Tỉa — tích lũy tiền mặt, chờ thị trường sụt giảm >15% để triển khai
-• 10% → Dự Phòng — duy trì, điều chỉnh theo lạm phát
-• 5% → Tiết kiệm & Trái phiếu — bắt đầu xây nền tảng ổn định
-
-Hành động cụ thể:
-1. Mua cổ phiếu/ETF đều đặn mỗi tháng (FPT, VNM, VCB, MWG, E1VFVN30...)
-2. Vàng: tích lũy 1.5-2 triệu/tháng. Khi đủ ~16 triệu → mua 1 chỉ SJC (thanh khoản tốt, dễ bán lại)
-3. Bắn Tỉa: theo dõi Sniper Playbook, triển khai khi thị trường sụt giảm
-4. Rebalance mỗi 3 tháng
-5. Không bán Đầu Tư để mua khi dip — dùng tiền từ Bắn Tỉa
-
-Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiêu (ví dụ: 24M nếu mục tiêu 4M/tháng)`,
         active: 0,
       },
       {
@@ -834,44 +723,14 @@ Chuyển sang Giai đoạn 3 khi: Tổng tài sản ≥ 6× chi tiêu mục tiê
         goal_multiplier: 24,
         goal_desc: 'Tài sản = 24× chi tiêu mục tiêu',
         entry: 'Tổng tài sản ≥ 6× chi tiêu mục tiêu',
-        guidance: `Thu nhập đã tăng đáng kể. Bắt đầu đa dạng hóa và xây thu nhập thụ động.
-
-Phân bổ dòng tiền nhàn rỗi:
-• 45% → Đầu tư — đa dạng: cổ phiếu + ETF + vàng
-• 20% → Vàng — tăng tỷ lệ, mua 1-2 chỉ SJC/năm. SJC 1 chỉ là chuẩn (thanh khoản tốt nhất)
-• 15% → Bắn Tỉa — tích lũy vốn chờ cơ hội. Thị trường sập >15% → triển khai mạnh
-• 15% → Tiết kiệm & Trái phiếu — trái phiếu chính phủ/doanh nghiệp uy tín
-• 5% → Dự Phòng — duy trì, điều chỉnh theo chi tiêu thực tế
-
-Hành động cụ thể:
-1. Chuyển trọng tâm sang cổ phiếu trả cổ tức (VCB, VNM, REE, GAS...)
-2. Vàng: mua 1-2 chỉ SJC/năm. Có thể đa dạng: vàng miếng + ETF vàng
-3. Cân nhắc trái phiếu chính phủ/doanh nghiệp uy tín
-4. Bắn Tỉa: khi thị trường sụt giảm >25% → triển khai toàn bộ vốn tích lũy
-5. Rebalance mỗi quý
-
-Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục tiêu (ví dụ: 96M nếu mục tiêu 4M/tháng)`,
         active: 0,
       },
       {
-        name: 'Giai đoạn 4: Tự do tài chính',
+        name: 'Giai đoạn 4: Thu nhập thụ động',
         order: 4,
         goal_multiplier: 0,
         goal_desc: 'Thu nhập thụ động ≥ chi tiêu mục tiêu',
         entry: 'Tổng tài sản ≥ 24× chi tiêu mục tiêu',
-        guidance: `Thu nhập thụ động từ đầu tư vượt chi tiêu sinh hoạt. Bạn không cần làm việc nếu không muốn.
-
-Công thức: Tài sản × (lãi năm / 12) ≥ chi tiêu/tháng
-Ví dụ: Chi tiêu mục tiêu 15M/tháng, lãi 5%/năm → cần 3.6 tỷ
-
-Phân bổ:
-• 40% → Đầu tư — tập trung cổ phiếu trả cổ tức, trái phiếu doanh nghiệp
-• 15% → Vàng — duy trì tỷ lệ, vàng là tài sản trú ẩn an toàn
-• 15% → Bắn Tỉa — vẫn triển khai khi có cơ hội lớn
-• 25% → Tiết kiệm & Trái phiếu — ưu tiên thu nhập thụ động ổn định
-• 5% → Dự Phòng — duy trì
-
-Bạn đã đạt tự do tài chính. Chúc mừng.`,
         active: 0,
       },
     ];
@@ -880,12 +739,13 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
       const goalAmount = p.goal_multiplier > 0 ? p.goal_multiplier * monthlyExpense : 0;
       this.db.run(
-        'INSERT INTO phases (name, sort_order, goal_amount, goal_multiplier, goal_description, entry_condition, guidance, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [p.name, p.order, goalAmount, p.goal_multiplier, p.goal_desc, p.entry, p.guidance, p.active]
+        'INSERT INTO phases (name, sort_order, goal_amount, goal_multiplier, goal_description, entry_condition, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [p.name, p.order, goalAmount, p.goal_multiplier, p.goal_desc, p.entry, p.active]
       );
     }
 
-    // Default phase allocations (match guidance exactly)
+    // Tỷ lệ phân bổ mặc định của từng giai đoạn. Đây là NGUỒN của các
+    // dòng phần trăm mà người dùng đọc — sửa ở đây là chữ đổi theo.
     // cat 1: Dự Phòng, cat 2: Chứng Khoán, cat 3: Vàng, cat 4: Bắn Tỉa, cat 5: TK&TP
     const pa = [
       [1, 1, 0.70], [1, 2, 0.30],
@@ -990,23 +850,6 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     for (const p of phases) {
       const goalAmount = p.goal_multiplier > 0 ? p.goal_multiplier * monthlyExpense : 0;
       this.run('UPDATE phases SET goal_amount = ? WHERE id = ?', [goalAmount, p.id]);
-    }
-
-    // Also update Phase 1 guidance text dynamically to reflect the new monthly expense
-    try {
-      const p1 = this.queryOne('SELECT id, guidance FROM phases WHERE sort_order = 1');
-      if (p1) {
-        const formatCompact = (val) => {
-          if (val >= 1e9) return (val / 1e9).toFixed(1) + ' tỷ';
-          if (val >= 1e6) return (val / 1e6).toFixed(0) + 'M';
-          return val.toLocaleString('vi-VN');
-        };
-        const lines = p1.guidance.split('\n');
-        lines[0] = `Mục tiêu: Dự phòng 3 tháng chi tiêu mục tiêu (~${formatCompact(monthlyExpense * 3)} với mục tiêu ${formatCompact(monthlyExpense)}/tháng). Xây thói quen tài chính.`;
-        this.run('UPDATE phases SET guidance = ? WHERE id = ?', [lines.join('\n'), p1.id]);
-      }
-    } catch (e) {
-      console.error('[DB] Failed to update Phase 1 guidance text:', e.message);
     }
   }
 
@@ -2696,7 +2539,6 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       name: active.name,
       goalDescription: active.goal_description,
       entryCondition: active.entry_condition,
-      guidance: active.guidance,
       goalMultiplier,
       goalAmount,
       basis: isReservePhase ? 'số dư các sổ gắn danh mục Dự Phòng' : 'tổng tài sản',

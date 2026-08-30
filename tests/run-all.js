@@ -22,6 +22,7 @@ const only = (process.argv.find((a) => a.startsWith('--only=')) || '').split('='
 const STATIC_SUITES = [
   { group: 'parity', file: './parity/P1-ipc-vs-rest' },
   { group: 'content', file: './content/T04-voice' },
+  { group: 'content', file: './content/T05-fresh-install' },
 ];
 const SERVER_SUITES = [
   { group: 'parity', file: './parity/P2-signatures' },
