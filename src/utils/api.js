@@ -20,6 +20,9 @@ const put = (path, body) => request('PUT', path, body);
 const del = (path) => request('DELETE', path);
 
 export const api = {
+  snapshot: {
+    get: () => get('/snapshot'),
+  },
   params: {
     get: () => get('/params'),
     update: (key, value) => put('/params', { key, value }),

@@ -1,17 +1,25 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-30T06:50:23.139Z",
+  "generatedAt": "2026-08-30T07:13:58.353Z",
   "note": "Sinh bằng: node tests/rig/gen-matrix.js — đừng sửa tay ngoài phần waiver trong file đó.",
   "counts": {
-    "rest": 69,
-    "ipc": 69,
-    "bridge": 69,
-    "client": 67,
+    "rest": 70,
+    "ipc": 70,
+    "bridge": 70,
+    "client": 68,
     "ui": 56,
-    "total": 330,
+    "total": 334,
     "waived": 5
   },
   "features": [
+    {
+      "id": "rest:GET /api/snapshot",
+      "kind": "rest",
+      "route": "/api/snapshot",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
     {
       "id": "rest:GET /api/params",
       "kind": "rest",
@@ -565,6 +573,12 @@
       "waiver": "Catch-all phục vụ trang SPA, không phải endpoint dữ liệu."
     },
     {
+      "id": "ipc:snapshot:get",
+      "kind": "ipc",
+      "channel": "snapshot:get",
+      "waiver": null
+    },
+    {
       "id": "ipc:params:get",
       "kind": "ipc",
       "channel": "params:get",
@@ -979,6 +993,12 @@
       "waiver": null
     },
     {
+      "id": "bridge:snapshot.get",
+      "kind": "bridge",
+      "channel": "snapshot:get",
+      "waiver": null
+    },
+    {
       "id": "bridge:params.get",
       "kind": "bridge",
       "channel": "params:get",
@@ -1390,6 +1410,11 @@
       "id": "bridge:savings.processMatured",
       "kind": "bridge",
       "channel": "savings:processMatured",
+      "waiver": null
+    },
+    {
+      "id": "client:snapshot.get",
+      "kind": "client",
       "waiver": null
     },
     {

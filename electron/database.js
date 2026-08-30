@@ -40,6 +40,7 @@ class FinancialDB {
     this.migrateToV4();
     this.migrateToV5();
     this.migrateToV6();
+    this.migrateToV7();
     this.seedDefaults();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
@@ -81,6 +82,9 @@ class FinancialDB {
   }
 
   save() {
+    // Mọi thay đổi đều đi qua đây, nên đây là chỗ đúng để bỏ bộ nhớ đệm của
+    // snapshot. Thiếu bước này thì trang sẽ đọc lại số cũ sau khi ghi.
+    this._coreCache = null;
     const data = this.db.export();
     fs.writeFileSync(this.dbPath, Buffer.from(data));
   }
@@ -639,6 +643,30 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
     this.save();
   }
 
+  /**
+   * V7 — bổ sung tham số cho mô hình dự phóng.
+   * seedDefaults() thoát sớm khi DB đã có TOTAL_MONTHS, nên cơ sở dữ liệu đang
+   * dùng sẽ không bao giờ nhận được tham số mới nếu chỉ thêm vào seed.
+   */
+  migrateToV7() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 7) return;
+
+    const extra = [
+      ['INFLATION_RATE', 0.035, 'Lạm phát năm dùng cho dự phóng'],
+      ['EXPECTED_RETURN_STOCK', 0.115, 'Lợi suất kỳ vọng của nhóm Chứng Khoán'],
+    ];
+    for (const [k, v, d] of extra) {
+      this.run('INSERT OR IGNORE INTO parameters (key, value, description) VALUES (?, ?, ?)', [k, v, d]);
+    }
+    this.run(
+      "UPDATE parameters SET description = 'Chi tiêu mục tiêu mỗi tháng (do bạn đặt)' WHERE key = 'FI_MONTHLY_EXPENSE'"
+    );
+
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 7, 'Database schema version')");
+    this.save();
+  }
+
   seedDefaults() {
     const hasDefaults = this.getParam('TOTAL_MONTHS');
     if (hasDefaults) return;
@@ -652,8 +680,12 @@ Chuyển sang Giai đoạn 4 khi: Tổng tài sản ≥ 24× chi tiêu mục ti�
       ['START_MONTH', currentMonth, 'Tháng bắt đầu (1-12)'],
       ['START_YEAR', currentYear, 'Năm bắt đầu'],
 
-      ['FI_MONTHLY_EXPENSE', 4000000, 'Chi tiêu/tháng (tự cập nhật theo dữ liệu thực)'],
-      ['DEFAULT_INFLOW', 3700000, 'Dòng tiền nhàn rỗi mặc định/tháng'],
+      // Mô tả cũ ghi "tự cập nhật theo dữ liệu thực" là sai — không có chỗ nào
+      // trong app tự cập nhật giá trị này; nó là mức sống người dùng nhắm tới.
+      ['FI_MONTHLY_EXPENSE', 4000000, 'Chi tiêu mục tiêu mỗi tháng (do bạn đặt)'],
+      ['DEFAULT_INFLOW', 3700000, 'Dòng tiền nhàn rỗi kỳ vọng mỗi tháng'],
+      ['INFLATION_RATE', 0.035, 'Lạm phát năm dùng cho dự phóng'],
+      ['EXPECTED_RETURN_STOCK', 0.115, 'Lợi suất kỳ vọng của nhóm Chứng Khoán'],
     ];
     for (const [k, v, d] of params) {
       this.db.run('INSERT INTO parameters (key, value, description) VALUES (?, ?, ?)', [k, v, d]);
@@ -1077,75 +1109,22 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     return avgExpense > 0 ? avgExpense : (this.getParam('FI_MONTHLY_EXPENSE') || 4000000);
   }
 
+  /**
+   * Giai đoạn đang ở, suy từ lõi snapshot.
+   *
+   * Trước đây hàm này tự tính tài sản theo GIÁ VỐN và tiết kiệm chỉ tính gốc,
+   * còn getChecklistStatus tính theo GIÁ THỊ TRƯỜNG — hai định nghĩa khác nhau
+   * cho cùng một khái niệm. Giờ cả hai đọc chung một chỗ.
+   */
   getActivePhase() {
-    // Auto-detect phase based on ACTUAL data (not allocations) — supports regression
-    const phases = this.query('SELECT * FROM phases ORDER BY sort_order');
-    if (!phases.length) return null;
+    const core = this._snapshotCore();
+    if (!core.phases.length) return null;
 
-    // Phase 1: Use ACTUAL savings balance assigned to Dự Phòng category or fallback to allocations
-    let duPhongSavingsVal = 0;
-    try {
-      const duPhongSavings = this.query(`
-        SELECT COALESCE(SUM(sa.principal + COALESCE(
-          (SELECT SUM(st.amount) FROM savings_transactions st
-           WHERE st.savings_account_id = sa.id AND st.type = 'interest'), 0
-        )), 0) as total
-        FROM savings_accounts sa
-        JOIN categories c ON c.id = sa.category_id
-        WHERE c.name LIKE '%Dự Phòng%' AND sa.status = 'active'
-      `);
-      duPhongSavingsVal = duPhongSavings[0]?.total || 0;
-    } catch (e) { /* savings table may not exist yet */ }
+    const resolved = this._resolvePhase(core);
+    const activePhase = core.phases.find((p) => p.id === resolved.id);
 
-    const duPhongAllocations = this.queryOne(`
-      SELECT COALESCE(SUM(CASE WHEN actual_amount > 0 THEN actual_amount ELSE planned_amount END), 0) as total
-      FROM allocations a
-      JOIN categories c ON c.id = a.category_id
-      WHERE c.name LIKE '%Dự Phòng%'
-    `)?.total || 0;
-
-    const duPhongActual = Math.max(duPhongSavingsVal, duPhongAllocations);
-
-    // Phase 2+: Use total assets = portfolio value + all savings, fallback to total allocations
-    const portfolio = this.query(`
-      SELECT COALESCE(SUM(CASE WHEN type='BUY' THEN total_amount ELSE -total_amount END), 0) as total
-      FROM transactions
-    `);
-    const portfolioTotal = portfolio[0]?.total || 0;
-
-    let totalSavings = 0;
-    try {
-      const savingsResult = this.query(`
-        SELECT COALESCE(SUM(principal), 0) as total FROM savings_accounts WHERE status = 'active'
-      `);
-      totalSavings = savingsResult[0]?.total || 0;
-    } catch (e) { /* savings table may not exist yet */ }
-
-    const allocationsTotal = this.queryOne(`
-      SELECT COALESCE(SUM(CASE WHEN actual_amount > 0 THEN actual_amount ELSE planned_amount END), 0) as total
-      FROM allocations
-    `)?.total || 0;
-
-    const totalAssets = Math.max(portfolioTotal + totalSavings, allocationsTotal);
-
-    // Use TARGET expense (FI_MONTHLY_EXPENSE) — this is the lifestyle user is building toward
-    const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
-
-    // Phase logic — find HIGHEST qualifying phase (supports regression)
-    // Phase 1: Dự phòng < 3× expense → building emergency fund
-    // Phase 2: Dự phòng ≥ 3× expense → start investing
-    // Phase 3: Total assets ≥ 6× expense → accumulate
-    // Phase 4: Total assets ≥ 24× expense → financial independence
-    let activePhase = phases[0]; // Default Phase 1
-    for (const p of phases) {
-      if (p.sort_order === 1) { activePhase = p; continue; }
-      if (p.sort_order === 2 && duPhongActual >= 3 * monthlyExpense) { activePhase = p; continue; }
-      if (p.sort_order === 3 && totalAssets >= 6 * monthlyExpense) { activePhase = p; continue; }
-      if (p.sort_order === 4 && totalAssets >= 24 * monthlyExpense) { activePhase = p; continue; }
-      break;
-    }
-
-    // Update is_active flags only if changed
+    // Cập nhật cờ is_active nếu đổi. save() sẽ xoá bộ nhớ đệm, nên đọc lõi
+    // trước rồi mới ghi.
     const currentActive = this.queryOne('SELECT id FROM phases WHERE is_active = 1');
     if (!currentActive || currentActive.id !== activePhase.id) {
       this.run('UPDATE phases SET is_active = 0');
@@ -1153,23 +1132,24 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       this.save();
     }
 
-    return activePhase;
+    return { ...activePhase, is_active: 1 };
   }
+
   setActivePhase(phaseId) {
     this.run('UPDATE phases SET is_active = 0');
     this.run('UPDATE phases SET is_active = 1 WHERE id = ?', [phaseId]);
     this.save();
   }
   getChecklistStatus() {
-    const monthlyExpense = this.getParam('FI_MONTHLY_EXPENSE') || 4000000;
-    const portfolio = this.getPortfolio();
-    const savings = this.getSavingsAccounts().filter(s => s.status === 'active');
-    const totalSavings = savings.reduce((sum, s) => sum + (s.principal || 0), 0);
-    const totalAssets = portfolio.reduce((sum, p) => sum + (p.current_value || p.total_invested || 0), 0) + totalSavings;
-    const duPhongSavings = savings.filter(s => {
-      const cat = this.queryOne('SELECT name FROM categories WHERE id = ?', [s.category_id]);
-      return cat?.name?.includes('Dự Phòng');
-    }).reduce((sum, s) => sum + (s.principal || 0), 0);
+    // Mọi con số tài sản lấy từ lõi snapshot, để checklist và máy dò giai đoạn
+    // không bao giờ nói hai chuyện khác nhau về cùng một ngưỡng.
+    const core = this._snapshotCore();
+    const monthlyExpense = core.params.FI_MONTHLY_EXPENSE || 4000000;
+    const portfolio = core.portfolio.items;
+    const savings = core.savings.accounts.filter(s => s.status === 'active');
+    const totalSavings = core.savings.principal;
+    const totalAssets = core.netWorth.total;
+    const duPhongSavings = core.savings.reserveBalance;
     const hasTermSavings = savings.some(s => s.type === 'term');
     const goldAssets = portfolio.filter(p => p.asset_class === 'gold');
     const stockAssets = portfolio.filter(p => p.asset_class !== 'gold' && p.asset_class !== 'etf');
@@ -2321,6 +2301,393 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const d = new Date(targetYear, normMonth, Math.min(day, lastDay));
     const pad = (n) => String(n).padStart(2, '0');
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  }
+
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  SNAPSHOT TÀI CHÍNH — nguồn sự thật duy nhất
+  //
+  //  Trước đây mỗi trang tự tính "Tổng tài sản" theo cách riêng, cho ra sáu
+  //  con số khác nhau. Mọi phép tính tài chính giờ đi qua đây.
+  //
+  //  Kiến trúc: _snapshotCore() CHỈ đọc bảng, không gọi getActivePhase hay
+  //  getSavingsOverview — hai hàm đó xếp lớp lên trên nó. Nếu không tách vậy
+  //  sẽ đệ quy, vì getSavingsOverview vốn đang gọi getActivePhase.
+  // ═══════════════════════════════════════════════════════════════════
+
+  /** Thống kê dòng tiền từ các tháng đã ghi nhận. */
+  getCashflowStats() {
+    const months = this.getFilledMonths();
+    const n = months.length;
+    if (!n) {
+      return {
+        months: 0, totalIncome: 0, totalExpense: 0, totalBonus: 0, totalInflow: 0,
+        incomeMean: 0, expenseMean: 0, bonusMean: 0, inflowMean: 0,
+        inflowSd: 0, inflowCv: 0, salaryNet: 0, bonusFreq: 0, bestMonth: 0,
+      };
+    }
+
+    const sum = (f) => months.reduce((s, m) => s + (Number(m[f]) || 0), 0);
+    const totalIncome = sum('income');
+    const totalExpense = sum('expense');
+    const totalBonus = sum('bonus');
+    const totalInflow = sum('total_inflow');
+
+    const inflowMean = totalInflow / n;
+    const variance = months.reduce((s, m) => s + Math.pow((Number(m.total_inflow) || 0) - inflowMean, 2), 0) / n;
+    const inflowSd = Math.sqrt(variance);
+    const incomeMean = totalIncome / n;
+    const expenseMean = totalExpense / n;
+
+    return {
+      months: n,
+      totalIncome, totalExpense, totalBonus, totalInflow,
+      incomeMean, expenseMean,
+      bonusMean: totalBonus / n,
+      inflowMean,
+      inflowSd,
+      inflowCv: inflowMean > 0 ? inflowSd / inflowMean : 0,
+      // Lương trừ chi tiêu — phần dòng tiền đáng tin nhất, không phụ thuộc thưởng.
+      salaryNet: Math.max(0, incomeMean - expenseMean),
+      bonusFreq: months.filter((m) => (Number(m.bonus) || 0) > 0).length / n,
+      bestMonth: Math.max(...months.map((m) => Number(m.total_inflow) || 0)),
+    };
+  }
+
+  /** Kế hoạch so với thực tế theo từng tháng, kèm lý do người dùng đã ghi. */
+  getPlanVsActual() {
+    const rows = this.query(
+      'SELECT me.month_index, me.month_label, me.total_inflow, ' +
+      'SUM(a.planned_amount) as planned, ' +
+      'SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END) as actual ' +
+      'FROM monthly_entries me JOIN allocations a ON a.monthly_entry_id = me.id ' +
+      'WHERE me.total_inflow > 0 GROUP BY me.id ORDER BY me.month_index'
+    );
+    const byMonth = rows.map((r) => ({
+      month_index: r.month_index,
+      month_label: r.month_label,
+      total_inflow: r.total_inflow,
+      planned: r.planned || 0,
+      actual: r.actual || 0,
+      diff: (r.actual || 0) - (r.planned || 0),
+      diffPct: r.planned > 0 ? ((r.actual || 0) - r.planned) / r.planned : 0,
+    }));
+    return { byMonth, discrepancies: this.getDiscrepancyLogs() };
+  }
+
+  /** Tỷ lệ phân bổ của cả bốn giai đoạn trong một truy vấn. */
+  getAllPhaseAllocations() {
+    const rows = this.query(
+      'SELECT pa.phase_id, p.sort_order, pa.category_id, c.name as category_name, pa.ratio ' +
+      'FROM phase_allocations pa ' +
+      'JOIN phases p ON p.id = pa.phase_id ' +
+      'JOIN categories c ON c.id = pa.category_id ' +
+      'ORDER BY p.sort_order, c.sort_order'
+    );
+    const bySortOrder = {};
+    for (const r of rows) {
+      (bySortOrder[r.sort_order] ||= []).push({
+        category_id: r.category_id,
+        category_name: r.category_name,
+        ratio: r.ratio,
+      });
+    }
+    return bySortOrder;
+  }
+
+  /**
+   * Biến động và mức sụt sâu nhất, đo từ lịch sử giá thật.
+   * Chỉ báo cáo mã có từ 60 phiên trở lên — dưới mức đó con số không nói lên gì.
+   * Có bộ nhớ đệm vì price_snapshots chỉ đổi khi cron chạy.
+   */
+  getPriceRiskStats() {
+    const stamp = this.queryOne('SELECT COUNT(*) as n, MAX(date) as d FROM price_snapshots');
+    const key = String(stamp && stamp.n) + '|' + String(stamp && stamp.d);
+    if (this._riskCache && this._riskCache.key === key) return this._riskCache.value;
+
+    const rows = this.query(
+      'SELECT a.ticker, p.close FROM price_snapshots p ' +
+      'JOIN asset_types a ON a.id = p.asset_type_id ' +
+      'WHERE a.ticker IS NOT NULL AND p.close > 0 ORDER BY a.ticker, p.date ASC'
+    );
+    const series = {};
+    for (const r of rows) (series[r.ticker] ||= []).push(r.close);
+
+    const byAsset = {};
+    for (const ticker of Object.keys(series)) {
+      const closes = series[ticker];
+      if (closes.length < 60) continue;
+
+      const rets = [];
+      for (let i = 1; i < closes.length; i++) rets.push(Math.log(closes[i] / closes[i - 1]));
+      const mean = rets.reduce((s, x) => s + x, 0) / rets.length;
+      const varr = rets.reduce((s, x) => s + Math.pow(x - mean, 2), 0) / rets.length;
+
+      let peak = closes[0];
+      let maxDd = 0;
+      for (const c of closes) {
+        if (c > peak) peak = c;
+        maxDd = Math.min(maxDd, c / peak - 1);
+      }
+
+      byAsset[ticker] = {
+        sessions: closes.length,
+        cagr: Math.pow(closes[closes.length - 1] / closes[0], 252 / closes.length) - 1,
+        annualVol: Math.sqrt(varr) * Math.sqrt(252),
+        maxDrawdown: maxDd,
+      };
+    }
+
+    const value = { byAsset };
+    this._riskCache = { key, value };
+    return value;
+  }
+
+  /**
+   * Lõi snapshot — CHỈ đọc bảng. Không gọi getActivePhase/getSavingsOverview.
+   * Nhớ kết quả trong một lượt xử lý; cờ được xoá trong save().
+   */
+  _snapshotCore() {
+    // Bộ nhớ đệm phải gắn với ĐÚNG đối tượng DB đang dùng. Ngoài save(), còn
+    // một đường khác thay cả cơ sở dữ liệu mà không đi qua save(): endpoint
+    // reload-db của server demo gán thẳng db.db = new SQL.Database(...).
+    // Không so danh tính ở đây thì sau mỗi lần khôi phục snapshot sẽ trả số cũ.
+    if (this._coreCache && this._coreCache.__db === this.db) return this._coreCache;
+
+    const params = {};
+    for (const p of this.getParameters()) params[p.key] = p.value;
+
+    const categories = this.getCategories();
+    const nameOf = (frag) => {
+      const c = categories.find((x) => x.name.includes(frag));
+      return c ? c.name : null;
+    };
+    const RESERVE = nameOf('Dự Phòng');
+    const SAVINGS_CAT = nameOf('Tiết kiệm');
+
+    // ── Danh mục đầu tư ────────────────────────────────────────────
+    const portfolio = this.getPortfolio();
+    const invested = portfolio.reduce((s, p) => s + p.total_invested, 0);
+    const marketValue = portfolio.reduce((s, p) => s + p.current_value, 0);
+    const pfByCategory = {};
+    for (const p of portfolio) {
+      const cat = this._getAssetAllocationCategory(p.asset_type_id, p.asset_class || 'other');
+      pfByCategory[cat] ||= { invested: 0, marketValue: 0, items: [] };
+      pfByCategory[cat].invested += p.total_invested;
+      pfByCategory[cat].marketValue += p.current_value;
+      pfByCategory[cat].items.push(p);
+    }
+    // MỘT định nghĩa "đã giải ngân", có tính phí — tiền thực sự rời túi.
+    const deployedRow = this.queryOne(
+      "SELECT COALESCE(SUM(CASE WHEN type = 'BUY' THEN total_amount + fee ELSE -total_amount + fee END), 0) as v FROM transactions"
+    );
+    const deployed = (deployedRow && deployedRow.v) || 0;
+
+    // ── Tiết kiệm ──────────────────────────────────────────────────
+    const accounts = this.getSavingsAccounts();
+    const active = accounts.filter((a) => a.status === 'active');
+    const isLiquid = (a) => a.type === 'liquid';
+    const sumBy = (list, f) => list.reduce((s, a) => s + (Number(a[f]) || 0), 0);
+    const reserveCat = categories.find((c) => c.name === RESERVE);
+    const reserveAccts = active.filter((a) => reserveCat && a.category_id === reserveCat.id);
+
+    const svByCategory = {};
+    for (const a of active) {
+      const cat = a.category_name || SAVINGS_CAT;
+      if (!cat) continue;
+      svByCategory[cat] ||= { principal: 0, balance: 0, count: 0 };
+      svByCategory[cat].principal += a.principal || 0;
+      svByCategory[cat].balance += a.current_balance || a.principal || 0;
+      svByCategory[cat].count++;
+    }
+
+    const savings = {
+      principal: sumBy(active, 'principal'),
+      accrued: sumBy(active, 'accrued_interest'),
+      projectedInterest: sumBy(active, 'projected_interest'),
+      liquidPrincipal: sumBy(active.filter(isLiquid), 'principal'),
+      liquidAccrued: sumBy(active.filter(isLiquid), 'accrued_interest'),
+      termPrincipal: sumBy(active.filter((a) => !isLiquid(a)), 'principal'),
+      termAccrued: sumBy(active.filter((a) => !isLiquid(a)), 'accrued_interest'),
+      reservePrincipal: sumBy(reserveAccts, 'principal'),
+      reserveAccrued: sumBy(reserveAccts, 'accrued_interest'),
+      accountCount: active.length,
+      maturedCount: accounts.filter((a) => a.status !== 'active').length,
+      byCategory: svByCategory,
+      accounts,
+    };
+    savings.balance = savings.principal + savings.accrued;
+    savings.liquidBalance = savings.liquidPrincipal + savings.liquidAccrued;
+    savings.termBalance = savings.termPrincipal + savings.termAccrued;
+    savings.reserveBalance = savings.reservePrincipal + savings.reserveAccrued;
+    savings.weightedRate = savings.principal > 0
+      ? active.reduce((s, a) => s + (a.principal || 0) * (a.interest_rate || 0), 0) / savings.principal
+      : 0;
+
+    // ── Phân bổ ────────────────────────────────────────────────────
+    const allAllocs = this.getAllAllocations();
+    const amountOf = (a) => (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0);
+    const alByCategory = {};
+    for (const a of allAllocs) {
+      alByCategory[a.category_name] ||= 0;
+      alByCategory[a.category_name] += amountOf(a);
+    }
+    const allocTotal = Object.values(alByCategory).reduce((s, v) => s + v, 0);
+    const toReserve = alByCategory[RESERVE] || 0;
+    const toSavings = alByCategory[SAVINGS_CAT] || 0;
+    const toMarket = allocTotal - toReserve - toSavings;
+
+    // ── Dòng tiền và tiền mặt ──────────────────────────────────────
+    const cashflow = this.getCashflowStats();
+    const unallocated = Math.max(0, cashflow.totalInflow - allocTotal);
+    const awaitingInvestment = Math.max(0, toMarket - deployed);
+    const cash = { unallocated, awaitingInvestment, total: unallocated + awaitingInvestment };
+
+    const netWorth = {
+      cash: cash.total,
+      portfolio: marketValue,
+      savings: savings.balance,
+      total: cash.total + marketValue + savings.balance,
+      basis: 'tiền mặt + giá thị trường danh mục + gốc và lãi tiết kiệm',
+    };
+
+    const core = {
+      params,
+      categories,
+      roles: { RESERVE, SAVINGS_CAT },
+      cashflow,
+      allocations: {
+        total: allocTotal, toReserve, toSavings, toMarket,
+        unallocated, byCategory: alByCategory, rows: allAllocs,
+      },
+      portfolio: {
+        invested, marketValue, deployed,
+        gain: marketValue - invested,
+        gainPct: invested > 0 ? (marketValue - invested) / invested : 0,
+        byCategory: pfByCategory,
+        items: portfolio,
+      },
+      savings,
+      cash,
+      liquidity: { total: cash.total + savings.liquidBalance },
+      netWorth,
+      phases: this.getPhases(),
+      phaseAllocations: this.getAllPhaseAllocations(),
+    };
+
+    core.__db = this.db;
+    this._coreCache = core;
+    return core;
+  }
+
+  /** Giai đoạn đang ở, tính từ lõi snapshot. */
+  _resolvePhase(core) {
+    const expense = core.params.FI_MONTHLY_EXPENSE || 4000000;
+    const phases = core.phases;
+    if (!phases.length) return null;
+
+    // Ngưỡng: GĐ2 khi dự phòng ≥ 3× chi tiêu mục tiêu, GĐ3 khi tổng tài sản
+    // ≥ 6×, GĐ4 khi ≥ 24×. Cho phép tụt hạng nếu tài sản giảm — có chủ ý.
+    const reserve = core.savings.reserveBalance;
+    const total = core.netWorth.total;
+
+    let active = phases[0];
+    for (const p of phases) {
+      if (p.sort_order === 1) { active = p; continue; }
+      if (p.sort_order === 2 && reserve >= 3 * expense) { active = p; continue; }
+      if (p.sort_order === 3 && total >= 6 * expense) { active = p; continue; }
+      if (p.sort_order === 4 && total >= 24 * expense) { active = p; continue; }
+      break;
+    }
+
+    const goalMultiplier = active.goal_multiplier || 0;
+    const goalAmount = goalMultiplier * expense;
+    const isReservePhase = active.sort_order === 1;
+    const current = isReservePhase ? reserve : total;
+
+    return {
+      id: active.id,
+      sortOrder: active.sort_order,
+      name: active.name,
+      goalDescription: active.goal_description,
+      entryCondition: active.entry_condition,
+      guidance: active.guidance,
+      goalMultiplier,
+      goalAmount,
+      basis: isReservePhase ? 'số dư các sổ gắn danh mục Dự Phòng' : 'tổng tài sản',
+      current,
+      pct: goalAmount > 0 ? Math.min(100, Math.max(0, (current / goalAmount) * 100)) : 100,
+      isFinal: active.sort_order === phases.length,
+      thresholds: { p2: 3 * expense, p3: 6 * expense, p4: 24 * expense },
+    };
+  }
+
+  /** Ngày hôm nay theo giờ địa phương — không dùng toISOString (giờ UTC). */
+  _todayLocal() {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  }
+
+  /** Snapshot đầy đủ — thứ mọi trang nên đọc. */
+  getFinancialSnapshot() {
+    const core = this._snapshotCore();
+    const phase = this._resolvePhase(core);
+    const expense = core.params.FI_MONTHLY_EXPENSE || 4000000;
+    const fiNumber = (expense * 12) / 0.04;
+
+    const sniperCatObj = core.categories.find((c) => c.name.includes('Bắn Tỉa'));
+    const sniperCat = sniperCatObj ? sniperCatObj.name : null;
+    const sniperAllocated = sniperCat ? core.allocations.byCategory[sniperCat] || 0 : 0;
+    const sniperBucket = sniperCat ? core.portfolio.byCategory[sniperCat] : null;
+    const sniperDeployed = sniperBucket ? sniperBucket.invested : 0;
+
+    const nextSort = (phase ? phase.sortOrder : 0) + 1;
+    const nextPhase = core.phases.find((p) => p.sort_order === nextSort) || null;
+
+    return {
+      asOf: this._todayLocal(),
+      params: core.params,
+      categories: core.categories,
+      cashflow: core.cashflow,
+      allocations: {
+        total: core.allocations.total,
+        toReserve: core.allocations.toReserve,
+        toSavings: core.allocations.toSavings,
+        toMarket: core.allocations.toMarket,
+        unallocated: core.allocations.unallocated,
+        byCategory: core.allocations.byCategory,
+      },
+      portfolio: core.portfolio,
+      savings: core.savings,
+      cash: core.cash,
+      liquidity: core.liquidity,
+      netWorth: core.netWorth,
+      phase,
+      nextPhase: nextPhase
+        ? {
+            id: nextPhase.id,
+            sortOrder: nextPhase.sort_order,
+            name: nextPhase.name,
+            entryCondition: nextPhase.entry_condition,
+          }
+        : null,
+      phaseAllocations: core.phaseAllocations,
+      fi: {
+        monthlyExpense: expense,
+        fiNumber,
+        ratio: fiNumber > 0 ? (core.netWorth.total / fiNumber) * 100 : 0,
+      },
+      sniper: {
+        allocated: sniperAllocated,
+        deployed: sniperDeployed,
+        available: Math.max(0, sniperAllocated - sniperDeployed),
+        feePolicy: 'included',
+      },
+      plan: this.getPlanVsActual(),
+      risk: this.getPriceRiskStats(),
+      checklist: this.getChecklistStatus(),
+    };
   }
 
   close() {

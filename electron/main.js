@@ -83,6 +83,9 @@ async function ready() { if (db?.ready) await db.ready; }
 
 // ===== IPC Handlers (Electron-specific, not REST) =====
 
+// Snapshot
+ipcMain.handle('snapshot:get', async () => { await ready(); return db.getFinancialSnapshot(); });
+
 // Parameters
 ipcMain.handle('params:get', async () => { await ready(); return db.getParameters(); });
 ipcMain.handle('params:update', async (_, k, v) => { await ready(); db.updateParameter(k, v); return true; });

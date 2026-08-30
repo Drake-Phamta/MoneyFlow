@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
+  snapshot: {
+    get: () => ipcRenderer.invoke('snapshot:get'),
+  },
   params: {
     get: () => ipcRenderer.invoke('params:get'),
     update: (k, v) => ipcRenderer.invoke('params:update', k, v),

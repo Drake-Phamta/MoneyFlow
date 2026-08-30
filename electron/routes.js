@@ -25,6 +25,12 @@ const fs = require('fs');
 function setupRoutes(app, db, priceService, upload, opts = {}) {
   const fallbackDir = opts.fallbackDir || path.join(__dirname, '../dist');
 
+  // ===== SNAPSHOT — nguồn sự thật duy nhất cho mọi con số tài chính =====
+  app.get('/api/snapshot', (req, res) => {
+    try { res.json(db.getFinancialSnapshot()); }
+    catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
   // ===== PARAMETERS =====
   app.get('/api/params', (req, res) => {
     try { res.json(db.getParameters()); }
