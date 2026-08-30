@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { formatVND, todayLocal, toLocalDateStr } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
 import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '../utils/iconMap';
 import { buildSavingsGuidance } from '../content/phases.js';
-import { useConfirm } from './ui/index.jsx';
+import { EmptyState, Skeleton, Modal, Field, useConfirm } from './ui/index.jsx';
 
 const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (giá định mức)
 
@@ -330,7 +329,14 @@ export default function SavingsSection() {
     { targetExpense: snap?.params.FI_MONTHLY_EXPENSE, goldUnitPrice: sjcPrice }
   );
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="card"><Skeleton rows={3} /></div>
+        <div className="card"><Skeleton rows={5} /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -731,7 +737,7 @@ export default function SavingsSection() {
         {/* Accounts table */}
         {activeAccounts.length > 0 ? (
           <div className="overflow-x-auto">
-            <table className="w-full" style={{ minWidth: '1000px' }}>
+            <table className="table" style={{ minWidth: '1000px' }}>
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '180px' }}>Sổ tiết kiệm</th>
@@ -963,8 +969,10 @@ export default function SavingsSection() {
           </div>
         ) : !addingSavings ? (
           <div className="text-center py-12 text-slate-400">
-            <p className="text-sm">Chưa có sổ tiết kiệm nào</p>
-            <p className="text-xs mt-1">Thêm sổ để theo dõi lãi suất và đáo hạn</p>
+            <EmptyState
+              title="Chưa có sổ tiết kiệm nào"
+              message="Thêm sổ để app theo giúp lãi suất và ngày đáo hạn."
+            />
           </div>
         ) : null}
 
@@ -1024,70 +1032,54 @@ export default function SavingsSection() {
       )}
 
       {/* ===== Gold Buy Confirmation Modal ===== */}
-      {showGoldBuyModal && createPortal(
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-fade-in">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">🥇</div>
-              <div>
-                <h3 className="text-base font-bold text-slate-800">Ghi nhận mua vàng SJC</h3>
-                <p className="text-xs text-slate-400">Giao dịch sẽ lưu vào Danh mục đầu tư</p>
-              </div>
+      <Modal
+        open={showGoldBuyModal}
+        onClose={() => setShowGoldBuyModal(false)}
+        size="sm"
+        title="Ghi nhận mua vàng SJC"
+        description="Giao dịch lưu vào danh mục đầu tư, và lãi lỗ tự tính khi giá SJC đổi."
+        footer={
+          <>
+            <button type="button" className="btn-secondary" onClick={() => setShowGoldBuyModal(false)}>
+              Huỷ
+            </button>
+            <button type="button" className="btn-primary" onClick={handleBuyGold} disabled={goldBuying}>
+              {goldBuying ? 'Đang lưu…' : 'Xác nhận mua'}
+            </button>
+          </>
+        }
+      >
+        <dl className="rounded-input border border-slate-200 divide-y divide-slate-200">
+          {[
+            ['Tài sản', 'Vàng SJC'],
+            ['Khối lượng', '1 chỉ'],
+            ['Giá mua', formatVND(sjcPrice)],
+          ].map(([k, v]) => (
+            <div key={k} className="flex items-center justify-between px-3 py-2">
+              <dt className="text-fs-2 text-slate-500">{k}</dt>
+              <dd className="text-fs-3 font-semibold text-slate-800 tabular">{v}</dd>
             </div>
+          ))}
+        </dl>
 
-            <div className="space-y-3 mb-5">
-              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
-                <span className="text-sm text-slate-600">Tài sản</span>
-                <span className="text-sm font-semibold text-amber-800">Vàng SJC</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
-                <span className="text-sm text-slate-600">Khối lượng</span>
-                <span className="text-sm font-semibold text-amber-800">1 chỉ</span>
-              </div>
-              <div className="flex justify-between items-center p-3 bg-amber-50 rounded-xl">
-                <span className="text-sm text-slate-600">Giá mua</span>
-                <span className="text-sm font-bold text-amber-800">{formatVND(sjcPrice)}</span>
-              </div>
-              <div>
-                <label className="text-xs text-slate-500 mb-1 block">Ngày mua</label>
-                <input
-                  type="date"
-                  value={goldBuyDate}
-                  onChange={e => setGoldBuyDate(e.target.value)}
-                  className="input w-full"
-                />
-              </div>
-              {goldBought > 0 && (
-                <div className="flex justify-between items-center p-3 bg-emerald-50 rounded-xl">
-                  <span className="text-sm text-slate-600">Tổng sau khi mua</span>
-                  <span className="text-sm font-bold text-emerald-700">{goldBought + 1} chỉ vàng SJC</span>
-                </div>
-              )}
-            </div>
+        <Field label="Ngày mua" className="mt-3">
+          {(props) => (
+            <input
+              {...props}
+              type="date"
+              value={goldBuyDate}
+              onChange={(e) => setGoldBuyDate(e.target.value)}
+              className="input w-full"
+            />
+          )}
+        </Field>
 
-            <p className="text-xs text-slate-400 mb-4">
-              💡 Lãi/lỗ sẽ tự động tính khi giá SJC thay đổi. Xem tại mục <strong>Đầu tư &gt; Danh mục</strong>.
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowGoldBuyModal(false)}
-                className="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleBuyGold}
-                disabled={goldBuying}
-                className="flex-1 py-2 rounded-xl text-sm font-bold bg-warning hover:bg-warning text-oncolor transition disabled:opacity-60"
-              >
-                {goldBuying ? 'Đang lưu...' : '✓ Xác nhận mua'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+        {goldBought > 0 && (
+          <p className="text-fs-2 text-slate-500 mt-3">
+            Sau khi mua bạn có {goldBought + 1} chỉ vàng SJC.
+          </p>
+        )}
+      </Modal>
     </div>
   );
 }

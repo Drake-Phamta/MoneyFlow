@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { formatVND } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 import AppIcon, { CheckCircle } from '../../utils/iconMap';
+import { EmptyState, Skeleton } from '../ui/index.jsx';
 
 // Dự phòng khi một danh mục chưa có màu riêng. Cùng bảng màu giấy với
 // categories.color, xem migrateToV9.
@@ -156,7 +157,14 @@ export default function AllocationGoals() {
   const assetCount = portfolio.length;
   const categoryCount = currentAlloc.filter(c => !c.name.startsWith('__')).length;
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="card"><Skeleton rows={3} /></div>
+        <div className="card"><Skeleton rows={5} /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -166,7 +174,7 @@ export default function AllocationGoals() {
         <div className="card xl:col-span-2">
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Phân bổ hiện tại</h3>
           {pieData.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-sm">Chưa có dữ liệu</div>
+            <EmptyState title="Chưa có tài sản nào" message="Ghi tháng đầu tiên là biểu đồ này có hình." />
           ) : (
             <div className="flex items-center gap-6">
               <ResponsiveContainer width={180} height={180}>
@@ -202,7 +210,7 @@ export default function AllocationGoals() {
             {phase && <span className="text-xs text-slate-400 ml-2">({phase.name})</span>}
           </h3>
           {targetAlloc.length === 0 ? (
-            <div className="text-center py-12 text-slate-400 text-sm">Chưa có phân bổ mục tiêu</div>
+            <EmptyState title="Giai đoạn này chưa đặt tỷ lệ" message="Đặt tỷ lệ ở Cài đặt để có mốc mà so." />
           ) : (
             <div className="space-y-4">
               {targetAlloc.map(t => {

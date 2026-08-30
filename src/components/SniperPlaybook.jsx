@@ -5,7 +5,7 @@ import { apiClient } from '../utils/apiClient';
 import { QuantityInput } from './FormattedInput';
 import { SNIPER_TIERS } from '../content/phases.js';
 import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
-import { useConfirm } from './ui/index.jsx';
+import { useConfirm, EmptyState, Skeleton } from './ui/index.jsx';
 
 export default function SniperPlaybook({ embedded }) {
   const { confirm, notify } = useConfirm();
@@ -198,7 +198,14 @@ export default function SniperPlaybook({ embedded }) {
     { value: 'crypto', label: 'Crypto' },
   ];
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="card"><Skeleton rows={3} /></div>
+        <div className="card"><Skeleton rows={5} /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -506,7 +513,7 @@ export default function SniperPlaybook({ embedded }) {
           <div className="text-center py-8 text-slate-400 text-sm">Chưa có lệnh bắn tỉa</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full" style={{ minWidth: '700px' }}>
+            <table className="table" style={{ minWidth: '700px' }}>
               <thead>
                 <tr className="border-b border-slate-200">
                   <th className="text-left text-xs font-semibold text-slate-500 uppercase py-3 px-3" style={{ width: '90px' }}>Ngày</th>

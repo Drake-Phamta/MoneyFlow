@@ -4,7 +4,7 @@ import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
 import FormattedInput, { QuantityInput } from './FormattedInput';
-import { useConfirm } from './ui/index.jsx';
+import { useConfirm, EmptyState, Skeleton } from './ui/index.jsx';
 
 export default function ExecutionLog({ embedded }) {
   const { confirm, notify } = useConfirm();
@@ -193,7 +193,14 @@ export default function ExecutionLog({ embedded }) {
   const hasDiscrepancy = investmentAllocated > 0 && Math.abs(discrepancy) > 1000; // ignore tiny rounding
   const isConfirmed = discrepancyConfirmed && Math.abs(discrepancyConfirmed.amount - discrepancy) < 1000;
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="card"><Skeleton rows={3} /></div>
+        <div className="card"><Skeleton rows={5} /></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -442,52 +449,57 @@ export default function ExecutionLog({ embedded }) {
       <div id="transaction-table" className="card p-0 overflow-hidden">
         {transactions.length === 0 ? (
           <div className="text-center py-16 text-slate-400">
-            <p className="text-sm">Chưa có giao dịch</p>
-            <button onClick={() => setShowForm(true)} className="btn-primary mt-3 text-sm">Thêm giao dịch đầu tiên</button>
+            <EmptyState
+              title="Chưa có giao dịch nào"
+              message="Mỗi lệnh mua bán ghi ở đây sẽ tự chảy vào danh mục và vào tổng tài sản."
+              action={
+                <button type="button" onClick={() => setShowForm(true)} className="btn-primary text-fs-3">
+                  Ghi giao dịch đầu tiên
+                </button>
+              }
+            />
           </div>
         ) : (
           <div className="table-wrap border-0 rounded-none">
-            <table className="w-full" style={{ tableLayout: 'fixed' }}>
+            <table className="table" style={{ tableLayout: 'fixed' }}>
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '40px' }}>#</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '100px' }}>Ngày</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Tài sản</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '70px' }}>Loại</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '90px' }}>Chiến lược</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '90px' }}>Khối lượng</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '120px' }}>Giá</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Thành tiền</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '50px' }}></th>
+                <tr>
+                                    <th className="text-left" style={{ width: '100px' }}>Ngày</th>
+                  <th className="text-left">Tài sản</th>
+                  <th className="text-center" style={{ width: '70px' }}>Loại</th>
+                  <th className="text-center" style={{ width: '90px' }}>Chiến lược</th>
+                  <th className="text-center" style={{ width: '90px' }}>Khối lượng</th>
+                  <th className="text-right" style={{ width: '120px' }}>Giá</th>
+                  <th className="text-right" style={{ width: '130px' }}>Thành tiền</th>
+                  <th className="text-center" style={{ width: '50px' }}></th>
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((t, i) => (
-                  <tr key={t.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3 text-slate-400 text-sm">{i + 1}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600">{formatDate(t.date)}</td>
-                    <td className="px-4 py-3">
+                {transactions.map((t) => (
+                  <tr key={t.id}>
+                                        <td className="text-sm text-slate-600">{formatDate(t.date)}</td>
+                    <td>
                       <div className="flex items-center gap-2 min-w-0">
                         <AppIcon name={t.icon} size={18} />
                         <span className="text-sm font-medium text-slate-700 truncate">{t.display_name || t.asset_type_name}</span>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="text-center">
                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.type === 'BUY' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                         {t.type === 'BUY' ? 'MUA' : 'BÁN'}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="text-center">
                       {t.strategy ? (
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.strategy === 'Sniper' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
                           {t.strategy}
                         </span>
                       ) : <span className="text-xs text-slate-400">—</span>}
                     </td>
-                    <td className="px-4 py-3 text-center text-sm text-slate-600 font-mono">{t.quantity}</td>
-                    <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">{formatVND(t.total_amount)}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="text-center text-sm text-slate-600 font-mono">{t.quantity}</td>
+                    <td className="text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>
+                    <td className="text-right text-sm font-semibold text-slate-800">{formatVND(t.total_amount)}</td>
+                    <td className="text-center">
                       <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition" title="Xóa">
                         <Trash size={16} />
                       </button>
@@ -512,24 +524,24 @@ export default function ExecutionLog({ embedded }) {
             </div>
           ) : (
             <div className="table-wrap mt-2 overflow-hidden">
-              <table className="w-full" style={{ tableLayout: 'fixed' }}>
+              <table className="table" style={{ tableLayout: 'fixed' }}>
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '130px' }}>Tháng áp dụng</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '180px' }}>Hạng mục điều chỉnh</th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-slate-500 uppercase whitespace-nowrap" style={{ width: '150px' }}>Số tiền lệch</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-slate-500 uppercase whitespace-nowrap">Lý do ghi nhận</th>
+                  <tr>
+                    <th className="text-left" style={{ width: '130px' }}>Tháng áp dụng</th>
+                    <th className="text-left" style={{ width: '180px' }}>Hạng mục điều chỉnh</th>
+                    <th className="text-right" style={{ width: '150px' }}>Số tiền lệch</th>
+                    <th className="text-left">Lý do ghi nhận</th>
                   </tr>
                 </thead>
                 <tbody>
                   {discrepancyLogs.map(log => (
                     <tr key={log.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors last:border-b-0">
-                      <td className="px-4 py-3 text-sm font-semibold text-slate-700">{log.month_label}</td>
-                      <td className="px-4 py-3 text-sm text-slate-600 truncate" title={log.category_name}>{log.category_name || '—'}</td>
+                      <td className="text-sm font-semibold text-slate-700">{log.month_label}</td>
+                      <td className="text-sm text-slate-600 truncate" title={log.category_name}>{log.category_name || '—'}</td>
                       <td className={`px-4 py-3 text-sm text-right font-semibold whitespace-nowrap ${log.amount > 0 ? 'text-amber-600' : 'text-blue-600'}`}>
                         {log.amount > 0 ? '+' : ''}{formatVND(log.amount)}
                       </td>
-                      <td className="px-4 py-3 text-sm text-slate-500 truncate" title={log.reason}>{log.reason || '—'}</td>
+                      <td className="text-sm text-slate-500 truncate" title={log.reason}>{log.reason || '—'}</td>
                     </tr>
                   ))}
                 </tbody>

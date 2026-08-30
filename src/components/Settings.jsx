@@ -597,7 +597,7 @@ export default function Settings() {
 
         {/* Asset Table */}
         <div className="overflow-auto max-h-[400px] rounded-xl border border-slate-200">
-          <table className="w-full text-sm" style={{ tableLayout: 'fixed' }}>
+          <table className="table" style={{ tableLayout: 'fixed' }}>
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
                 <th className="px-3 py-2 text-left w-8"><input type="checkbox" checked={filteredAssets.length > 0 && filteredAssets.every(a => selectedAssets.has(a.id))} onChange={selectAllFiltered} className="rounded" /></th>
