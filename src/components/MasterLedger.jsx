@@ -2,8 +2,10 @@ import { useState, useEffect } from 'react';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import { CheckCircle } from '../utils/iconMap';
+import { useConfirm } from './ui/index.jsx';
 
 export default function MasterLedger() {
+  const { confirm, notify } = useConfirm();
   const [entries, setEntries] = useState([]);
   const [phases, setPhases] = useState([]);
   const [filter, setFilter] = useState('has-data');
@@ -72,7 +74,7 @@ export default function MasterLedger() {
       loadData();
     } catch (err) {
       console.error('Save edit error:', err);
-      alert('Lỗi khi lưu: ' + err.message);
+      await notify({ message: 'Lỗi khi lưu: ' + err.message });
     }
   }
 

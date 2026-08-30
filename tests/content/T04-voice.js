@@ -136,6 +136,32 @@ async function run() {
       ok(hits.length === 0, hits.join('\n      '));
     }
   );
+  await t(
+    'CT-35',
+    'Không màn hình nào còn dùng hộp thoại gốc của trình duyệt',
+    [],
+    () => {
+      // alert() và confirm() gốc chỉ nhận được một chuỗi, nên câu hỏi luôn phải
+      // chung chung: "Xoá sổ tiết kiệm này?" mà không nói sổ đó giữ bao nhiêu
+      // tiền. Với một app quản lý tiền, đó là chỗ người dùng bấm nhầm.
+      const native = /(?:^|[^.\w])(alert|confirm|prompt)\s*\(|window\.(alert|confirm|prompt)\s*\(/;
+      const hits = [];
+      for (const b of bodies) {
+        if (!b.file.endsWith('.jsx')) continue;
+        if (b.file.includes('components/ui/')) continue; // chính lớp thay thế
+        const rows = b.code.split('\n');
+        for (let i = 0; i < rows.length; i++) {
+          const line = rows[i];
+          if (line.includes('useConfirm')) continue;
+          if (line.includes('await confirm')) continue;
+          if (line.includes('await notify')) continue;
+          if (native.test(line)) hits.push(b.file + ':' + (i + 1) + ' ' + line.trim().slice(0, 60));
+        }
+      }
+      ok(hits.length === 0, hits.length + ' chỗ còn hộp thoại gốc: ' + hits.join(' | '));
+    }
+  );
+
 }
 
 module.exports = { run };

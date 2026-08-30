@@ -6,10 +6,12 @@ import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
 import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '../utils/iconMap';
 import { buildSavingsGuidance } from '../content/phases.js';
+import { useConfirm } from './ui/index.jsx';
 
 const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (giá định mức)
 
 export default function SavingsSection() {
+  const { confirm, notify } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
   const [snap, setSnap] = useState(null);
@@ -75,7 +77,7 @@ export default function SavingsSection() {
 
   async function handleBuyGold() {
     if (!sjcAssetId) {
-      alert('Không tìm thấy tài sản Vàng SJC trong hệ thống. Vui lòng kiểm tra mục Cài đặt > Tài sản.');
+      await notify({ message: 'Không tìm thấy tài sản Vàng SJC trong hệ thống. Vui lòng kiểm tra mục Cài đặt > Tài sản.' });
       return;
     }
     setGoldBuying(true);
@@ -94,7 +96,7 @@ export default function SavingsSection() {
       setShowGoldBuyModal(false);
       loadData(); // refresh gold count + savings
     } catch (err) {
-      alert('Lỗi khi ghi nhận mua vàng: ' + err.message);
+      await notify({ message: 'Lỗi khi ghi nhận mua vàng: ' + err.message });
     } finally {
       setGoldBuying(false);
     }
@@ -123,17 +125,34 @@ export default function SavingsSection() {
       });
       loadData();
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 
   async function handleDeleteSavings(id) {
-    if (!confirm('Xóa sổ tiết kiệm này?')) return;
+    const acc = savingsAccounts.find((a) => a.id === id);
+    const ok = await confirm({
+      title: 'Xoá sổ tiết kiệm',
+      message: acc
+        ? `Sổ "${acc.name}" và toàn bộ lịch sử giao dịch của nó biến mất khỏi app.`
+        : 'Sổ này và toàn bộ lịch sử giao dịch của nó biến mất khỏi app.',
+      details: acc
+        ? [
+            { label: 'Vốn gốc', value: formatVND(acc.principal || 0) },
+            { label: 'Lãi đã tính', value: formatVND(acc.accrued_interest || 0) },
+            { label: 'Danh mục', value: acc.category_name || '—' },
+          ]
+        : null,
+      warning: 'Không hoàn tác được. Tiền thật trong ngân hàng không bị ảnh hưởng.',
+      confirmLabel: 'Xoá sổ',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await apiClient.savings.delete(id);
       loadData();
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 
@@ -172,12 +191,19 @@ export default function SavingsSection() {
       setEditingId(null);
       loadData();
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 
   async function handleDeleteTransaction(accountId, id) {
-    if (!confirm('Bạn có chắc chắn muốn xóa giao dịch này? Số tiền gốc của sổ sẽ tự động thay đổi.')) return;
+    const ok = await confirm({
+      title: 'Xoá giao dịch trong sổ',
+      message: 'Vốn gốc của sổ tính lại theo các giao dịch còn lại, và lãi tính lại theo vốn mới.',
+      warning: 'Không hoàn tác được.',
+      confirmLabel: 'Xoá giao dịch',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await apiClient.savings.deleteTransaction(id);
       loadData();
@@ -188,7 +214,7 @@ export default function SavingsSection() {
         // If we need to update state, it is reloaded by loadData()
       }
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 
@@ -197,7 +223,7 @@ export default function SavingsSection() {
       await apiClient.savings.updateTransactionDate(id, date);
       loadData();
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 
@@ -213,10 +239,17 @@ export default function SavingsSection() {
 
     // Warn if exceeding the bucket pool — but do NOT hard-block (user may be adding fresh cash)
     if (bucketAvail !== null && amount > bucketAvail && bucketAvail > 0) {
-      const ok = window.confirm(
-        `Số tiền bơm (${formatVND(amount)}) vượt quá quỹ phân bổ còn lại (${formatVND(bucketAvail)}).\n` +
-        `Bạn có muốn tiếp tục không? (Ví dụ: bạn đang bơm thêm tiền từ nguồn khác)`
-      );
+      // Cảnh báo chứ không chặn: người dùng có thể đang bơm tiền từ nguồn khác.
+      const ok = await confirm({
+        title: 'Bơm nhiều hơn quỹ đã phân bổ',
+        message: 'Nếu tiền đến từ nguồn khác thì cứ tiếp tục. Nếu không, quỹ này sẽ âm so với kế hoạch.',
+        details: [
+          { label: 'Số tiền bơm', value: formatVND(amount) },
+          { label: 'Quỹ còn lại', value: formatVND(bucketAvail) },
+          { label: 'Vượt', value: formatVND(amount - bucketAvail) },
+        ],
+        confirmLabel: 'Vẫn bơm',
+      });
       if (!ok) return;
     }
 
@@ -226,7 +259,7 @@ export default function SavingsSection() {
       setDepositForm({ amount: '', date: todayLocal(), note: '' });
       loadData();
     } catch (err) {
-      alert('Lỗi: ' + err.message);
+      await notify({ message: 'Lỗi: ' + err.message });
     }
   }
 

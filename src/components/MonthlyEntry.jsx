@@ -7,6 +7,7 @@ import { apiClient } from '../utils/apiClient';
 import AppIcon, { Check, CheckCircle, Warning, ArrowClockwise } from '../utils/iconMap';
 import { Faders } from '@phosphor-icons/react';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
+import { useConfirm } from './ui/index.jsx';
 
 // ── Adjustment reasons ─────────────────────────────────────────────────────
 const ADJUST_REASONS = [
@@ -27,6 +28,7 @@ const STEPS = [
 ];
 
 export default function MonthlyEntry({ onSaved, onComplete }) {
+  const { confirm, notify } = useConfirm();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -163,7 +165,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
       }
     } catch (err) {
       console.error('Start edit error:', err);
-      alert('Lỗi khi tải dữ liệu: ' + err.message);
+      await notify({ message: 'Lỗi khi tải dữ liệu: ' + err.message });
     }
   }
 
@@ -187,7 +189,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
       loadAll();
     } catch (err) {
       console.error('Delete error:', err);
-      alert('Lỗi khi xóa: ' + err.message);
+      await notify({ message: 'Lỗi khi xóa: ' + err.message });
     }
   }
 
@@ -286,7 +288,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
       if (typeof onSaved === 'function') onSaved();
     } catch (err) {
       console.error('Save error:', err);
-      alert('Lỗi khi lưu: ' + err.message);
+      await notify({ message: 'Lỗi khi lưu: ' + err.message });
     }
   }
 

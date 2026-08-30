@@ -5,8 +5,10 @@ import { apiClient, isElectron } from '../utils/apiClient';
 import FormattedInput from './FormattedInput';
 import { buildPhaseGuidance, guidanceText } from '../content/phases.js';
 import AppIcon, { Spinner, DownloadSimple, UploadSimple, CheckCircle, XCircle, Trash, Eye, EyeSlash, PencilSimple } from '../utils/iconMap';
+import { useConfirm } from './ui/index.jsx';
 
 export default function Settings() {
+  const { confirm, notify } = useConfirm();
   const [phases, setPhases] = useState([]);
   const [categories, setCategories] = useState([]);
   const [assetTypes, setAssetTypes] = useState([]);
@@ -75,7 +77,7 @@ export default function Settings() {
       loadData();
     } catch (err) {
       console.error('Timeline save error:', err);
-      alert('Lỗi khi lưu timeline: ' + err.message);
+      await notify({ message: 'Lỗi khi lưu timeline: ' + err.message });
     }
   }
 
@@ -182,7 +184,7 @@ export default function Settings() {
       loadData();
     } catch (err) {
       console.error('Add asset error:', err);
-      alert('Lỗi khi thêm tài sản: ' + err.message);
+      await notify({ message: 'Lỗi khi thêm tài sản: ' + err.message });
     }
   }
 
@@ -200,18 +202,24 @@ export default function Settings() {
       loadData();
     } catch (err) {
       console.error('Edit asset error:', err);
-      alert('Lỗi khi sửa tài sản: ' + err.message);
+      await notify({ message: 'Lỗi khi sửa tài sản: ' + err.message });
     }
   }
 
   async function handleDeleteAsset(id) {
-    if (!confirm('Xóa loại tài sản này? Các giao dịch liên quan sẽ được giữ nguyên.')) return;
+    const ok = await confirm({
+      title: 'Xoá loại tài sản',
+      message: 'Các giao dịch đã ghi với loại tài sản này vẫn còn nguyên trong sổ.',
+      confirmLabel: 'Xoá',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await apiClient.assets.delete(id);
       loadData();
     } catch (err) {
       console.error('Delete asset error:', err);
-      alert('Lỗi khi xóa tài sản: ' + err.message);
+      await notify({ message: 'Lỗi khi xóa tài sản: ' + err.message });
     }
   }
 
@@ -239,7 +247,7 @@ export default function Settings() {
 
   async function handleDeleteSelected() {
     if (selectedAssets.size === 0) return;
-    if (!confirm(`Xóa ${selectedAssets.size} tài sản đã chọn?`)) return;
+    if (!await confirm({ message: `Xóa ${selectedAssets.size} tài sản đã chọn?`, tone: 'danger', confirmLabel: 'Xoá' })) return;
     try {
       await Promise.all([...selectedAssets].map(id => apiClient.assets.delete(id)));
       setSelectedAssets(new Set());
@@ -259,7 +267,7 @@ export default function Settings() {
       loadData();
     } catch (err) {
       console.error('Clear error:', err);
-      alert('Lỗi khi xóa dữ liệu: ' + err.message);
+      await notify({ message: 'Lỗi khi xóa dữ liệu: ' + err.message });
     }
   }
 

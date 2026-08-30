@@ -4,8 +4,10 @@ import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import { SNIPER_TIERS } from '../content/phases.js';
 import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
+import { useConfirm } from './ui/index.jsx';
 
 export default function SniperPlaybook({ embedded }) {
+  const { confirm, notify } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState(null);
   const [snap, setSnap] = useState(null);
@@ -162,7 +164,7 @@ export default function SniperPlaybook({ embedded }) {
     if (!deployForm.quantity || !deployForm.price || !deployForm.asset_type_id) return;
     const price = parseNumberInput(deployForm.price);
     const total = parseFloat(deployForm.quantity) * price;
-    if (total > available) { alert('Vượt quá số tiền khả dụng!'); return; }
+    if (total > available) { await notify({ message: 'Vượt quá số tiền khả dụng!' }); return; }
 
     const opp = bestOpp;
     const note = `[Bắn Tỉa] ${deployForm.note || ''} | ${opp?.ticker || opp?.name || ''} sụt giảm: ${((opp?.drawdown || 0) * 100).toFixed(1)}% | Cấp: ${opp?.level.label || ''}`;

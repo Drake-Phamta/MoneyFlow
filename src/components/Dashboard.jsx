@@ -10,6 +10,7 @@ import NetWorthModal from './charts/NetWorthModal';
 import AppIcon from '../utils/iconMap';
 import CustomTooltip from '../utils/CustomTooltip';
 import { ArrowClockwise, Warning, NotePencil, ArrowDownLeft, ArrowUpRight, Trash, BookmarkSimple, PiggyBank, CheckCircle, XCircle, Info, X, Bell, Calendar, ChartLineUp, CaretDown, CaretUp } from '../utils/iconMap';
+import { useConfirm } from './ui/index.jsx';
 
 // Relative time formatter for activity feed
 function formatRelativeTime(dateStr) {
@@ -97,6 +98,7 @@ const CATEGORY_FALLBACK = {
 };
 
 export default function Dashboard() {
+  const { confirm } = useConfirm();
   const navigate = useNavigate();
   const [summary, setSummary] = useState(null);
   const [phase, setPhase] = useState(null);
@@ -208,7 +210,13 @@ export default function Dashboard() {
   }
 
   async function handleDeleteActivity(id) {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa hoạt động này khỏi nhật ký?')) return;
+    const ok = await confirm({
+      title: 'Xoá khỏi nhật ký',
+      message: 'Dòng này biến mất khỏi nhật ký hoạt động. Giao dịch và số liệu tài chính không đổi.',
+      confirmLabel: 'Xoá',
+      tone: 'danger',
+    });
+    if (!ok) return;
     try {
       await apiClient.activity.delete(id);
       setToast({ type: 'success', message: 'Đã xóa hoạt động thành công' });

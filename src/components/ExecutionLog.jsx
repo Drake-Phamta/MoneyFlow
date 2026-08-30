@@ -4,8 +4,10 @@ import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
 import FormattedInput from './FormattedInput';
+import { useConfirm } from './ui/index.jsx';
 
 export default function ExecutionLog({ embedded }) {
+  const { confirm, notify } = useConfirm();
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
   const [snap, setSnap] = useState(null);
@@ -122,7 +124,7 @@ export default function ExecutionLog({ embedded }) {
       setTransactions(await apiClient.transactions.get());
     } catch (err) {
       console.error('Add transaction error:', err);
-      alert('Lỗi khi thêm giao dịch: ' + err.message);
+      await notify({ message: 'Lỗi khi thêm giao dịch: ' + err.message });
     }
   }
 
@@ -132,7 +134,7 @@ export default function ExecutionLog({ embedded }) {
       setTransactions(await apiClient.transactions.get());
     } catch (err) {
       console.error('Delete transaction error:', err);
-      alert('Lỗi khi xóa: ' + err.message);
+      await notify({ message: 'Lỗi khi xóa: ' + err.message });
     }
   }
 
