@@ -127,31 +127,43 @@ async function run() {
 
   await t(
     'C12b',
-    'Dashboard không được đổi sang chi tiêu thực tế trung bình khi goal_amount = 0',
-    ['rest:GET /api/phases'],
+    'Cột mốc giai đoạn không bao giờ suy từ chi tiêu thực tế trung bình',
+    ['rest:GET /api/phases', 'rest:GET /api/snapshot'],
     () => {
-      // Dashboard.jsx:279-282: goal = phase.goal_amount || goal_multiplier × avg(chi tiêu thực tế)
-      const zeroGoal = d.phases.filter((p) => !p.goal_amount);
-      if (!zeroGoal.length) return; // không có giai đoạn nào goal=0 thì không lộ lỗi
-
+      const ph = d.snapshot.phase;
+      const target = d.params.FI_MONTHLY_EXPENSE;
       const avgActual =
         d.filled.length > 0
           ? d.filled.reduce((s, m) => s + (m.expense || 0), 0) / d.filled.length
           : 4000000;
-      const target = d.params.FI_MONTHLY_EXPENSE;
-      if (Math.abs(avgActual - target) > 1) {
-        fail(
-          `Giai đoạn ${zeroGoal.map((p) => p.sort_order).join(',')} có goal_amount = 0 ` +
-            `nên Dashboard.jsx:282 rơi về chi tiêu thực tế trung bình ` +
-            `(${fmt(avgActual)}) thay vì chi tiêu mục tiêu (${fmt(target)}) — ` +
-            `hai cơ sở khác nhau cho cùng một cột mốc.`
+
+      // Cột mốc phải sinh sống từ bội số × chi tiêu MỤC TIÊU, kể cả khi cột
+      // goal_amount trong bảng phases bằng 0 hoặc đã cũ.
+      approx(
+        ph.goalAmount,
+        ph.goalMultiplier * target,
+        1,
+        `mục tiêu ${fmt(ph.goalAmount)} ≠ ${ph.goalMultiplier} × chi tiêu mục tiêu ${fmt(target)}`
+      );
+
+      const stored = d.phases.find((p) => p.sort_order === ph.sortOrder)?.goal_amount || 0;
+      if (Math.abs(stored - ph.goalMultiplier * target) > 1) {
+        // Cột đã cũ — đây chính là lúc lỗi cũ lộ ra. Snapshot phải phớt lờ cột.
+        approx(
+          ph.goalAmount,
+          ph.goalMultiplier * target,
+          1,
+          `cột goal_amount trong DB là ${fmt(stored)} nhưng snapshot phải tính lại`
         );
       }
-    },
-    {
-      knownFail:
-        'Dashboard.jsx:279-282 dùng avg(m.expense) làm cơ sở dự phòng, trong khi ' +
-        'database.js:849,959 luôn dùng FI_MONTHLY_EXPENSE.',
+
+      if (Math.abs(avgActual - target) > 1) {
+        ok(
+          Math.abs(ph.goalAmount - ph.goalMultiplier * avgActual) > 1,
+          `mục tiêu ${fmt(ph.goalAmount)} trùng khít ${ph.goalMultiplier} × chi tiêu ` +
+            `thực tế trung bình ${fmt(avgActual)} — đang lấy sai cơ sở`
+        );
+      }
     }
   );
 

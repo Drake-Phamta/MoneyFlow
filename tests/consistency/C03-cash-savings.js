@@ -129,13 +129,11 @@ async function run() {
   await t(
     'C11',
     '"Thanh khoản" phải là tiền mặt + tiết kiệm KHÔNG kỳ hạn (rút được ngay)',
-    ['rest:GET /api/savings/summary', 'rest:GET /api/savings'],
+    ['rest:GET /api/savings/summary', 'rest:GET /api/savings', 'rest:GET /api/snapshot'],
     () => {
-      // Dashboard.jsx:722 hứa "(Tiền mặt + Gốc tiết kiệm + Lãi dự kiến)"
-      // nhưng :725 render totalSavingsBalance = gốc + lãi đã tính, không có tiền mặt,
-      // và tính cả sổ có kỳ hạn (rút sớm thì mất lãi).
-      const shown = d.savingsSummary.totalBalance || 0;
-      const cash = F.dashboardCash(d).totalCashOnHand;
+      // Dashboard render snapshot.liquidity.total (Dashboard.jsx:694-703).
+      const shown = d.snapshot.liquidity.total;
+      const cash = d.snapshot.cash.total;
       const liquid = d.savingsAccounts
         .filter((a) => a.status === 'active' && a.type === 'liquid')
         .reduce((s, a) => s + (a.current_balance || a.principal || 0), 0);
@@ -149,16 +147,11 @@ async function run() {
         shown,
         honest,
         TOL,
-        `Nhãn hứa tiền mặt + tiết kiệm rút ngay = ${fmt(honest)} ` +
+        `Thanh khoản phải là ${fmt(honest)} ` +
           `(tiền mặt ${fmt(cash)} + không kỳ hạn ${fmt(liquid)}), ` +
-          `nhưng hiển thị ${fmt(shown)} — thiếu tiền mặt và tính cả ` +
-          `${fmt(locked)} đang khoá trong sổ có kỳ hạn`
+          `nhưng hiển thị ${fmt(shown)} — chênh ${fmt(shown - honest)}; ` +
+          `${fmt(locked)} đang khoá trong sổ có kỳ hạn không được tính vào đây`
       );
-    },
-    {
-      knownFail:
-        'Dashboard.jsx:722 tooltip hứa ba thành phần, :725 chỉ render ' +
-        'savingsSummary.totalBalance; sổ có kỳ hạn bị tính là thanh khoản.',
     }
   );
 

@@ -22,6 +22,7 @@ async function loadAll() {
     savingsAccounts,
     params,
     checklist,
+    snapshot,
   ] = await Promise.all([
     getOk('/api/monthly/filled'),
     getOk('/api/portfolio/summary'),
@@ -34,6 +35,7 @@ async function loadAll() {
     getOk('/api/savings'),
     getOk('/api/params'),
     getOk('/api/phases/checklist'),
+    getOk('/api/snapshot'),
   ]);
 
   // Phân bổ theo từng tháng — 4 trang đều tự gọi N lần (N = số tháng đã nhập).
@@ -59,6 +61,7 @@ async function loadAll() {
     savingsAccounts,
     params: paramMap,
     checklist,
+    snapshot,
     allAllocs,
     allocsByMonth,
   };
@@ -110,14 +113,9 @@ function dashboardCash(d) {
 
 // ═══════════════ SÁU công thức "Tổng tài sản" ═══════════════
 
-/** #1 — Dashboard.jsx:274  grandTotal (con số hiển thị to nhất app) */
+/** #1 — Dashboard.jsx:265  grandTotal, nay đọc thẳng từ snapshot */
 function netWorth_Dashboard(d) {
-  const { totalCashOnHand } = dashboardCash(d);
-  return (
-    totalCashOnHand +
-    (d.summary.totalCurrentValue || 0) +
-    (d.savingsSummary.totalBalance || 0)
-  );
+  return d.snapshot.netWorth.total;
 }
 
 /** #2 — Scenarios.jsx:218-220  (không có tiền mặt; fallback về tổng phân bổ) */
@@ -136,32 +134,14 @@ function netWorth_AllocationGoals(d) {
   );
 }
 
-/** #4 — database.js:1107-1126 getActivePhase (giá VỐN, không có lãi/tiền mặt) */
+/** #4 — database.js:2592 _resolvePhase đọc core.netWorth.total */
 function netWorth_PhaseEngine(d) {
-  const portfolioTotal = d.transactions.reduce(
-    (s, t) => s + (t.type === 'BUY' ? t.total_amount : -t.total_amount),
-    0
-  );
-  const totalSavings = d.savingsAccounts
-    .filter((a) => a.status === 'active')
-    .reduce((s, a) => s + (a.principal || 0), 0);
-  const allocationsTotal = d.allAllocs.reduce(
-    (s, a) => s + (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0),
-    0
-  );
-  return Math.max(portfolioTotal + totalSavings, allocationsTotal);
+  return d.snapshot.netWorth.total;
 }
 
-/** #5 — database.js:1163-1165 getChecklistStatus (giá THỊ TRƯỜNG, không tiền mặt) */
+/** #5 — database.js:1151 getChecklistStatus đọc core.netWorth.total */
 function netWorth_Checklist(d) {
-  const portfolioValue = (d.summary.portfolio || []).reduce(
-    (s, p) => s + (p.current_value || p.total_invested || 0),
-    0
-  );
-  const totalSavings = d.savingsAccounts
-    .filter((a) => a.status === 'active')
-    .reduce((s, a) => s + (a.principal || 0), 0);
-  return portfolioValue + totalSavings;
+  return d.snapshot.netWorth.total;
 }
 
 /** #6 — CashFlowPage.jsx:311-317 "Đã tích lũy" = dòng tiền cộng dồn */
@@ -170,43 +150,21 @@ function netWorth_CashFlowPage(d) {
 }
 
 const NET_WORTH_FORMULAS = [
-  { key: 'Dashboard',       label: 'Dashboard "Tổng tài sản ròng"', src: 'Dashboard.jsx:274',        fn: netWorth_Dashboard },
+  { key: 'Dashboard',       label: 'Dashboard "Tổng tài sản ròng"', src: 'Dashboard.jsx:265',        fn: netWorth_Dashboard },
   { key: 'Scenarios',       label: 'Kịch bản (tử số tỷ lệ FI)',     src: 'Scenarios.jsx:218-220',    fn: netWorth_Scenarios },
   { key: 'AllocationGoals', label: 'Tab Phân bổ (mẫu số mọi %)',    src: 'AllocationGoals.jsx:63',   fn: netWorth_AllocationGoals },
-  { key: 'PhaseEngine',     label: 'Máy dò giai đoạn (backend)',    src: 'database.js:1126',         fn: netWorth_PhaseEngine },
-  { key: 'Checklist',       label: 'Bảng kiểm tra (backend)',       src: 'database.js:1165',         fn: netWorth_Checklist },
+  { key: 'PhaseEngine',     label: 'Máy dò giai đoạn (backend)',    src: 'database.js:2592',         fn: netWorth_PhaseEngine },
+  { key: 'Checklist',       label: 'Bảng kiểm tra (backend)',       src: 'database.js:1151',         fn: netWorth_Checklist },
   { key: 'CashFlowPage',    label: 'Dòng tiền "Đã tích lũy"',       src: 'CashFlowPage.jsx:317',     fn: netWorth_CashFlowPage },
 ];
 
 // ═══════════════ BA công thức "tiến độ giai đoạn" ═══════════════
 
-/** Dashboard.jsx:279-312 */
+/** Dashboard.jsx:280-282 — nay đọc thẳng snapshot.phase */
 function phaseProgress_Dashboard(d) {
-  const p = d.phase;
-  if (!p) return null;
-  const monthlyExpense =
-    d.filled.length > 0
-      ? d.filled.reduce((s, m) => s + (m.expense || 0), 0) / d.filled.length
-      : 4000000;
-  const goal = p.goal_amount || p.goal_multiplier * monthlyExpense;
-
-  const { totalCashOnHand } = dashboardCash(d);
-  const totalSavingsBalance = d.savingsSummary.totalBalance || 0;
-  const grandTotal = netWorth_Dashboard(d);
-
-  const dpAlloc = (d.savingsOverview.phaseAllocs || []).find(
-    (a) => a.category_name === 'Dự Phòng'
-  );
-
-  let current;
-  if (p.sort_order === 1) {
-    current = totalSavingsBalance + Math.max(0, totalCashOnHand * (dpAlloc?.ratio || 0.7));
-  } else if (p.sort_order === 4) {
-    current = goal || 1;
-  } else {
-    current = grandTotal;
-  }
-  return { current, goal, pct: goal > 0 ? Math.min((current / goal) * 100, 100) : 100 };
+  const ph = d.snapshot.phase;
+  if (!ph) return null;
+  return { current: ph.current, goal: ph.goalAmount, pct: ph.pct };
 }
 
 /** Scenarios.jsx:258-267 */
@@ -236,7 +194,7 @@ function phaseProgress_AllocationGoals(d) {
 }
 
 const PHASE_PROGRESS_FORMULAS = [
-  { key: 'Dashboard',       src: 'Dashboard.jsx:291-312',       fn: phaseProgress_Dashboard },
+  { key: 'Dashboard',       src: 'Dashboard.jsx:280-282',       fn: phaseProgress_Dashboard },
   { key: 'Scenarios',       src: 'Scenarios.jsx:258-267',       fn: phaseProgress_Scenarios },
   { key: 'AllocationGoals', src: 'AllocationGoals.jsx:313-321', fn: phaseProgress_AllocationGoals },
 ];

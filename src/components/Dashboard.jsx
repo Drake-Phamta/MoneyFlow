@@ -101,8 +101,8 @@ export default function Dashboard() {
   const [summary, setSummary] = useState(null);
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
-  const [allPhases, setAllPhases] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [snap, setSnap] = useState(null);
   const [filled, setFilled] = useState([]);
   const [activity, setActivity] = useState([]);
   const [nextMonth, setNextMonth] = useState(null);
@@ -165,21 +165,23 @@ export default function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [s, p, f, a, n, ac, ss, so, mats, phases, alertsData, cats] = await Promise.all([
+      const [sn, s, f, a, n, ac, mats, alertsData] = await Promise.all([
+        apiClient.snapshot.get().catch(e => { console.error('snapshot error:', e); return null; }),
         apiClient.portfolio.summary().catch(e => { console.error('portfolio.summary error:', e); return null; }),
-        apiClient.phases.active(),
         apiClient.monthly.filled(),
         apiClient.activity.get(10),
         apiClient.monthly.next(),
         apiClient.alerts.count().catch(() => ({ count: 0 })),
-        apiClient.savings.summary().catch(() => null),
-        apiClient.savings.overview().catch(() => null),
         apiClient.savings.maturities(30).catch(() => []),
-        apiClient.phases.get().catch(() => []),
         apiClient.alerts.get().catch(() => []),
-        apiClient.categories.get().catch(() => []),
       ]);
-      setCategories(cats || []);
+      // Snapshot đã mang sẵn danh mục, giai đoạn và toàn bộ số liệu tiết kiệm,
+      // nên bốn lời gọi riêng cho những thứ đó không còn cần nữa.
+      setSnap(sn);
+      setCategories(sn?.categories || []);
+      const p = sn?.phase ? { ...sn.phase, sort_order: sn.phase.sortOrder, goal_amount: sn.phase.goalAmount } : null;
+      const ss = sn ? { totalPrincipal: sn.savings.principal, totalAccrued: sn.savings.accrued, totalBalance: sn.savings.balance, accountCount: sn.savings.accountCount } : null;
+      const so = sn ? { totalUnallocated: sn.cash.unallocated, totalAllocated: sn.allocations.toReserve + sn.allocations.toSavings, totalOtherAllocated: sn.allocations.toMarket } : null;
       setSummary(s);
       setPhase(p);
       setFilled(f);
@@ -189,7 +191,6 @@ export default function Dashboard() {
       setSavingsSummary(ss);
       setSavingsOverview(so);
       setMaturities(mats);
-      setAllPhases(phases);
       setAlerts(alertsData || []);
 
       // Update last activity ID for polling
@@ -197,13 +198,8 @@ export default function Dashboard() {
         lastActivityIdRef.current = a[0].id;
       }
 
-      // Fetch phase allocations for active phase
-      if (p?.id) {
-        try {
-          const allocs = await apiClient.phases.allocations(p.id);
-          setPhaseAllocs(allocs || []);
-        } catch { setPhaseAllocs([]); }
-      }
+      // Tỷ lệ phân bổ của giai đoạn hiện tại đã nằm sẵn trong snapshot.
+      setPhaseAllocs(sn?.phaseAllocations?.[sn?.phase?.sortOrder] || []);
     } catch (err) {
       console.error('Dashboard load error:', err);
     } finally {
@@ -248,78 +244,41 @@ export default function Dashboard() {
     }));
   }, [filled]);
 
-  // Savings rate (for KPI) — calculate from income/expense directly
-  const totalIncome = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
-  const totalExpense = filled.reduce((s, m) => s + (Number(m.expense) || 0), 0);
-  const totalNet = totalIncome - totalExpense;
-  const hasExpenseData = filled.some(m => Number(m.expense) > 0);
-  const savingsRate = totalIncome > 0 && hasExpenseData
-    ? (totalNet / totalIncome) * 100
+  // ── Mọi con số tài chính đến từ snapshot ────────────────────────────
+  // Trang này từng tự tính tổng tài sản, tiền mặt và tiến độ giai đoạn theo
+  // cách riêng, khác với trang Kịch bản và tab Phân bổ. Giờ cả ba đọc chung.
+  const totalIncome = snap?.cashflow.totalIncome || 0;
+  const totalNet = snap?.cashflow.totalInflow || 0;
+  const hasExpenseData = (snap?.cashflow.totalExpense || 0) > 0;
+  const savingsRate =
+    totalIncome > 0 && hasExpenseData ? (totalNet / totalIncome) * 100 : null;
+
+  const totalSavingsPrincipal = snap?.savings.principal || 0;
+  const totalSavingsAccrued = snap?.savings.accrued || 0;
+  const totalSavingsBalance = snap?.savings.balance || 0;
+
+  const totalCashUnallocated = snap?.cash.unallocated || 0;
+  const uninvestedCash = snap?.cash.awaitingInvestment || 0;
+  const totalCashOnHand = snap?.cash.total || 0;
+
+  // Lãi/lỗ chưa bán của danh mục cộng lãi tiết kiệm đã tính tới hôm nay.
+  const totalOverallGain = totalGain + totalSavingsAccrued;
+  const grandTotal = snap?.netWorth.total || 0;
+  const liquidity = snap?.liquidity.total || 0;
+
+  const phaseProgress = snap?.phase
+    ? {
+        current: snap.phase.current,
+        goal: snap.phase.goalAmount,
+        pct: snap.phase.pct,
+        basis: snap.phase.basis,
+      }
     : null;
 
-  // Total assets = cash + investments + savings
-  const totalSavingsPrincipal = savingsSummary?.totalPrincipal || 0;
-  const totalSavingsAccrued = savingsSummary?.totalAccrued || 0;
-  const totalSavingsBalance = savingsSummary?.totalBalance || 0;
-  
-  // Tiền mặt chưa phân bổ = Tổng nhàn rỗi − Tổng phân bổ tất cả danh mục
-  const totalAllocatedAll = (savingsOverview?.totalAllocated || 0) + (savingsOverview?.totalOtherAllocated || 0);
-  const totalCashUnallocated = Math.max(0, totalNet - totalAllocatedAll);
-  
-  // Tiền chờ đầu tư = Phân bổ cho đầu tư − Tiền đã mua tài sản
-  const netCashOutflow = summary?.netCashOutflow !== undefined ? summary.netCashOutflow : totalInvested;
-  const uninvestedCash = Math.max(0, (savingsOverview?.totalOtherAllocated || 0) - netCashOutflow);
-  
-  // Tiền mặt tổng = chưa phân bổ + chờ đầu tư
-  const totalCashOnHand = totalCashUnallocated + uninvestedCash;
-  
-  // Tổng lợi nhuận = Lãi đầu tư + Lãi tiết kiệm dự kiến
-  const totalOverallGain = totalGain + totalSavingsAccrued;
-  
-  // Tổng tài sản = Tiền mặt + Giá trị đầu tư + Số dư tiết kiệm
-  const grandTotal = totalCashOnHand + totalCurrentValue + totalSavingsBalance;
-
-  // Phase progress calculation
-  const phaseProgress = useMemo(() => {
-    if (!phase) return null;
-    const monthlyExpense = filled.length > 0
-      ? filled.reduce((s, m) => s + (m.expense || 0), 0) / filled.length
-      : 4000000;
-    const goal = phase.goal_amount || (phase.goal_multiplier * monthlyExpense);
-
-    const duPhongAlloc = phaseAllocs.find(a => a.category_name === 'Dự Phòng');
-
-    let current = 0;
-    let label = '';
-    if (phase.sort_order === 1) {
-      // Phase 1: Savings balance + cash allocated to Dự Phòng vs 3× expense
-      current = totalSavingsBalance + Math.max(0, totalCashOnHand * (duPhongAlloc?.ratio || 0.7));
-      label = `Dự phòng: ${formatVND(current)} / ${formatVND(goal)}`;
-    } else if (phase.sort_order === 2) {
-      // Phase 2: Total assets vs 6× expense
-      current = grandTotal;
-      label = `Tổng tài sản: ${formatVND(current)} / ${formatVND(goal)}`;
-    } else if (phase.sort_order === 3) {
-      // Phase 3: Total assets vs 24× expense
-      current = grandTotal;
-      label = `Tổng tài sản: ${formatVND(current)} / ${formatVND(goal)}`;
-    } else {
-      // Phase 4: FI reached
-      current = goal || 1;
-      label = 'Đã đạt tự do tài chính!';
-    }
-
-    const pct = goal > 0 ? Math.min((current / goal) * 100, 100) : 100;
-    return { current, goal, pct, label };
-  }, [phase, byCategory, grandTotal, filled, phaseAllocs, totalCashOnHand, totalSavingsBalance]);
-
   // Next phase info
-  const nextPhase = useMemo(() => {
-    if (!phase || !allPhases.length) return null;
-    const idx = allPhases.findIndex(p => p.id === phase.id);
-    if (idx < 0 || idx >= allPhases.length - 1) return null;
-    return allPhases[idx + 1];
-  }, [phase, allPhases]);
+  const nextPhase = snap?.nextPhase
+    ? { ...snap.nextPhase, sort_order: snap.nextPhase.sortOrder }
+    : null;
 
   // Danh mục lấy thẳng từ DB, theo đúng sort_order. Màu/icon ưu tiên giá trị
   // trong DB, chỉ dùng bảng dự phòng khi bản ghi thiếu.
@@ -733,11 +692,15 @@ export default function Dashboard() {
             <div className="flex flex-col justify-between">
               <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Thanh khoản
-                <InfoTooltip content="Khả năng quy đổi thành tiền mặt ngay lập tức (Tiền mặt + Gốc tiết kiệm + Lãi dự kiến)." />
+                <InfoTooltip content="Tiền mặt cộng các sổ không kỳ hạn. Sổ có kỳ hạn không tính vào đây vì rút sớm là mất lãi." />
               </p>
               <div>
-                <p className="text-xl font-bold text-slate-800 tracking-tight">{formatVND(totalSavingsBalance)}</p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Lãi: +{formatVND(totalSavingsAccrued)}</p>
+                <p className="text-xl font-bold text-slate-800 tracking-tight">{formatVND(liquidity)}</p>
+                <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                  {snap?.savings.termPrincipal > 0
+                    ? `Đang khoá kỳ hạn: ${formatVND(snap.savings.termPrincipal)}`
+                    : 'Rút được ngay'}
+                </p>
               </div>
             </div>
             <div className="flex flex-col justify-between">
