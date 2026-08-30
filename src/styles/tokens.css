@@ -390,7 +390,7 @@
 
   /* Bán kính: thẻ và ô nhập KHÁC nhau, để phân biệt được cái nào bấm được. */
   --r-input: 0.5rem;
-  --r-card: 0.75rem;
+  --r-card: 0.625rem;  /* 10px, đúng bản thiết kế */
   --r-pill: 9999px;
 
   --font-sans: 'Be Vietnam Pro', system-ui, -apple-system, sans-serif;

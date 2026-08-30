@@ -23,20 +23,24 @@ export default function AllocationPie({ data = [], layout = 'vertical', theme = 
   const total = filtered.reduce((s, d) => s + d.value, 0);
 
   const renderLegend = () => (
-    <div className={layout === 'horizontal' ? "grid grid-cols-2 gap-x-3 gap-y-3 w-full content-start overflow-y-auto max-h-[180px] pr-1" : "space-y-2 mt-2 max-h-[200px] overflow-y-auto pr-1"}>
+    <div className={layout === 'horizontal' ? "grid grid-cols-1 xl:grid-cols-2 gap-x-5 gap-y-3 w-full content-start overflow-y-auto max-h-[180px] pr-1" : "space-y-2 mt-2 max-h-[200px] overflow-y-auto pr-1"}>
       {filtered.map((d) => (
         <div key={d.name} className="flex flex-col justify-center">
           <div className="flex items-center gap-1.5 min-w-0">
             <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
-            <span className={`text-xs ${textColor} flex items-center gap-1 truncate font-medium`} title={d.name}>
+            <span className={`text-fs-3 ${textColor} flex items-center gap-1 truncate font-medium`} title={d.name}>
               {d.icon && <AppIcon name={d.icon} size={12} />}
               {d.name}
             </span>
           </div>
-          <div className="flex items-baseline gap-1 mt-0.5 ml-3.5">
-            <span className={`text-xs font-bold ${valueColor} truncate`}>{formatVND(d.value)}</span>
-            <span className={`text-fs-2 ${isDark ? 'text-slate-400' : 'text-slate-400'} flex-shrink-0`}>
-              ({((d.value / total) * 100).toFixed(0)}%)
+          <div className="flex items-baseline gap-1.5 mt-0.5 ml-3.5">
+            {/* Số tiền KHÔNG được cắt cụt: "36.0…" không nói được điều gì. Phần
+                trăm co lại trước, vì nó chỉ có hai chữ số. */}
+            <span className={`text-fs-3 font-semibold ${valueColor} tabular whitespace-nowrap`}>
+              {formatVND(d.value)}
+            </span>
+            <span className="text-fs-2 text-slate-400 flex-shrink-0">
+              {((d.value / total) * 100).toFixed(0)}%
             </span>
           </div>
         </div>

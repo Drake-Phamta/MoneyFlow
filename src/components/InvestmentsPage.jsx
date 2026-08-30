@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Tabs } from './ui/index.jsx';
 import ExecutionLog from './ExecutionLog';
 import SniperPlaybook from './SniperPlaybook';
 import SavingsSection from './SavingsSection';
@@ -40,22 +41,7 @@ export default function InvestmentsPage() {
       </div>
 
       {/* Tab bar */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${
-              activeTab === tab.id
-                ? 'bg-white text-slate-800 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <tab.Icon size={16} weight="regular" />
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      <Tabs tabs={TABS} value={activeTab} onChange={setActiveTab} />
 
       {/* Tab description */}
       <p className="text-xs text-slate-400">{TAB_DESCRIPTIONS[activeTab]}</p>

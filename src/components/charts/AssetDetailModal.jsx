@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
+import { Modal } from '../ui/index.jsx';
 import { formatVND, toLocalDateStr } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 
@@ -247,27 +247,14 @@ export default function AssetDetailModal({ asset, onClose }) {
   const currentProfitPct = asset.total_invested > 0 ? (currentProfit / asset.total_invested) * 100 : 0;
   const isOverallPositive = currentProfit >= 0;
 
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 animate-fade-in">
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={onClose}></div>
-      
-      {/* Modal Content */}
-      <div className="relative bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh]">
-        
-        {/* Header */}
-        <div className="p-6 sm:p-8 pb-4 border-b border-slate-100 flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">{asset.name}</h2>
-            <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mt-1">{asset.category}</p>
-          </div>
-          <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-          </button>
-        </div>
-
-        {/* Main Content */}
-        <div className="p-6 sm:p-8 pt-6 flex-1 overflow-y-auto">
+  return (
+    <Modal
+      open
+      onClose={onClose}
+      size="xl"
+      title={asset.name}
+      description={asset.category}
+    >
           {/* Main Price & Stats */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-6">
             <div className="flex flex-wrap gap-8">
@@ -393,9 +380,6 @@ export default function AssetDetailModal({ asset, onClose }) {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

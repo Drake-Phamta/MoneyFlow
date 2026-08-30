@@ -214,7 +214,8 @@ select.input {
 }
 
 .kpi-label {
-  @apply text-fs-1 font-medium text-slate-400 uppercase tracking-widest;
+  @apply text-fs-1 font-semibold text-slate-400 uppercase;
+  letter-spacing: 0.07em;
 }
 
 .kpi-value {
