@@ -118,12 +118,9 @@ function netWorth_Dashboard(d) {
   return d.snapshot.netWorth.total;
 }
 
-/** #2 — Scenarios.jsx:218-220  (không có tiền mặt; fallback về tổng phân bổ) */
+/** #2 — Scenarios.jsx:195  totalCurrentValue, nay đọc thẳng từ snapshot */
 function netWorth_Scenarios(d) {
-  const byCat = allocsByCategory(d);
-  const totalAllocated = Object.values(byCat).reduce((s, c) => s + c.total, 0);
-  const totalSavingsBalance = d.savingsSummary.totalBalance || 0;
-  return (d.summary.totalCurrentValue || totalAllocated) + totalSavingsBalance;
+  return d.snapshot.netWorth.total;
 }
 
 /** #3 — AllocationGoals.jsx:63  Σ byCategory.currentTotal (không có tiền mặt) */
@@ -151,7 +148,7 @@ function netWorth_CashFlowPage(d) {
 
 const NET_WORTH_FORMULAS = [
   { key: 'Dashboard',       label: 'Dashboard "Tổng tài sản ròng"', src: 'Dashboard.jsx:265',        fn: netWorth_Dashboard },
-  { key: 'Scenarios',       label: 'Kịch bản (tử số tỷ lệ FI)',     src: 'Scenarios.jsx:218-220',    fn: netWorth_Scenarios },
+  { key: 'Scenarios',       label: 'Kịch bản (tử số tỷ lệ FI)',     src: 'Scenarios.jsx:195',        fn: netWorth_Scenarios },
   { key: 'AllocationGoals', label: 'Tab Phân bổ (mẫu số mọi %)',    src: 'AllocationGoals.jsx:63',   fn: netWorth_AllocationGoals },
   { key: 'PhaseEngine',     label: 'Máy dò giai đoạn (backend)',    src: 'database.js:2592',         fn: netWorth_PhaseEngine },
   { key: 'Checklist',       label: 'Bảng kiểm tra (backend)',       src: 'database.js:1151',         fn: netWorth_Checklist },
@@ -167,16 +164,13 @@ function phaseProgress_Dashboard(d) {
   return { current: ph.current, goal: ph.goalAmount, pct: ph.pct };
 }
 
-/** Scenarios.jsx:258-267 */
+/** Scenarios.jsx:249-259 — cùng ngưỡng với máy dò giai đoạn */
 function phaseProgress_Scenarios(d) {
   const p = d.phase;
   if (!p) return null;
-  const byCategory = d.summary.byCategory || {};
-  const goal = p.goal_amount;
+  const goal = (p.goal_multiplier || 0) * d.params.FI_MONTHLY_EXPENSE;
   const current =
-    p.sort_order === 1
-      ? byCategory['Dự Phòng']?.currentTotal || 0
-      : netWorth_Scenarios(d);
+    p.sort_order === 1 ? d.snapshot.savings.reserveBalance : netWorth_Scenarios(d);
   return { current, goal, pct: goal > 0 ? Math.min((current / goal) * 100, 100) : 100 };
 }
 
@@ -195,7 +189,7 @@ function phaseProgress_AllocationGoals(d) {
 
 const PHASE_PROGRESS_FORMULAS = [
   { key: 'Dashboard',       src: 'Dashboard.jsx:280-282',       fn: phaseProgress_Dashboard },
-  { key: 'Scenarios',       src: 'Scenarios.jsx:258-267',       fn: phaseProgress_Scenarios },
+  { key: 'Scenarios',       src: 'Scenarios.jsx:249-259',       fn: phaseProgress_Scenarios },
   { key: 'AllocationGoals', src: 'AllocationGoals.jsx:313-321', fn: phaseProgress_AllocationGoals },
 ];
 

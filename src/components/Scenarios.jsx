@@ -145,7 +145,6 @@ Mẹo: Gửi online thường được lãi suất cao hơn 0.5-1% so với tạ
 
 export default function Scenarios() {
   const [filled, setFilled] = useState([]);
-  const [portfolio, setPortfolio] = useState(null);
   const [phase, setPhase] = useState(null);
   const [phases, setPhases] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
@@ -155,8 +154,7 @@ export default function Scenarios() {
   const [useExpectedInflow, setUseExpectedInflow] = useState(false);
   const [expandedPhase, setExpandedPhase] = useState(null);
   const [expandedKnowledge, setExpandedKnowledge] = useState(null);
-  const [allocsByCategory, setAllocsByCategory] = useState({});
-  const [savingsSummary, setSavingsSummary] = useState(null);
+  const [snap, setSnap] = useState(null);
 
   // Auto-verified checklist from DB
   const [checklistStatus, setChecklistStatus] = useState({});
@@ -167,46 +165,24 @@ export default function Scenarios() {
 
   async function loadData() {
     try {
-      const [f, p, ph, allPhases, params, avg, ss, cl] = await Promise.all([
+      const [sn, f, allPhases] = await Promise.all([
+        apiClient.snapshot.get(),
         apiClient.monthly.filled(),
-        apiClient.portfolio.summary(),
-        apiClient.phases.active(),
         apiClient.phases.get(),
-        apiClient.params.get(),
-        apiClient.params.avgExpense(),
-        apiClient.savings.summary().catch(() => null),
-        apiClient.phases.checklist().catch(() => ({})),
       ]);
-      setChecklistStatus(cl || {});
+      setSnap(sn);
       setFilled(f);
-      setSavingsSummary(ss);
-      setPortfolio(p);
-      setPhase(ph);
       setPhases(allPhases);
-      setAvgExpense(avg);
-      const paramMap = {};
-      for (const param of params) paramMap[param.key] = param.value;
-      setExpectedExpense(paramMap.FI_MONTHLY_EXPENSE || 4000000);
-      setExpectedInflow(paramMap.DEFAULT_INFLOW || 3700000);
-      setTotalMonths(paramMap.TOTAL_MONTHS || 120);
-      if (ph) {
-        setExpandedPhase(ph.sort_order);
-      }
-      // Fetch allocations for filled months
-      if (f.length > 0) {
-        const allAllocs = await Promise.all(
-          f.map(m => apiClient.allocations.get(m.id).catch(() => []))
-        );
-        const byCat = {};
-        for (const monthAllocs of allAllocs) {
-          for (const a of monthAllocs) {
-            const name = a.category_name;
-            if (!byCat[name]) byCat[name] = { total: 0, color: a.color, icon: a.icon };
-            byCat[name].total += a.actual_amount || a.planned_amount || 0;
-          }
-        }
-        setAllocsByCategory(byCat);
-      }
+      setChecklistStatus(sn.checklist || {});
+
+      const active = allPhases.find((p) => p.id === sn.phase?.id) || null;
+      setPhase(active);
+      if (active) setExpandedPhase(active.sort_order);
+
+      setAvgExpense(sn.cashflow.expenseMean || 0);
+      setExpectedExpense(sn.params.FI_MONTHLY_EXPENSE || 4000000);
+      setExpectedInflow(sn.params.DEFAULT_INFLOW || 3700000);
+      setTotalMonths(sn.params.TOTAL_MONTHS || 120);
     } catch (err) {
       console.error('Scenarios load error:', err);
     }
@@ -214,12 +190,10 @@ export default function Scenarios() {
 
   const totalInflow = filled.reduce((s, m) => s + (m.total_inflow || 0), 0);
   const avgInflow = filled.length > 0 ? totalInflow / filled.length : 0;
-  const byCategory = portfolio?.byCategory || {};
-  const totalAllocated = Object.values(allocsByCategory).reduce((s, c) => s + c.total, 0);
-  const totalSavingsBalance = savingsSummary?.totalBalance || 0;
-  const totalCurrentValue = (portfolio?.totalCurrentValue || totalAllocated) + totalSavingsBalance;
+  const byCategory = snap?.portfolio.byCategory || {};
+  const totalCurrentValue = snap?.netWorth.total || 0;
 
-  // FI calculation (4% rule)
+  // Quy tắc 4%: cần 25 năm chi tiêu để sống bằng lợi suất.
   const fiNumber = expectedExpense * 12 / 0.04;
   const fiRatio = fiNumber > 0 ? (totalCurrentValue / fiNumber) * 100 : 0;
 
@@ -255,15 +229,17 @@ export default function Scenarios() {
     return 'locked';
   }
 
+  // Cùng ngưỡng mà máy dò giai đoạn dùng: giai đoạn 1 đo quỹ dự phòng,
+  // các giai đoạn sau đo tổng tài sản; mốc = bội số × chi tiêu mục tiêu.
+  function phaseGoal(p) {
+    return (p.goal_multiplier || 0) * (snap?.params.FI_MONTHLY_EXPENSE || 0);
+  }
+
   function getPhaseProgress(p) {
-    if (!p.goal_amount || p.goal_amount <= 0) return 100;
-    // Milestones theo kịch bản giai đoạn:
-    // Phase 1: Dự phòng balance (xây quỹ dự phòng)
-    // Phase 2+: Total assets (đầu tư tăng trưởng, tích lũy)
-    const duPhongBalance = byCategory['Dự Phòng']?.currentTotal || 0;
-    const currentValue = p.sort_order === 1 ? duPhongBalance : totalCurrentValue;
-    const progress = (currentValue / p.goal_amount) * 100;
-    return Math.min(100, Math.max(0, progress));
+    const goal = phaseGoal(p);
+    if (goal <= 0) return 100;
+    const current = p.sort_order === 1 ? (snap?.savings.reserveBalance || 0) : totalCurrentValue;
+    return Math.min(100, Math.max(0, (current / goal) * 100));
   }
 
   return (
@@ -325,7 +301,7 @@ export default function Scenarios() {
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-semibold ${isActive ? 'text-primary-700' : 'text-slate-700'}`}>{p.name}</p>
                     <p className="text-xs text-slate-500">{p.goal_description}</p>
-                    {p.goal_amount > 0 && (
+                    {phaseGoal(p) > 0 && (
                       <div className="mt-1.5 h-1.5 bg-slate-200 rounded-full overflow-hidden">
                         <div className={`h-full rounded-full ${isDone ? 'bg-emerald-500' : 'bg-primary-500'}`} style={{ width: `${progress}%` }} />
                       </div>
@@ -333,9 +309,9 @@ export default function Scenarios() {
                   </div>
                   <div className="text-right shrink-0">
                     <p className="text-sm font-bold text-slate-700">
-                      {p.goal_amount > 0 ? formatVND(p.goal_amount) : 'Tự do'}
+                      {phaseGoal(p) > 0 ? formatVND(phaseGoal(p)) : 'Tự do'}
                     </p>
-                    {p.goal_amount > 0 && (
+                    {phaseGoal(p) > 0 && (
                       <p className="text-[10px] text-slate-400">{progress.toFixed(0)}% đạt</p>
                     )}
                   </div>
@@ -391,16 +367,16 @@ export default function Scenarios() {
           <h3 className="text-sm font-semibold text-slate-700 mb-4">Phân bổ danh mục hiện tại</h3>
           <div className="grid grid-cols-2 gap-3">
             {Object.entries(byCategory).map(([cat, data]) => {
-              const gain = data.currentTotal - data.total;
-              const gainPct = data.total > 0 ? (gain / data.total) * 100 : 0;
+              const gain = data.marketValue - data.invested;
+              const gainPct = data.invested > 0 ? (gain / data.invested) * 100 : 0;
               return (
                 <div key={cat} className="p-3 bg-slate-50 rounded-lg">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium text-slate-700">{cat}</span>
-                    <span className="text-sm font-bold text-slate-800">{formatVND(data.currentTotal)}</span>
+                    <span className="text-sm font-bold text-slate-800">{formatVND(data.marketValue)}</span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span>Vốn: {formatVND(data.total)}</span>
+                    <span>Vốn: {formatVND(data.invested)}</span>
                     <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>
                       {gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
                     </span>

@@ -430,36 +430,36 @@ async function run() {
   await t(
     'C10',
     'Danh mục rỗng: Kịch bản không được cộng đôi số dư tiết kiệm',
-    ['rest:GET /api/portfolio/summary', 'rest:GET /api/savings/summary'],
+    ['rest:GET /api/portfolio/summary', 'rest:GET /api/savings/summary', 'rest:GET /api/snapshot'],
     async () => {
       await reset();
-      // Xoá hết giao dịch để totalCurrentValue = 0 → Scenarios.jsx:220 rơi vào
-      // nhánh `|| totalAllocated`, mà totalAllocated đã bao gồm Dự Phòng và
-      // Tiết kiệm & Trái phiếu, rồi lại cộng thêm totalSavingsBalance.
+      // Xoá hết giao dịch để giá thị trường danh mục về 0. Đây là lúc công thức
+      // cũ rơi vào nhánh dự phòng và cộng phần tiết kiệm lần thứ hai.
       await del('/api/data/transactions');
 
       const d2 = await F.loadAll();
-      const scenarios = F.netWorth_Scenarios(d2);
-      const canonical =
-        (d2.summary.totalCurrentValue || 0) + (d2.savingsSummary.totalBalance || 0);
+      const sn = d2.snapshot;
+      const shown = F.netWorth_Scenarios(d2);
 
-      if (scenarios > canonical + TOL) {
-        fail(
-          `Danh mục rỗng nên Scenarios.jsx:220 dùng nhánh dự phòng: ` +
-            `tổng phân bổ (${fmt(scenarios - (d2.savingsSummary.totalBalance || 0))}) ` +
-            `+ số dư tiết kiệm (${fmt(d2.savingsSummary.totalBalance)}) = ${fmt(scenarios)}, ` +
-            `trong khi tài sản thật chỉ là ${fmt(canonical)}. ` +
-            `Thổi phồng ${fmt(scenarios - canonical)} vì tổng phân bổ đã chứa ` +
-            `phần tiết kiệm rồi.`
-        );
-      }
+      approx(sn.portfolio.marketValue, 0, TOL, 'xoá hết giao dịch mà danh mục vẫn còn giá trị');
+      approx(
+        shown,
+        sn.cash.total + sn.savings.balance,
+        TOL,
+        `danh mục rỗng thì tài sản chỉ còn tiền mặt ${fmt(sn.cash.total)} ` +
+          `+ tiết kiệm ${fmt(sn.savings.balance)}, nhưng Kịch bản hiện ${fmt(shown)}`
+      );
+
+      // Chặn kiểu cộng đôi cũ: không thể sở hữu nhiều hơn tổng tiền đã kiếm được
+      // cộng với số dư tiết kiệm.
+      const ceiling = sn.cashflow.totalInflow + sn.savings.balance;
+      ok(
+        shown <= ceiling + TOL,
+        `${fmt(shown)} vượt trần ${fmt(ceiling)} (tiền nhàn rỗi đã kiếm + tiết kiệm) — ` +
+          `phần tiết kiệm đang bị đếm hai lần`
+      );
+
       await reset();
-    },
-    {
-      knownFail:
-        'Scenarios.jsx:218-220 `(portfolio.totalCurrentValue || totalAllocated) ' +
-        '+ totalSavingsBalance` — totalAllocated gồm cả Dự Phòng và Tiết kiệm & ' +
-        'Trái phiếu nên phần tiết kiệm bị đếm hai lần.',
     }
   );
 }
