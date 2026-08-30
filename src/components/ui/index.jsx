@@ -182,3 +182,27 @@ export function Tabs({ tabs, value, onChange, className = '' }) {
     </div>
   );
 }
+
+/* ── Dải trạng thái ──────────────────────────────────────────────────────── */
+
+const BANNER_TONES = {
+  success: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  error: 'bg-red-50 border-red-200 text-red-700',
+  warning: 'bg-amber-50 border-amber-200 text-amber-700',
+  info: 'bg-primary-50 border-primary-200 text-primary-700',
+};
+
+/**
+ * Một dòng báo kết quả. Bốn biến thể từng được chép tay ở mỗi chỗ cần, nên
+ * cùng một thông báo lỗi lại có bốn kiểu viền khác nhau.
+ */
+export function Banner({ tone = 'info', children, className = '' }) {
+  return (
+    <div
+      role={tone === 'error' ? 'alert' : 'status'}
+      className={`mt-3 px-3 py-2.5 rounded-input border text-fs-3 ${BANNER_TONES[tone] || BANNER_TONES.info} ${className}`}
+    >
+      {children}
+    </div>
+  );
+}

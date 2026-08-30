@@ -1,11 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { formatVND, formatPercent } from '../utils/formatters';
 import { apiClient, isElectron } from '../utils/apiClient';
 import FormattedInput from './FormattedInput';
 import { buildPhaseGuidance, guidanceText } from '../content/phases.js';
 import AppIcon, { Spinner, DownloadSimple, UploadSimple, CheckCircle, XCircle, Trash, Eye, EyeSlash, PencilSimple } from '../utils/iconMap';
-import { useConfirm } from './ui/index.jsx';
+import { useConfirm, Banner } from './ui/index.jsx';
 
 export default function Settings() {
   const { confirm, notify } = useConfirm();
@@ -33,6 +32,57 @@ export default function Settings() {
   // Data management
   const [stats, setStats] = useState(null);
   const [confirmClear, setConfirmClear] = useState(null); // 'transactions' | 'monthly' | 'all'
+
+  /** Mỗi loại xoá lấy đi cái gì — nói bằng con số của chính người dùng. */
+  const CLEAR_INFO = {
+    transactions: {
+      title: 'Xoá toàn bộ giao dịch',
+      message: 'Danh mục đầu tư về rỗng. Dữ liệu nhập liệu hằng tháng vẫn còn.',
+      rows: (st) => [{ label: 'Giao dịch mua bán', value: String(st?.txns ?? 0) }],
+      confirmLabel: 'Xoá giao dịch',
+    },
+    monthly: {
+      title: 'Xoá toàn bộ dữ liệu nhập liệu',
+      message: 'Mọi tháng đã ghi, mọi dòng phân bổ và mọi giao dịch cùng biến mất.',
+      rows: (st) => [
+        { label: 'Tháng đã ghi', value: String(st?.monthly ?? 0) },
+        { label: 'Dòng phân bổ', value: String(st?.allocs ?? 0) },
+        { label: 'Giao dịch', value: String(st?.txns ?? 0) },
+      ],
+      confirmLabel: 'Xoá nhập liệu',
+    },
+    savings: {
+      title: 'Xoá toàn bộ sổ tiết kiệm',
+      message: 'Chỉ sổ tiết kiệm biến mất. Giao dịch và nhập liệu giữ nguyên.',
+      rows: (st) => [{ label: 'Sổ tiết kiệm', value: String(st?.savings ?? 0) }],
+      confirmLabel: 'Xoá sổ tiết kiệm',
+    },
+    all: {
+      title: 'Xoá tất cả và bắt đầu lại',
+      message: 'App trở về như lúc mới cài. Giai đoạn quay lại Giai đoạn 1.',
+      rows: (st) => [
+        { label: 'Tháng đã ghi', value: String(st?.monthly ?? 0) },
+        { label: 'Giao dịch', value: String(st?.txns ?? 0) },
+        { label: 'Dòng phân bổ', value: String(st?.allocs ?? 0) },
+        { label: 'Sổ tiết kiệm', value: String(st?.savings ?? 0) },
+        { label: 'Dòng nhật ký', value: String(st?.activity ?? 0) },
+      ],
+      confirmLabel: 'Xoá tất cả',
+    },
+  };
+
+  async function askClear(kind) {
+    const info = CLEAR_INFO[kind];
+    const ok = await confirm({
+      title: info.title,
+      message: info.message,
+      details: info.rows(stats),
+      warning: 'Không hoàn tác được. Nên xuất Excel trước khi xoá.',
+      confirmLabel: info.confirmLabel,
+      tone: 'danger',
+    });
+    if (ok) handleClear(kind);
+  }
   const [avgExpense, setAvgExpense] = useState(4000000);
   const [snap, setSnap] = useState(null);
 
@@ -366,21 +416,16 @@ export default function Settings() {
           </div>
         </div>
         {importStatus?.type === 'success' && (
-          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700">
-            <CheckCircle size={14} className="inline mr-1 text-emerald-600" weight="regular" /> Import: {importStatus.data.parameters} tham số, {importStatus.data.ledger} tháng, {importStatus.data.transactions} giao dịch
-          </div>
+          <Banner tone="success">
+            Đã nhập {importStatus.data.parameters} tham số, {importStatus.data.ledger} tháng
+            và {importStatus.data.transactions} giao dịch.
+          </Banner>
         )}
-        {importStatus?.type === 'error' && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 flex items-center gap-1.5"><XCircle size={14} weight="regular" /> {importStatus.message}</div>
-        )}
+        {importStatus?.type === 'error' && <Banner tone="error">{importStatus.message}</Banner>}
         {exportStatus?.type === 'success' && (
-          <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700">
-            <CheckCircle size={14} className="inline mr-1 text-emerald-600" weight="regular" /> Đã xuất dữ liệu ra: {exportStatus.path}
-          </div>
+          <Banner tone="success">Đã xuất ra {exportStatus.path}</Banner>
         )}
-        {exportStatus?.type === 'error' && (
-          <div className="mt-3 p-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-700 flex items-center gap-1.5"><XCircle size={14} weight="regular" /> {exportStatus.message}</div>
-        )}
+        {exportStatus?.type === 'error' && <Banner tone="error">{exportStatus.message}</Banner>}
       </div>
 
       {/* Timeline */}
@@ -677,7 +722,7 @@ export default function Settings() {
               <p className="text-sm font-medium text-slate-700">Xóa giao dịch</p>
               <p className="text-xs text-slate-400">Xóa tất cả lệnh mua/bán. Giữ nguyên nhập liệu tháng.</p>
             </div>
-            <button onClick={() => setConfirmClear('transactions')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.txns}>Xóa giao dịch</button>
+            <button onClick={() => askClear('transactions')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.txns}>Xóa giao dịch</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
@@ -685,7 +730,7 @@ export default function Settings() {
               <p className="text-sm font-medium text-slate-700">Xóa dữ liệu nhập liệu</p>
               <p className="text-xs text-slate-400">Xóa tất cả nhập liệu tháng + giao dịch + phân bổ.</p>
             </div>
-            <button onClick={() => setConfirmClear('monthly')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.monthly}>Xóa nhập liệu</button>
+            <button onClick={() => askClear('monthly')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.monthly}>Xóa nhập liệu</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
@@ -693,7 +738,7 @@ export default function Settings() {
               <p className="text-sm font-medium text-slate-700">Xóa sổ tiết kiệm</p>
               <p className="text-xs text-slate-400">Xóa tất cả sổ tiết kiệm. Dữ liệu khác giữ nguyên.</p>
             </div>
-            <button onClick={() => setConfirmClear('savings')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.savings}>Xóa sổ tiết kiệm</button>
+            <button onClick={() => askClear('savings')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.savings}>Xóa sổ tiết kiệm</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-red-50 rounded-xl">
@@ -701,34 +746,11 @@ export default function Settings() {
               <p className="text-sm font-medium text-red-700">Xóa tất cả & Reset</p>
               <p className="text-xs text-red-400">Xóa toàn bộ dữ liệu, reset về trạng thái ban đầu.</p>
             </div>
-            <button onClick={() => setConfirmClear('all')} className="btn-danger text-sm font-bold w-44 shrink-0">Reset toàn bộ</button>
+            <button onClick={() => askClear('all')} className="btn-danger text-sm font-bold w-44 shrink-0">Reset toàn bộ</button>
           </div>
         </div>
       </div>
 
-      {/* Confirm Modal */}
-      {confirmClear && createPortal(
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in">
-          <div className="card max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-red-700 mb-2">
-              {confirmClear === 'all' ? 'Reset toàn bộ?' : confirmClear === 'monthly' ? 'Xóa dữ liệu nhập liệu?' : confirmClear === 'savings' ? 'Xóa sổ tiết kiệm?' : 'Xóa giao dịch?'}
-            </h3>
-            <p className="text-sm text-slate-500 mb-4">
-              {confirmClear === 'all' && 'Toàn bộ dữ liệu sẽ bị xóa. Phase sẽ reset về Giai đoạn 1. Không thể hoàn tác.'}
-              {confirmClear === 'monthly' && 'Tất cả nhập liệu tháng, phân bổ, và giao dịch sẽ bị xóa. Không thể hoàn tác.'}
-              {confirmClear === 'transactions' && 'Tất cả giao dịch mua/bán sẽ bị xóa. Nhập liệu tháng vẫn giữ. Không thể hoàn tác.'}
-              {confirmClear === 'savings' && 'Tất cả sổ tiết kiệm sẽ bị xóa. Dữ liệu khác giữ nguyên. Không thể hoàn tác.'}
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setConfirmClear(null)} className="btn-ghost">Hủy</button>
-              <button onClick={() => handleClear(confirmClear)} className="btn-danger font-bold">
-                {confirmClear === 'all' ? 'Reset tất cả' : confirmClear === 'savings' ? 'Xóa sổ tiết kiệm' : 'Xóa'}
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
     </div>
   );
 }
