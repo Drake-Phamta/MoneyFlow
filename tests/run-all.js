@@ -21,6 +21,7 @@ const only = (process.argv.find((a) => a.startsWith('--only=')) || '').split('='
 // Nhóm không cần server (phân tích tĩnh) chạy trước — rẻ và bắt lỗi sớm.
 const STATIC_SUITES = [
   { group: 'parity', file: './parity/P1-ipc-vs-rest' },
+  { group: 'content', file: './content/T04-voice' },
 ];
 const SERVER_SUITES = [
   { group: 'parity', file: './parity/P2-signatures' },
@@ -44,6 +45,9 @@ const SERVER_SUITES = [
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },
   { group: 'consistency', file: './consistency/C04-integrity' },
+  { group: 'content', file: './content/T01-numbers' },
+  { group: 'content', file: './content/T02-checklist-labels' },
+  { group: 'content', file: './content/T03-generated' },
 ];
 
 function loadMatrix() {
