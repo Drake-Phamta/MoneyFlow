@@ -11,6 +11,11 @@ class FinancialDB {
     this.db = null;
     if (dbPath) {
       this.dbPath = dbPath;
+    } else if (process.env.MF_DB_PATH) {
+      // Cho phép trỏ sang một cơ sở dữ liệu khác. Không có lối này thì bản
+      // Electron luôn mở thẳng dữ liệu thật, và không cách nào thử đường IPC
+      // mà không đụng vào tiền của người dùng.
+      this.dbPath = process.env.MF_DB_PATH;
     } else {
       this.dbPath = (app && app.isPackaged)
         ? path.join(app.getPath('userData'), 'financial.sqlite')

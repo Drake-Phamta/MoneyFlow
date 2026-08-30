@@ -27,7 +27,10 @@ function createWindow() {
     title: 'Money Flow',
     icon: path.join(__dirname, '..', 'icon.ico'),
   });
-  if (!app.isPackaged) {
+  // MF_ELECTRON_TEST: chạy trên bản đã dựng thay vì máy chủ Vite, để thử được
+  // đường IPC mà không cần dựng thêm một tiến trình nữa.
+  const useBuilt = app.isPackaged || process.env.MF_ELECTRON_TEST;
+  if (!useBuilt) {
     mainWindow.loadURL('http://localhost:5173');
     mainWindow.webContents.openDevTools();
   } else {
@@ -43,10 +46,13 @@ function startExpressServer() {
     const upload = multer({ storage: multer.memoryStorage() });
     app2.use(cors());
     app2.use(express.json());
-    app2.use(express.static(path.join(__dirname, '../dist')));
+    // MF_DIST_DIR cho phép trỏ sang một thư mục dist khác — bộ test dùng bản
+    // dựng riêng của nó, không đụng vào dist của người dùng.
+    const distDir = process.env.MF_DIST_DIR || path.join(__dirname, '../dist');
+    app2.use(express.static(distDir));
 
     // Setup all API routes (shared with server.js)
-    setupRoutes(app2, db, priceService, upload);
+    setupRoutes(app2, db, priceService, upload, { fallbackDir: distDir });
 
     server = app2.listen(0, '127.0.0.1', () => resolve(server.address().port));
   });

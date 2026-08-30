@@ -21,7 +21,10 @@
     "test:inventory": "node tests/rig/inventory.js",
     "test:api": "node tests/run-all.js --only=api",
     "test:matrix": "node tests/rig/gen-matrix.js",
-    "test:ui": "node tests/run-all.js --only=ui"
+    "test:ui": "node tests/run-all.js --only=ui",
+    "test:electron": "node tests/run-all.js --only=electron",
+    "test:content": "node tests/run-all.js --only=content",
+    "test:projection": "node tests/run-all.js --only=projection"
   },
   "browserslist": [
     "last 1 chrome version",
