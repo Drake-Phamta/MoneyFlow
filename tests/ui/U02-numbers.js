@@ -24,6 +24,16 @@ async function moneyAfter(b, label, { within = 220 } = {}) {
   return m ? Number(m[1].replace(/\./g, '')) : null;
 }
 
+/** Con số tổng tài sản trên Tổng quan, đọc theo neo chứ không theo nhãn. */
+async function netWorthOnScreen(b) {
+  return b.rec.page.evaluate(() => {
+    const el = document.querySelector('[data-testid="net-worth"]');
+    if (!el) return null;
+    const m = (el.innerText || '').match(/(-?[\d.]{4,})/);
+    return m ? Number(m[1].replace(/\./g, '')) : null;
+  });
+}
+
 async function run() {
   group('U02 — Số trên màn hình khớp dữ liệu');
   await reset();
@@ -34,12 +44,12 @@ async function run() {
   try {
     await t(
       'UI-N-01',
-      'Dashboard: "Tổng tài sản ròng" khớp công thức trang đó dùng',
+      'Tổng quan: con số lớn nhất màn hình khớp công thức trang đó dùng',
       ['ui:portfolio.summary', 'ui:savings.summary', 'ui:savings.overview'],
       async () => {
         await b.goto('/');
-        const shown = await moneyAfter(b, 'TỔNG TÀI SẢN RÒNG');
-        ok(shown !== null, 'không tìm thấy con số "Tổng tài sản ròng" trên màn hình');
+        const shown = await netWorthOnScreen(b);
+        ok(shown !== null, 'không tìm thấy con số tổng tài sản trên màn hình');
         const expected = F.netWorth_Dashboard(d);
         ok(
           Math.abs(shown - expected) <= TOL,
@@ -50,11 +60,11 @@ async function run() {
 
     await t(
       'UI-N-02',
-      'Dashboard: ba thành phần cộng lại đúng bằng tổng hiển thị',
+      'Tổng quan: ba thành phần cộng lại đúng bằng tổng hiển thị',
       ['ui:portfolio.summary', 'ui:savings.summary'],
       async () => {
         await b.goto('/');
-        const total = await moneyAfter(b, 'TỔNG TÀI SẢN RÒNG');
+        const total = await netWorthOnScreen(b);
         ok(total !== null, 'không đọc được tổng tài sản');
 
         const cash = F.dashboardCash(d).totalCashOnHand;

@@ -20,16 +20,24 @@ const ACTIONS = {
     return b.clickText('Nhập liệu tháng mới', { tag: 'button' });
   },
   async openNetWorth(b) {
-    return b.clickText('Tổng tài sản ròng');
+    // Neo vào data-testid, không vào chữ: đổi nhãn không được làm đỏ test.
+    const clicked = await b.rec.page.evaluate(() => {
+      const el = document.querySelector('[data-testid="net-worth"]');
+      if (!el) return false;
+      el.click();
+      return true;
+    });
+    if (clicked) await b.sleep(1400);
+    return clicked;
   },
   async openAssetDetail(b) {
     const clicked = await b.rec.page.evaluate(() => {
-      const card = document.querySelector('.portfolio-card');
-      if (!card) return false;
-      card.click();
+      const cell = document.querySelector('table.table tbody tr td button');
+      if (!cell) return false;
+      cell.click();
       return true;
     });
-    if (clicked) await b.sleep(1200);
+    if (clicked) await b.sleep(1400);
     return clicked;
   },
 };
