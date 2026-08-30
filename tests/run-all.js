@@ -42,6 +42,8 @@ const SERVER_SUITES = [
   { group: 'ui', file: './ui/U01-render' },
   { group: 'ui', file: './ui/U02-numbers' },
   { group: 'ui', file: './ui/U03-empty' },
+  { group: 'ui', file: './ui/U04-flows' },
+  { group: 'ui', file: './ui/U05-a11y-perf' },
   { group: 'consistency', file: './consistency/C01-categories' },
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },

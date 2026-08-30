@@ -320,17 +320,17 @@ export default function Settings() {
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Dự phòng (3×)</p>
             <p className="text-sm font-bold text-primary-600">{formatVND(targetExpense * 3)}</p>
-            <p className="text-[10px] text-slate-300">mục tiêu</p>
+            <p className="text-[10px] text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Tăng tốc (6×)</p>
             <p className="text-sm font-bold text-blue-600">{formatVND(targetExpense * 6)}</p>
-            <p className="text-[10px] text-slate-300">mục tiêu</p>
+            <p className="text-[10px] text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
             <p className="text-[10px] text-slate-400">Tích lũy (24×)</p>
             <p className="text-sm font-bold text-violet-600">{formatVND(targetExpense * 24)}</p>
-            <p className="text-[10px] text-slate-300">mục tiêu</p>
+            <p className="text-[10px] text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl text-center">
             <p className="text-[10px] text-emerald-600">Tự do tài chính (quy tắc 4%)</p>
@@ -359,7 +359,7 @@ export default function Settings() {
         </div>
         {importStatus?.type === 'success' && (
           <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700">
-            <CheckCircle size={14} className="inline mr-1 text-emerald-500" weight="regular" /> Import: {importStatus.data.parameters} tham số, {importStatus.data.ledger} tháng, {importStatus.data.transactions} giao dịch
+            <CheckCircle size={14} className="inline mr-1 text-emerald-600" weight="regular" /> Import: {importStatus.data.parameters} tham số, {importStatus.data.ledger} tháng, {importStatus.data.transactions} giao dịch
           </div>
         )}
         {importStatus?.type === 'error' && (
@@ -367,7 +367,7 @@ export default function Settings() {
         )}
         {exportStatus?.type === 'success' && (
           <div className="mt-3 p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700">
-            <CheckCircle size={14} className="inline mr-1 text-emerald-500" weight="regular" /> Đã xuất dữ liệu ra: {exportStatus.path}
+            <CheckCircle size={14} className="inline mr-1 text-emerald-600" weight="regular" /> Đã xuất dữ liệu ra: {exportStatus.path}
           </div>
         )}
         {exportStatus?.type === 'error' && (
@@ -613,13 +613,13 @@ export default function Settings() {
                     <td className="px-3 py-2"><span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{a.category}</span></td>
                     <td className="px-3 py-2 text-xs text-slate-500">{a.unit}</td>
                     <td className="px-3 py-2 text-center">
-                      <button onClick={() => handleToggleTrack(a.id, a.is_tracked)} className={`p-1 rounded-lg transition ${a.is_tracked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-300 hover:bg-slate-100'}`} title={a.is_tracked ? 'Đang theo dõi' : 'Chưa theo dõi'}>
+                      <button onClick={() => handleToggleTrack(a.id, a.is_tracked)} className={`p-1 rounded-lg transition ${a.is_tracked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`} title={a.is_tracked ? 'Đang theo dõi' : 'Chưa theo dõi'}>
                         {a.is_tracked ? <Eye size={16} /> : <EyeSlash size={16} />}
                       </button>
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button onClick={() => startEditAsset(a)} className="text-slate-400 hover:text-primary-600 p-1" title="Sửa"><PencilSimple size={14} /></button>
-                      <button onClick={() => handleDeleteAsset(a.id)} className="text-slate-300 hover:text-red-500 p-1" title="Xóa"><Trash size={14} /></button>
+                      <button onClick={() => handleDeleteAsset(a.id)} className="text-slate-400 hover:text-red-600 p-1" title="Xóa"><Trash size={14} /></button>
                     </td>
                   </tr>
                 ))

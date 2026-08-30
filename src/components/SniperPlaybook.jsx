@@ -322,14 +322,14 @@ export default function SniperPlaybook({ embedded }) {
 
                   {/* Drawdown */}
                   <div className="w-24 shrink-0 text-right">
-                    <p className={`text-xl font-bold leading-none ${isHot ? 'text-red-500' : 'text-slate-200'}`}>
+                    <p className={`text-xl font-bold leading-none ${isHot ? 'text-red-600' : 'text-slate-200'}`}>
                       {(dd * 100).toFixed(1)}%
                     </p>
                     <p className="text-[10px] text-slate-400 mt-0.5">sụt giảm</p>
                   </div>
 
                   {/* Remove */}
-                  <button onClick={() => toggleTrack(w)} className="shrink-0 text-slate-300 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 transition" title="Ngừng theo dõi">
+                  <button onClick={() => toggleTrack(w)} className="shrink-0 text-slate-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50 transition" title="Ngừng theo dõi">
                     <X size={14} />
                   </button>
                 </div>

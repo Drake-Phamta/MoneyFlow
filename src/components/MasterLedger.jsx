@@ -101,7 +101,7 @@ export default function MasterLedger() {
     { key: 'total_inflow', label: 'Tiền nhàn rỗi', width: 'w-28', format: v => formatVND(v) },
     { key: 'phase_id', label: 'Giai đoạn', width: 'w-32', format: (v) => getPhaseName(v) },
     { key: 'note', label: 'Ghi chú', width: 'w-40' },
-    { key: 'status', label: 'Trạng thái', width: 'w-16', format: v => v === 'confirmed' ? <CheckCircle size={16} className="text-emerald-500" weight="regular" /> : <span className="text-slate-300">—</span> },
+    { key: 'status', label: 'Trạng thái', width: 'w-16', format: v => v === 'confirmed' ? <CheckCircle size={16} className="text-emerald-600" weight="regular" /> : <span className="text-slate-400">—</span> },
   ];
 
   return (

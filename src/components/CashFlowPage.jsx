@@ -185,20 +185,20 @@ export default function CashFlowPage() {
           {(() => {
             const totalBonus = filled.reduce((s, m) => s + (m.bonus || 0), 0);
             return totalBonus > 0
-              ? <p className="text-xs text-emerald-500 font-medium">+{formatVND(totalBonus)} thưởng</p>
+              ? <p className="text-xs text-emerald-600 font-medium">+{formatVND(totalBonus)} thưởng</p>
               : <p className="text-xs text-slate-400">{filled.length} tháng</p>;
           })()}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tổng chi tiêu</span>
-          <p className="kpi-value text-red-500">{formatVND(totalExpense)}</p>
+          <p className="kpi-value text-red-600">{formatVND(totalExpense)}</p>
           {filled.length > 1 && (
             <p className="text-xs text-slate-500">Trung bình {formatVND(totalExpense / filled.length)}/tháng</p>
           )}
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ tiết kiệm</span>
-          <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+          <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-600'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -218,7 +218,7 @@ export default function CashFlowPage() {
         </div>
         <div className="kpi">
           <span className="kpi-label">Tỷ lệ đầu tư</span>
-          <p className={`kpi-value ${investTargetPct > 0 && avgInvestRate >= investTargetPct * 0.9 ? 'text-blue-600' : 'text-amber-500'}`}>
+          <p className={`kpi-value ${investTargetPct > 0 && avgInvestRate >= investTargetPct * 0.9 ? 'text-blue-600' : 'text-amber-600'}`}>
             {avgInvestRate > 0 ? `${avgInvestRate.toFixed(1)}%` : '—'}
           </p>
           <div className="flex items-center gap-1.5 flex-wrap">
@@ -359,11 +359,11 @@ export default function CashFlowPage() {
                       const TrendIcon = diff > 0 ? TrendUp : diff < 0 ? TrendDown : Minus;
                       return (
                         <div className="flex items-center gap-2">
-                          <TrendIcon size={16} className={diff > 0 ? 'text-emerald-500' : diff < 0 ? 'text-red-500' : 'text-slate-400'} weight="bold" />
+                          <TrendIcon size={16} className={diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-red-600' : 'text-slate-400'} weight="bold" />
                           <div>
                             <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
                             {diff !== 0 && (
-                              <p className={`text-[10px] ${diff > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                              <p className={`text-[10px] ${diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                 {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với trung bình
                               </p>
                             )}

@@ -387,7 +387,7 @@ export default function Dashboard() {
           <h1 className="page-title">Tổng quan</h1>
           <p className="page-subtitle">
             {filled.length > 0 ? `Đã ghi nhận ${filled.length} tháng` : 'Bắt đầu ghi nhận dòng tiền'}
-            {lastRefresh && <span className="text-slate-300 ml-2">· Giá cập nhật {formatTime(lastRefresh)}</span>}
+            {lastRefresh && <span className="text-slate-400 ml-2">· Giá cập nhật {formatTime(lastRefresh)}</span>}
           </p>
         </div>
         <div className="flex items-center gap-3 relative">
@@ -578,14 +578,14 @@ export default function Dashboard() {
             <div className="flex flex-wrap items-center gap-6">
               <div>
                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Tổng lợi nhuận</p>
-                <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {totalOverallGain >= 0 ? '+' : ''}{formatVND(totalOverallGain)}
                 </p>
               </div>
               <div className="w-px h-10 bg-slate-200"></div>
               <div>
                 <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Hiệu suất tài sản</p>
-                <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {totalInvested + totalSavingsPrincipal > 0 ? ((totalOverallGain / (totalInvested + totalSavingsPrincipal)) * 100).toFixed(2) : '0.00'}%
                 </p>
               </div>
@@ -639,11 +639,11 @@ export default function Dashboard() {
                 <InfoTooltip content="Phần chênh lệch giữa Giá trị hiện tại và Vốn đầu tư gốc." />
               </p>
               <div>
-                <p className={`text-xl font-bold tracking-tight ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                <p className={`text-xl font-bold tracking-tight ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
                 </p>
                 {totalGainPct !== 0 && (
-                  <p className={`text-[10px] font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-500' : 'text-red-400'}`}>
+                  <p className={`text-[10px] font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-400'}`}>
                     {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
                   </p>
                 )}
@@ -709,7 +709,7 @@ export default function Dashboard() {
                 <InfoTooltip content="Phần trăm thu nhập được giữ lại so với chi tiêu (Thu nhập thuần / Tổng Thu)." />
               </p>
               <div>
-                <p className={`text-xl font-bold tracking-tight ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+                <p className={`text-xl font-bold tracking-tight ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-600'}`}>
                   {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '--'}
                 </p>
                 <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiết kiệm / Thu nhập</p>
@@ -766,7 +766,7 @@ export default function Dashboard() {
                               <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400">{p.category}</p>
                             </div>
                           </div>
-                          <div className={`text-right ${isPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+                          <div className={`text-right ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                             <p className="text-sm font-bold tracking-tight">{isPositive ? '+' : ''}{formatVND(gain)}</p>
                             <p className="text-[10px] font-medium">{isPositive ? '+' : ''}{gainPct.toFixed(2)}%</p>
                           </div>
@@ -815,7 +815,7 @@ export default function Dashboard() {
                 <div className="mt-5 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">Tổng cộng</span>
-                    <div className={`text-right ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                    <div className={`text-right ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       <span className="text-base font-bold tracking-tight">{totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}</span>
                       <span className="text-[10px] ml-1 font-medium">({totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%)</span>
                     </div>
@@ -935,7 +935,7 @@ export default function Dashboard() {
                             {formatVND(actual)} / {formatVND(catTarget)}
                           </span>
                           {diff !== null && diff !== 0 && (
-                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-500' : 'text-blue-500'}`}>
+                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-600' : 'text-blue-500'}`}>
                               {diff > 0 ? '+' : ''}{formatVND(diff)}
                             </span>
                           )}
@@ -956,7 +956,7 @@ export default function Dashboard() {
                     {catTarget === null && invested > 0 && (
                       <div className="flex items-center justify-between text-xs text-slate-400 mt-1 ml-[18px]">
                         <span>Vốn: {formatVND(invested)}</span>
-                        <span className={gain >= 0 ? 'text-emerald-500' : 'text-red-400'}>
+                        <span className={gain >= 0 ? 'text-emerald-600' : 'text-red-400'}>
                           {gain >= 0 ? '+' : ''}{gainPct.toFixed(1)}%
                         </span>
                       </div>
@@ -988,7 +988,7 @@ export default function Dashboard() {
                                   {formatVND(itemValue)}
                                 </span>
                                 {itemInvested > 0 && itemGain !== 0 && (
-                                  <span className={`text-[10px] ml-1 ${isPositive ? 'text-emerald-500' : 'text-red-400'}`}>
+                                  <span className={`text-[10px] ml-1 ${isPositive ? 'text-emerald-600' : 'text-red-400'}`}>
                                     {isPositive ? '+' : ''}{itemGainPct.toFixed(1)}%
                                   </span>
                                 )}
@@ -1037,7 +1037,7 @@ export default function Dashboard() {
                     {a.amount > 0 && <span className="text-sm font-semibold text-slate-800">{formatVND(a.amount)}</span>}
                     <button
                       onClick={() => handleDeleteActivity(a.id)}
-                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-500 p-1 rounded transition-all duration-200 flex items-center justify-center"
+                      className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-red-600 p-1 rounded transition-all duration-200 flex items-center justify-center"
                       title="Xóa hoạt động này"
                     >
                       <Trash size={16} />

@@ -313,7 +313,7 @@ export default function AllocationGoals() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.name}</p>
                       <p className="text-xs text-slate-400">{m.desc}</p>
-                      {m.multiplier > 0 && <p className="text-[10px] text-slate-300">= {m.multiplier}× chi tiêu mục tiêu</p>}
+                      {m.multiplier > 0 && <p className="text-[10px] text-slate-400">= {m.multiplier}× chi tiêu mục tiêu</p>}
                     </div>
                   </div>
                   {!isFI && (
@@ -358,23 +358,23 @@ export default function AllocationGoals() {
           <div className="p-4 bg-slate-50 rounded-xl text-center">
             <p className="text-xs text-slate-400 mb-1">Số tài sản</p>
             <p className="text-2xl font-bold text-slate-800">{assetCount}</p>
-            <p className={`text-xs ${assetCount >= 3 ? 'text-emerald-500' : 'text-amber-500'}`}>
+            <p className={`text-xs ${assetCount >= 3 ? 'text-emerald-600' : 'text-amber-600'}`}>
               {assetCount >= 3 ? 'Đa dạng tốt' : 'Cần đa dạng thêm'}
             </p>
           </div>
           <div className="p-4 bg-slate-50 rounded-xl text-center">
             <p className="text-xs text-slate-400 mb-1">Số danh mục</p>
             <p className="text-2xl font-bold text-slate-800">{categoryCount}</p>
-            <p className={`text-xs ${categoryCount >= 3 ? 'text-emerald-500' : 'text-amber-500'}`}>
+            <p className={`text-xs ${categoryCount >= 3 ? 'text-emerald-600' : 'text-amber-600'}`}>
               {categoryCount >= 3 ? 'Phân bổ tốt' : 'Nên mở rộng'}
             </p>
           </div>
           <div className="p-4 bg-slate-50 rounded-xl text-center">
             <p className="text-xs text-slate-400 mb-1">Tập trung cao nhất</p>
-            <p className={`text-2xl font-bold ${concentrationRisk > 60 ? 'text-red-500' : concentrationRisk > 40 ? 'text-amber-500' : 'text-emerald-500'}`}>
+            <p className={`text-2xl font-bold ${concentrationRisk > 60 ? 'text-red-600' : concentrationRisk > 40 ? 'text-amber-600' : 'text-emerald-600'}`}>
               {concentrationRisk.toFixed(0)}%
             </p>
-            <p className={`text-xs ${concentrationRisk > 60 ? 'text-red-500' : 'text-slate-400'}`}>
+            <p className={`text-xs ${concentrationRisk > 60 ? 'text-red-600' : 'text-slate-400'}`}>
               {concentrationRisk > 60 ? 'Quá tập trung!' : concentrationRisk > 40 ? 'Hơi tập trung' : 'Cân bằng tốt'}
             </p>
           </div>

@@ -54,3 +54,16 @@ export function list(items) {
 export function lines(...xs) {
   return xs.flat().filter((x) => x !== null && x !== undefined && x !== '').join('\n');
 }
+
+/** 14.9 → "14,9" — dấu thập phân kiểu Việt, không phải kiểu Anh. */
+export function num(v, digits = 1) {
+  const n = Number(v);
+  if (!isFinite(n)) return '—';
+  return String(Number(n.toFixed(digits))).replace('.', ',');
+}
+
+/** "2026-11-04" → "04/11/2026" */
+export function date(iso) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : String(iso || '');
+}

@@ -321,7 +321,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
           <div key={s.id} className="flex items-center flex-1">
             <div className="flex items-center gap-2">
               <div className={(step > s.id || (step === 3 && s.id === 3)) ? 'step-dot-done' : step === s.id ? 'step-dot-active' : 'step-dot-pending'}>
-                {(step > s.id || (step === 3 && s.id === 3)) ? <Check size={14} className="text-emerald-500" /> : s.id}
+                {(step > s.id || (step === 3 && s.id === 3)) ? <Check size={14} className="text-emerald-600" /> : s.id}
               </div>
               <div className="hidden sm:block">
                 <p className={`text-xs font-semibold ${(step >= s.id) ? 'text-slate-700' : 'text-slate-400'}`}>{s.label}</p>
@@ -584,7 +584,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                 </button>
               </div>
               {adjustMode && !adjustReason && (
-                <p className="text-[11px] text-amber-500 text-right -mt-2">Vui lòng chọn lý do điều chỉnh phía trên</p>
+                <p className="text-[11px] text-amber-600 text-right -mt-2">Vui lòng chọn lý do điều chỉnh phía trên</p>
               )}
             </div>
           );
@@ -596,7 +596,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
             {/* Success header */}
             <div className="text-center py-6">
               <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle size={32} className="text-emerald-500" weight="bold" />
+                <CheckCircle size={32} className="text-emerald-600" weight="bold" />
               </div>
               <h2 className="text-xl font-bold text-slate-800 mb-1">
                 {editMode ? `Đã cập nhật ${editMonth?.month_label}!` : `Đã lưu ${nextMonth?.month_label}!`}
@@ -684,7 +684,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                         <p className="text-sm font-semibold text-slate-800">{m.month_label}</p>
                         <p className="text-xs text-slate-400">{m.note || 'Không có ghi chú'}</p>
                       </div>
-                      <span className="text-slate-300 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
+                      <span className="text-slate-400 text-xs ml-1">{isExpanded ? '▲' : '▼'}</span>
                     </button>
                     <div className="flex items-center gap-4 shrink-0">
                       <div className="text-right">
@@ -693,7 +693,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                       </div>
                       <div className="flex gap-1">
                         <button onClick={() => startEdit(m.month_index)} className="btn-ghost text-xs px-2 py-1">Sửa</button>
-                        <button onClick={() => setDeleteConfirm(m.month_index)} className="btn-ghost text-xs px-2 py-1 text-red-500">Xóa</button>
+                        <button onClick={() => setDeleteConfirm(m.month_index)} className="btn-ghost text-xs px-2 py-1 text-red-600">Xóa</button>
                       </div>
                     </div>
                   </div>

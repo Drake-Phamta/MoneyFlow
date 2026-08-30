@@ -72,7 +72,7 @@ export function Field({ label, hint, error, children, required, className = '' }
     <div className={className}>
       <label htmlFor={id} className="text-fs-2 text-slate-500 mb-1 block">
         {label}
-        {required && <span className="text-red-500 ml-0.5">*</span>}
+        {required && <span className="text-red-600 ml-0.5">*</span>}
       </label>
       {typeof children === 'function'
         ? children({ id, 'aria-describedby': describedBy || undefined })

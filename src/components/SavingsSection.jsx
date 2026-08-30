@@ -240,9 +240,9 @@ export default function SavingsSection() {
   function getMaturityColor(days) {
     if (days === null) return 'text-slate-400';
     if (days < 0) return 'text-red-600';
-    if (days <= 7) return 'text-red-500';
-    if (days <= 30) return 'text-amber-500';
-    return 'text-emerald-500';
+    if (days <= 7) return 'text-red-600';
+    if (days <= 30) return 'text-amber-600';
+    return 'text-emerald-600';
   }
 
   function getMaturityLabel(days) {
@@ -493,11 +493,11 @@ export default function SavingsSection() {
               <div className="h-full rounded-full transition-all" style={{ width: `${goldProgress}%`, background: canBuyGold ? '#10b981' : '#f59e0b' }} />
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-amber-500">{goldProgress.toFixed(0)}%</span>
+              <span className="text-[10px] text-amber-600">{goldProgress.toFixed(0)}%</span>
               {canBuyGold ? (
                 <span className="text-xs font-bold text-emerald-600">✓ Đủ mua 1 chỉ!</span>
               ) : (
-                <span className="text-[10px] text-amber-500">Còn thiếu {formatVND(sjcPrice - availableGoldFund)}</span>
+                <span className="text-[10px] text-amber-600">Còn thiếu {formatVND(sjcPrice - availableGoldFund)}</span>
               )}
             </div>
             {canBuyGold && (
@@ -690,7 +690,7 @@ export default function SavingsSection() {
                 <p className="text-xs text-emerald-600">Dự kiến lãi khi đáo hạn tất cả sổ</p>
                 <p className="text-lg font-bold text-emerald-700">+{formatVND(totalProjected)}</p>
               </div>
-              <p className="text-xs text-emerald-500">Tổng: {formatVND(totalInSavings + totalProjected)}</p>
+              <p className="text-xs text-emerald-600">Tổng: {formatVND(totalInSavings + totalProjected)}</p>
             </div>
           );
         })()}
@@ -782,9 +782,9 @@ export default function SavingsSection() {
                                     <div key={t.id} className="flex justify-between items-center bg-white p-2 rounded border border-slate-100 text-xs">
                                       <div className="flex items-center gap-2">
                                         <span className="font-semibold text-slate-700">{t.type === 'deposit' ? 'Gửi tiền' : t.type === 'withdraw' ? 'Rút tiền' : 'Lãi'}</span>
-                                        <span className="text-slate-300">|</span>
+                                        <span className="text-slate-400">|</span>
                                         <span className="text-slate-500">{t.note || 'Giao dịch'}</span>
-                                        <span className="text-slate-300">|</span>
+                                        <span className="text-slate-400">|</span>
                                         <div className="flex items-center gap-1">
                                           <span className="text-slate-400">Ngày:</span>
                                           <input type="date" value={t.date} onChange={e => handleUpdateTransactionDate(t.id, e.target.value)} className="border border-slate-200 rounded px-1 text-[11px] focus:outline-none focus:ring-1 focus:ring-primary-500" style={{ padding: '2px 4px' }} />
@@ -886,7 +886,7 @@ export default function SavingsSection() {
                       <td className="py-3 px-3">
                         {a.category_name ? (
                           <span className="text-xs text-slate-500">{a.category_name}</span>
-                        ) : <span className="text-xs text-slate-300">—</span>}
+                        ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-3 text-center">
                         <span className={`text-xs ${a.type === 'liquid' ? 'text-blue-500' : 'text-slate-500'}`}>
@@ -896,7 +896,7 @@ export default function SavingsSection() {
                       <td className="py-3 px-3 text-center text-xs text-slate-400">{a.start_date || '—'}</td>
                       <td className="py-3 px-3 text-right text-sm text-slate-500">{a.interest_rate}%</td>
                       <td className="py-3 px-3 text-right text-sm font-medium text-slate-700">{formatVND(a.principal)}</td>
-                      <td className="py-3 px-3 text-right text-sm text-emerald-500">+{formatVND(accrued)}</td>
+                      <td className="py-3 px-3 text-right text-sm text-emerald-600">+{formatVND(accrued)}</td>
                       <td className="py-3 px-3 text-right text-sm font-semibold text-slate-800">{formatVND(a.principal + accrued)}</td>
                       <td className="py-3 px-3 text-center">
                         {a.maturity_date ? (
@@ -904,13 +904,13 @@ export default function SavingsSection() {
                             <p className="text-xs text-slate-400">{a.maturity_date}</p>
                             <p className={`text-xs font-medium ${getMaturityColor(days)}`}>{getMaturityLabel(days)}</p>
                           </div>
-                        ) : <span className="text-xs text-slate-300">—</span>}
+                        ) : <span className="text-xs text-slate-400">—</span>}
                       </td>
                       <td className="py-3 px-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
                           <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-blue-500 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
-                          <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-500 hover:bg-red-50 transition">Xóa</button>
+                          <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition">Xóa</button>
                         </div>
                       </td>
                     </tr>
@@ -921,7 +921,7 @@ export default function SavingsSection() {
                 <tr className="bg-slate-50 border-t border-slate-200">
                   <td colSpan={6} className="py-3 px-3 text-sm font-medium text-slate-600 text-left">Tổng ({activeAccounts.length} sổ)</td>
                   <td className="py-3 px-3 text-right text-sm font-medium text-slate-700">{formatVND(totalInSavings)}</td>
-                  <td className="py-3 px-3 text-right text-sm text-emerald-500">+{formatVND(totalAccrued)}</td>
+                  <td className="py-3 px-3 text-right text-sm text-emerald-600">+{formatVND(totalAccrued)}</td>
                   <td className="py-3 px-3 text-right text-sm font-bold text-slate-800">{formatVND(totalInSavings + totalAccrued)}</td>
                   <td colSpan={2}></td>
                 </tr>
@@ -982,7 +982,7 @@ export default function SavingsSection() {
                 </div>
                 <div className="text-right">
                   <p className="text-sm font-semibold text-slate-800">{formatVND(data.principal)}</p>
-                  <p className="text-xs text-emerald-500">+{formatVND(data.accrued)} lãi</p>
+                  <p className="text-xs text-emerald-600">+{formatVND(data.accrued)} lãi</p>
                 </div>
               </div>
             ))}

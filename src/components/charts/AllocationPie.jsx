@@ -15,7 +15,7 @@ export default function AllocationPie({ data = [], layout = 'vertical', theme = 
       <div className={`flex flex-col items-center justify-center h-[200px] ${emptyColor}`}>
         <ChartDonut size={40} weight="light" />
         <p className="text-sm mt-2">Chưa có dữ liệu</p>
-        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-300'}`}>Nhập liệu tháng đầu tiên</p>
+        <p className={`text-xs ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Nhập liệu tháng đầu tiên</p>
       </div>
     );
   }

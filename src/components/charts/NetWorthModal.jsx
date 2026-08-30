@@ -373,7 +373,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
               <div className="flex items-end gap-3">
                 <p className="text-4xl font-bold text-slate-800 tracking-tight">{formatVND(grandTotal)}</p>
                 {stats && (
-                  <p className={`text-sm font-bold mb-1 ${stats.isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <p className={`text-sm font-bold mb-1 ${stats.isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                     {stats.isPositive ? '+' : ''}{formatVND(stats.change)} ({stats.isPositive ? '+' : ''}{stats.changePct.toFixed(2)}%)
                   </p>
                 )}

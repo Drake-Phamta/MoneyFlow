@@ -248,7 +248,7 @@ export default function ExecutionLog({ embedded }) {
         <div className={`card animate-fade-in ${discrepancy > 0 ? 'border-amber-200 bg-amber-50/50' : 'border-blue-200 bg-blue-50/50'}`}>
           <div className="flex items-start gap-3">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${discrepancy > 0 ? 'bg-amber-100' : 'bg-blue-100'}`}>
-              <Warning size={16} className={discrepancy > 0 ? 'text-amber-500' : 'text-blue-500'} weight="fill" />
+              <Warning size={16} className={discrepancy > 0 ? 'text-amber-600' : 'text-blue-500'} weight="fill" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-slate-700">
@@ -327,7 +327,7 @@ export default function ExecutionLog({ embedded }) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 rounded-lg bg-emerald-100 flex items-center justify-center">
-                <CheckCircle size={16} className="text-emerald-500" weight="fill" />
+                <CheckCircle size={16} className="text-emerald-600" weight="fill" />
               </div>
               <div>
                 <p className="text-xs font-medium text-slate-600">Chênh lệch đã xác nhận</p>
@@ -336,7 +336,7 @@ export default function ExecutionLog({ embedded }) {
                 </p>
               </div>
             </div>
-            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-500 px-2 py-1 rounded transition">
+            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-600 px-2 py-1 rounded transition">
               Hủy xác nhận
             </button>
           </div>
@@ -347,7 +347,7 @@ export default function ExecutionLog({ embedded }) {
       <div className="grid grid-cols-4 gap-4">
         <div className="kpi"><span className="kpi-label">Tổng giao dịch</span><p className="kpi-value">{transactions.length}</p></div>
         <div className="kpi"><span className="kpi-label">Mua</span><p className="kpi-value text-emerald-600">{buyCount}</p></div>
-        <div className="kpi"><span className="kpi-label">Bán</span><p className="kpi-value text-red-500">{sellCount}</p></div>
+        <div className="kpi"><span className="kpi-label">Bán</span><p className="kpi-value text-red-600">{sellCount}</p></div>
         <div className="kpi"><span className="kpi-label">Tổng vốn</span><p className="kpi-value text-primary-600">{formatVND(totalInvested)}</p></div>
       </div>
 
@@ -480,13 +480,13 @@ export default function ExecutionLog({ embedded }) {
                         <span className={`text-xs px-2 py-1 rounded-full font-medium ${t.strategy === 'Sniper' ? 'bg-amber-50 text-amber-700' : 'bg-blue-50 text-blue-700'}`}>
                           {t.strategy}
                         </span>
-                      ) : <span className="text-xs text-slate-300">—</span>}
+                      ) : <span className="text-xs text-slate-400">—</span>}
                     </td>
                     <td className="px-4 py-3 text-center text-sm text-slate-600 font-mono">{t.quantity}</td>
                     <td className="px-4 py-3 text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>
                     <td className="px-4 py-3 text-right text-sm font-semibold text-slate-800">{formatVND(t.total_amount)}</td>
                     <td className="px-4 py-3 text-center">
-                      <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-500 p-1 rounded-lg hover:bg-red-50 transition" title="Xóa">
+                      <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition" title="Xóa">
                         <Trash size={16} />
                       </button>
                     </td>

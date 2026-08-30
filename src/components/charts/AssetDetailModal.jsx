@@ -45,7 +45,7 @@ function AssetTooltip({ active, payload, label }) {
           </div>
           <div>
             <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Lãi / Lỗ</p>
-            <p className={`font-bold font-mono ${isGain ? 'text-emerald-600' : 'text-red-500'}`}>
+            <p className={`font-bold font-mono ${isGain ? 'text-emerald-600' : 'text-red-600'}`}>
               {isGain ? '+' : ''}{formatVND(data.profit)}
               <span className="text-[10px] block font-medium">({isGain ? '+' : ''}{data.profitPct.toFixed(2)}%)</span>
             </p>
@@ -278,10 +278,10 @@ export default function AssetDetailModal({ asset, onClose }) {
               <div>
                 <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Lãi / Lỗ đầu tư của bạn</p>
                 <div className="flex items-end gap-2">
-                  <p className={`text-3xl font-bold tracking-tight font-mono ${isOverallPositive ? 'text-emerald-600' : 'text-red-500'}`}>
+                  <p className={`text-3xl font-bold tracking-tight font-mono ${isOverallPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                     {isOverallPositive ? '+' : ''}{formatVND(currentProfit)}
                   </p>
-                  <p className={`text-sm font-medium mb-1 ${isOverallPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                  <p className={`text-sm font-medium mb-1 ${isOverallPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                     ({isOverallPositive ? '+' : ''}{currentProfitPct.toFixed(2)}%)
                   </p>
                 </div>

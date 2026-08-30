@@ -7,7 +7,7 @@ const navItems = [
   { path: '/', label: 'Tổng quan', Icon: SquaresFour },
   { path: '/cashflow', label: 'Dòng tiền', Icon: ArrowsLeftRight },
   { path: '/investments', label: 'Đầu tư', Icon: ChartLineUp },
-  { path: '/scenarios', label: 'Kịch bản', Icon: BookOpen },
+  { path: '/scenarios', label: 'Lộ trình', Icon: BookOpen },
   { path: '/settings', label: 'Cài đặt', Icon: Gear },
 ];
 
