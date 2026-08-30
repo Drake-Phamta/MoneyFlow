@@ -439,6 +439,79 @@ async function run() {
       await reset();
     }
   );
+  await t(
+    'C26',
+    'Vị từ checklist phải đúng nghĩa cái nhãn hứa',
+    ['rest:GET /api/phases/checklist', 'rest:GET /api/portfolio/summary'],
+    async () => {
+      await reset();
+      const sn = await getOk('/api/snapshot');
+      const items = sn.portfolio.items || [];
+
+      // "Sở hữu ≥ 3 mã cổ phiếu riêng lẻ" — crypto và trái phiếu không phải
+      // cổ phiếu, không được đếm vào.
+      const pureStocks = items.filter((p) => p.asset_class === 'stock').length;
+      eq(
+        !!sn.checklist?.[3]?.dividend_stocks,
+        pureStocks >= 3,
+        `nhãn hứa ≥ 3 mã cổ phiếu, danh mục có ${pureStocks} mã ` +
+          `(tổng ${items.length} tài sản mọi loại)`
+      );
+
+      // Thu nhập thụ động phải là tiền đã về, không phải tiền dự kiến, và
+      // không được bắt nhầm ghi chú "chốt lãi" của một lệnh bán.
+      const sells = (await getOk('/api/transactions')).filter((t) => t.type === 'SELL');
+      if (sells.length === 0) {
+        ok(
+          typeof sn.checklist?.[4]?.passive_income === 'boolean',
+          'thiếu vị từ passive_income'
+        );
+      }
+    }
+  );
+
+  await t(
+    'C27',
+    'Ghi chú "chốt lãi" trên một lệnh bán không được tính là thu nhập thụ động',
+    ['rest:POST /api/transactions', 'rest:GET /api/phases/checklist'],
+    async () => {
+      await reset();
+      const before = (await getOk('/api/snapshot')).checklist?.[4]?.passive_income;
+
+      const assets = await getOk('/api/catalog?class=stock');
+      const asset = assets[0];
+      await post('/api/transactions', {
+        date: new Date().toISOString().slice(0, 10),
+        asset_type_id: asset.id,
+        type: 'BUY',
+        quantity: 1000,
+        price: 50000,
+        total_amount: 50000000,
+        fee: 0,
+        note: 'Mua vao',
+      });
+      await post('/api/transactions', {
+        date: new Date().toISOString().slice(0, 10),
+        asset_type_id: asset.id,
+        type: 'SELL',
+        quantity: 1000,
+        price: 60000,
+        total_amount: 60000000,
+        fee: 0,
+        note: 'Chốt lãi sau khi tăng 20%',
+      });
+
+      const after = (await getOk('/api/snapshot')).checklist?.[4]?.passive_income;
+      eq(
+        after,
+        before,
+        'bán một lô 60 triệu với ghi chú "chốt lãi" đã bật mục thu nhập thụ động lên — ' +
+          'tiền bán tài sản không phải thu nhập thụ động'
+      );
+      await reset();
+    }
+  );
+
 }
 
 module.exports = { run };

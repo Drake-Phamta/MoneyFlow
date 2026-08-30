@@ -9,28 +9,28 @@ const PHASE_CHECKLISTS = {
     { id: 'savings_acc', label: 'Mở tài khoản tiết kiệm online' },
     { id: 'broker_acc', label: 'Mở tài khoản chứng khoán (SSI, VPS, TCBS)' },
     { id: 'emergency_3x', label: 'Dự phòng ≥ 3× chi tiêu mục tiêu' },
-    { id: 'first_etf', label: 'Bắt đầu mua ETF/cổ phiếu đầu tiên' },
+    { id: 'first_etf', label: 'Mua mã cổ phiếu hoặc ETF đầu tiên' },
     { id: 'track_money', label: 'Ghi chép mọi khoản vào Money Flow' },
   ],
   2: [
     { id: 'emergency_done', label: 'Dự phòng đã đạt mục tiêu' },
-    { id: 'diversify_stocks', label: 'Đa dạng hóa danh mục chứng khoán' },
+    { id: 'diversify_stocks', label: 'Sở hữu ≥ 3 mã cổ phiếu hoặc ETF' },
     { id: 'gold_fund', label: 'Bắt đầu phân bổ quỹ vàng hàng tháng' },
     { id: 'sniper_ammo', label: 'Đã phân bổ tiền vào quỹ Bắn Tỉa' },
     { id: 'start_tktp', label: 'Bắt đầu tiết kiệm kỳ hạn / trái phiếu' },
   ],
   3: [
     { id: 'gold_1chi', label: 'Sở hữu ≥ 1 chỉ vàng SJC' },
-    { id: 'dividend_stocks', label: 'Chuyển trọng tâm sang cổ phiếu dividend' },
+    { id: 'dividend_stocks', label: 'Sở hữu ≥ 3 mã cổ phiếu riêng lẻ' },
     { id: 'tktp_1so', label: 'Có ≥ 1 sổ tiết kiệm kỳ hạn' },
     { id: 'sniper_deploy', label: 'Bắn Tỉa triển khai thành công khi thị trường sụt giảm' },
     { id: 'gov_bonds', label: 'Sở hữu trái phiếu chính phủ/doanh nghiệp' },
   ],
   4: [
-    { id: 'passive_income', label: 'Thu nhập thụ động (lãi + cổ tức) ≥ chi tiêu mục tiêu' },
+    { id: 'passive_income', label: 'Lãi và cổ tức thực nhận ≥ chi tiêu mục tiêu mỗi tháng' },
     { id: 'balanced_portfolio', label: 'Danh mục cân bằng giữa tăng trưởng và thu nhập' },
     { id: 'emergency_6x', label: 'Quỹ dự phòng ≥ 6× chi tiêu' },
-    { id: 'rebalance_quarterly', label: 'Tái cơ cấu danh mục trong 90 ngày gần nhất' },
+    { id: 'rebalance_quarterly', label: 'Cân lại danh mục trong 90 ngày — rót tiền vào ≥ 2 nhóm, hoặc bán bớt' },
   ],
 };
 

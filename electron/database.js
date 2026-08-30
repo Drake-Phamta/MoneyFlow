@@ -1152,7 +1152,9 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const duPhongSavings = core.savings.reserveBalance;
     const hasTermSavings = savings.some(s => s.type === 'term');
     const goldAssets = portfolio.filter(p => p.asset_class === 'gold');
-    const stockAssets = portfolio.filter(p => p.asset_class !== 'gold' && p.asset_class !== 'etf');
+    // Cổ phiếu là cổ phiếu. Trước đây phép lọc là "không phải vàng và không
+    // phải ETF" nên crypto, trái phiếu và mọi thứ khác đều được đếm là cổ phiếu.
+    const stockAssets = portfolio.filter(p => p.asset_class === 'stock');
     const etfAssets = portfolio.filter(p => p.asset_class === 'etf');
     // LOWER(): giao diện ghi 'Sniper' (SniperPlaybook.jsx:188, ExecutionLog.jsx:395)
     // còn SQLite so sánh TEXT phân biệt hoa thường, nên `= 'sniper'` không bao giờ
@@ -1188,22 +1190,35 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       WHERE a.asset_class = 'bond'
     `)?.cnt || 0) > 0 || savings.some(s => s.product_type === 'bond');
 
-    // Phase 4: passive_income = lãi tiết kiệm/tháng + cổ tức trung bình/tháng >= chi tiêu mục tiêu
-    const monthlySavingsInterest = savings.reduce((sum, s) => {
-      return sum + (s.principal * (s.interest_rate / 100) / 12);
-    }, 0);
-    const filledMonths = this.query('SELECT COUNT(*) as cnt FROM monthly_entries WHERE total_inflow > 0')[0]?.cnt || 1;
-    const totalDividends = this.queryOne(`
+    // Giai đoạn 4: thu nhập thụ động = tiền THỰC SỰ đã về tài khoản mỗi tháng.
+    // Chỉ đếm lãi ngân hàng đã ghi nhận và cổ tức đã ghi nhận trong 12 tháng gần
+    // nhất. Không dùng `note LIKE '%lãi%'` nữa: câu đó bắt luôn ghi chú "chốt
+    // lãi" của một lệnh bán, rồi cộng cả số tiền bán vào thu nhập thụ động.
+    const interestRow = this.queryOne(`
+      SELECT COALESCE(SUM(amount), 0) as total FROM savings_transactions
+      WHERE type = 'interest' AND date >= date('now', '-12 months')
+    `);
+    const dividendRow = this.queryOne(`
       SELECT COALESCE(SUM(total_amount), 0) as total FROM transactions
-      WHERE LOWER(note) LIKE '%cổ tức%' OR LOWER(note) LIKE '%lãi%'
-    `)?.total || 0;
-    const monthlyPassive = monthlySavingsInterest + (totalDividends / Math.max(1, filledMonths));
+      WHERE UPPER(type) = 'DIVIDEND' AND date >= date('now', '-12 months')
+    `);
+    const passiveWindow = 12;
+    const monthlyPassive =
+      ((interestRow?.total || 0) + (dividendRow?.total || 0)) / passiveWindow;
     const hasPassiveIncome = monthlyPassive >= monthlyExpense;
 
-    // Phase 4: rebalance_quarterly = có giao dịch tái cơ cấu trong 90 ngày gần nhất
-    const hasRecentRebalance = (this.queryOne(
-      "SELECT COUNT(*) as cnt FROM transactions WHERE date >= date('now', '-90 days')"
+    // Giai đoạn 4: cân lại danh mục. Một lệnh mua đơn lẻ không phải là cân lại;
+    // phải có tiền vào từ hai nhóm tài sản trở lên, hoặc có bán bớt.
+    const recentClasses = this.query(`
+      SELECT DISTINCT COALESCE(a.asset_class, 'other') as cls
+      FROM transactions t
+      JOIN asset_types a ON a.id = t.asset_type_id
+      WHERE t.date >= date('now', '-90 days')
+    `).length;
+    const recentSells = (this.queryOne(
+      "SELECT COUNT(*) as cnt FROM transactions WHERE type = 'SELL' AND date >= date('now', '-90 days')"
     )?.cnt || 0) > 0;
+    const hasRecentRebalance = recentClasses >= 2 || recentSells;
 
     return {
       1: {
