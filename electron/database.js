@@ -1476,7 +1476,7 @@ class FinancialDB {
       SELECT d.*, c.name as category_name
       FROM discrepancy_logs d
       LEFT JOIN categories c ON c.id = d.target_category_id
-      ORDER BY d.id DESC
+      ORDER BY d.date DESC, d.id DESC
     `);
   }
 

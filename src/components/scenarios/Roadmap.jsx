@@ -30,9 +30,8 @@ export default function Roadmap({ snap, phases }) {
   const [expense, setExpense] = useState(null);
   const [contribution, setContribution] = useState(null);
   const [stockReturn, setStockReturn] = useState(null);
-  const [forgetRenew, setForgetRenew] = useState(false);
 
-  const dirty = expense !== null || contribution !== null || stockReturn !== null || forgetRenew;
+  const dirty = expense !== null || contribution !== null || stockReturn !== null;
 
   const input = useMemo(() => {
     if (!baseInput) return null;
@@ -46,9 +45,9 @@ export default function Roadmap({ snap, phases }) {
         ...baseInput.returns,
         stocks: stockReturn ?? baseInput.returns.stocks,
       },
-      events: maturityEvents(snap, { forgetRenew }),
+      events: maturityEvents(snap),
     };
-  }, [baseInput, snap, expense, contribution, stockReturn, forgetRenew]);
+  }, [baseInput, snap, expense, contribution, stockReturn]);
 
   const result = useMemo(() => (input ? project(input) : null), [input]);
   const bands = useMemo(
@@ -69,14 +68,13 @@ export default function Roadmap({ snap, phases }) {
     setExpense(null);
     setContribution(null);
     setStockReturn(null);
-    setForgetRenew(false);
   }
 
   return (
     <div className="space-y-5">
       <NowBanner snap={snap} next={nextPhase} result={result} />
 
-      <Timeline snap={snap} result={result} bands={bands} phases={phases} />
+      <Timeline snap={snap} result={result} bands={bands} phases={phases} input={input} />
 
       <Controls
         snap={snap}
@@ -94,8 +92,6 @@ export default function Roadmap({ snap, phases }) {
         setContribution={setContribution}
         stockReturn={stockReturn ?? baseInput.returns.stocks}
         setStockReturn={setStockReturn}
-        forgetRenew={forgetRenew}
-        setForgetRenew={setForgetRenew}
       />
 
       <PlanVsActual snap={snap} />
@@ -176,9 +172,16 @@ function NowBanner({ snap, next, result }) {
 
 /* ── 2. Thang mốc theo lịch ───────────────────────────────────────────────── */
 
-function Timeline({ snap, result, bands, phases }) {
+function Timeline({ snap, result, bands, phases, input }) {
   const [open, setOpen] = useState(snap.phase.sortOrder);
   const maturities = maturityEvents(snap).filter((e) => !e.autoRenew);
+
+  // Quên gửi lại thì chậm bao lâu — hỏi thẳng mô hình, không viết cứng con số.
+  const forgetCost = useMemo(() => {
+    if (!maturities.length || !result.reached || !input) return 0;
+    const forgot = project({ ...input, events: maturityEvents(snap, { forgetRenew: true }) });
+    return forgot.reached ? Math.max(0, forgot.monthsToFI - result.monthsToFI) : 0;
+  }, [snap, input, result, maturities.length]);
 
   const rows = result.milestones.map((m) => ({
     id: m.id,
@@ -228,11 +231,20 @@ function Timeline({ snap, result, bands, phases }) {
       )}
 
       {maturities.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-input px-3 py-2.5 mb-4">
+        <div className="bg-amber-50 border border-amber-200 rounded-input px-3 py-3 mb-4 space-y-2">
           {maturities.map((e) => (
-            <p key={e.id} className="text-fs-2 text-amber-800">
-              <strong>{date(e.date)}</strong> — sổ {e.name} {money(e.amount)} đáo hạn, chưa bật tái tục
-            </p>
+            <div key={e.id}>
+              <p className="text-fs-3 text-amber-800">
+                <strong>{date(e.date)}</strong> — sổ {e.name} {money(e.amount)} đáo hạn,
+                chưa bật tái tục
+              </p>
+              {forgetCost > 0 && (
+                <p className="text-fs-2 text-amber-700 opacity-90">
+                  Quên gửi lại thì mốc tự do tài chính chậm{' '}
+                  <strong>{forgetCost} tháng</strong>.
+                </p>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -320,7 +332,6 @@ function Controls(props) {
     snap, baseInput, result, bands, levers, dirty, onReset,
     expense, setExpense, actualExpense, targetExpense,
     contribution, setContribution, stockReturn, setStockReturn,
-    forgetRenew, setForgetRenew,
   } = props;
 
   const presets = contributionPresets(snap.cashflow);
@@ -417,21 +428,6 @@ function Controls(props) {
             note="Mười lăm tháng quá ngắn để suy ra hai mươi năm — mức thật đã đạt chỉ là một điểm tham chiếu."
           />
 
-          <label className="flex items-start gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={forgetRenew}
-              onChange={(e) => setForgetRenew(e.target.checked)}
-              data-testid="toggle-renew"
-              className="mt-0.5"
-            />
-            <span className="text-fs-3 text-slate-600">
-              Quên tái tục sổ đáo hạn
-              <span className="block text-fs-2 text-slate-400">
-                Tiền nằm chờ không sinh lãi cho tới khi bạn gửi lại.
-              </span>
-            </span>
-          </label>
         </div>
 
         <div className="lg:sticky lg:top-4 h-fit bg-slate-50 border border-slate-200 rounded-input p-4">
@@ -559,7 +555,9 @@ function Slider({ label, value, min, max, step, onChange, format, marks = [], no
 /* ── 4. Kế hoạch vs thực tế ───────────────────────────────────────────────── */
 
 function PlanVsActual({ snap }) {
-  const rows = snap.plan?.byMonth || [];
+  // Lich su thi moi nhat truoc — cung chieu voi danh sach dieu chinh ngay ben
+  // duoi. Truoc day hai danh sach trong cung mot the chay nguoc nhau.
+  const rows = [...(snap.plan?.byMonth || [])].reverse();
   const logs = snap.plan?.discrepancies || [];
   if (!rows.length) return null;
 

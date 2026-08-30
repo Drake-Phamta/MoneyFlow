@@ -48,6 +48,7 @@ const SERVER_SUITES = [
   { group: 'ui', file: './ui/U06-bundle' },
   { group: 'ui', file: './ui/U07-stale-dist' },
   { group: 'ui', file: './ui/U08-number-input' },
+  { group: 'ui', file: './ui/U09-history-order' },
   { group: 'consistency', file: './consistency/C01-categories' },
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },

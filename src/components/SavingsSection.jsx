@@ -813,7 +813,10 @@ export default function SavingsSection() {
                             </div>
                             {a.transactions && a.transactions.length > 0 && (
                               <div className="mt-3 border-t border-slate-200 pt-3">
-                                <p className="text-xs font-semibold text-slate-600 mb-2">Lịch sử giao dịch sổ (Tính lãi theo từng ngày)</p>
+                                <p className="text-fs-2 font-semibold text-slate-600 mb-2">
+                                  Lịch sử giao dịch sổ
+                                  <span className="font-normal text-slate-400"> — cũ nhất trước, vì cột lãi cộng dồn theo ngày</span>
+                                </p>
                                 <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
                                   {[...a.transactions]
                                     .sort((x, y) => new Date(x.date) - new Date(y.date) || x.id - y.id)

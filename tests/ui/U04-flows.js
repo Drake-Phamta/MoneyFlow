@@ -112,21 +112,29 @@ async function run() {
 
     await t(
       'UI-F-04',
-      'Bật "quên tái tục" làm đích lùi lại, không phải không đổi gì',
+      'Sổ đáo hạn chưa bật tái tục được cảnh báo kèm cái giá phải trả',
       ['ui:snapshot.get'],
       async () => {
         await b.goto('/scenarios');
-        const before = await textOf(b.rec.page, 'fi-date');
+        const txt = await b.mainText();
 
-        const has = await b.rec.page.$('[data-testid="toggle-renew"]');
-        ok(has, 'không có công tắc quên tái tục');
-        await b.rec.page.click('[data-testid="toggle-renew"]');
-        await new Promise((r) => setTimeout(r, 400));
+        const snap = await b.rec.page.evaluate(async () => {
+          const r = await fetch('/api/snapshot');
+          return r.json();
+        });
+        const risky = (snap.savings.accounts || []).filter(
+          (a) => a.status === 'active' && a.type !== 'liquid' && a.maturity_date && !a.auto_renew
+        );
+        if (!risky.length) return; // không có sổ nào để cảnh báo
 
-        const after = await textOf(b.rec.page, 'fi-date');
         ok(
-          after !== before,
-          `bật quên tái tục mà mốc vẫn là ${before} — sự kiện chưa nối vào mô hình`
+          txt.includes('chưa bật tái tục'),
+          'có sổ kỳ hạn chưa bật tái tục mà trang không cảnh báo gì'
+        );
+        ok(
+          /chậm\s+\d+\s+tháng/.test(txt),
+          'cảnh báo không nói quên gửi lại thì chậm bao nhiêu tháng — ' +
+            'người dùng không có cách nào biết cái giá phải trả'
         );
       }
     );

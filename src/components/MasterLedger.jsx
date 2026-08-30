@@ -42,7 +42,10 @@ export default function MasterLedger() {
       return row.phase_id === phaseId;
     }
     return true;
-  });
+  })
+    // Lich su thi moi nhat truoc: thang vua ghi nam ngay dong dau, khong phai
+    // sau khi cuon qua muoi tam thang cu.
+    .reverse();
 
   function startEdit(rowIndex, field, currentValue) {
     setEditingCell({ rowIndex, field });
