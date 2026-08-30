@@ -91,6 +91,7 @@ async function run() {
         ['Bắn Tẩa', 'Bắn Tỉa'],
         ['rút được bất cứ lúc"', 'thiếu chữ "nào"'],
         ['Đầu Tư]', 'danh mục đã đổi tên thành Chứng Khoán'],
+        ['vào phase', 'giao diện tiếng Việt còn lẫn chữ "phase"'],
       ];
       const hits = [];
       for (const b of bodies) {

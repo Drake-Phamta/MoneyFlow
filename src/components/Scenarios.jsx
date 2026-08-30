@@ -196,7 +196,7 @@ export default function Scenarios() {
                 {isExpanded && (
                   <div className="px-4 pb-4 space-y-4">
                     <div className={`p-3 rounded-lg ${isActive ? 'bg-primary-100' : isDone ? 'bg-emerald-100' : 'bg-slate-100'}`}>
-                      <p className="text-xs font-medium text-slate-600 mb-1">Điều kiện vào phase:</p>
+                      <p className="text-xs font-medium text-slate-600 mb-1">Điều kiện vào giai đoạn</p>
                       <p className={`text-sm font-semibold ${isActive ? 'text-primary-700' : isDone ? 'text-emerald-700' : 'text-slate-600'}`}>
                         {p.entry_condition}
                       </p>

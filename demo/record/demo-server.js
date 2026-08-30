@@ -70,7 +70,19 @@ async function start() {
       const initSqlJs = require('sql.js');
       const SQL = await initSqlJs();
       db.db = new SQL.Database(fs.readFileSync(DEMO_DB));
-      res.json({ ok: true, db: DEMO_DB });
+
+      // Chạy lại chuỗi migration đúng như lúc app khởi động thật. Thiếu bước
+      // này thì tệp mẫu đứng mãi ở phiên bản schema lúc nó được tạo, và mọi
+      // migration viết từ đó về sau không bao giờ được bộ test đi qua.
+      db.createTables();
+      for (let v = 2; v <= 9; v++) {
+        const fn = db['migrateToV' + v];
+        if (typeof fn === 'function') fn.call(db);
+      }
+      db.seedDefaults();
+      db._coreCache = null;
+
+      res.json({ ok: true, db: DEMO_DB, schema: db.getParam('SCHEMA_VERSION') });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
