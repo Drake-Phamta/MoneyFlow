@@ -27,3 +27,6 @@ tests/reports/
 # Sản phẩm dựng video demo (nặng, sinh lại được)
 demo/build/
 demo/out/
+
+# Ban thiet ke (xem cuc bo, khong can commit)
+MoneyFlow-ThietKeLai.html

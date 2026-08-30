@@ -18,7 +18,9 @@
     "test:consistency": "node tests/run-all.js --only=consistency",
     "test:rig:up": "node tests/rig/server.js --keep-alive",
     "test:smoke": "node tests/rig/smoke.js",
-    "test:inventory": "node tests/rig/inventory.js"
+    "test:inventory": "node tests/rig/inventory.js",
+    "test:api": "node tests/run-all.js --only=api",
+    "test:matrix": "node tests/rig/gen-matrix.js"
   },
   "browserslist": [
     "last 1 chrome version",

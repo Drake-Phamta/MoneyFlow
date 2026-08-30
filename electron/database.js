@@ -1026,9 +1026,12 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
   addAssetType(data) {
     this.run('INSERT INTO asset_types (name, category, ticker, unit, color, icon, sort_order, asset_class) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [data.name, data.category || 'Giao dịch', data.ticker, data.unit, data.color || '#3b82f6', data.icon || '📦', data.sort_order || 99, data.asset_class || 'other']);
+      [data.name, data.category || 'Giao dịch', data.ticker ?? null, data.unit || 'đơn vị', data.color || '#3b82f6', data.icon || '📦', data.sort_order || 99, data.asset_class || 'other']);
+    // Lấy id TRƯỚC khi save(): save() xuất lại toàn bộ DB và làm mất
+    // last_insert_rowid(), nên đảo thứ tự là route trả về 0.
+    const id = this.lastId();
     this.save();
-    return this.lastId();
+    return id;
   }
   updateAssetType(id, data) {
     const fields = [];
@@ -1266,7 +1269,13 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
   updatePhaseAllocations(phaseId, allocations) {
     this.run('DELETE FROM phase_allocations WHERE phase_id = ?', [phaseId]);
-    for (const [catId, ratio] of allocations) {
+    for (const a of allocations || []) {
+      // Nhận cả hai dạng: object {category_id, ratio} — đúng dạng mà
+      // getPhaseAllocations() trả về, nên lấy kết quả GET đưa thẳng vào POST
+      // là chạy được — và cặp [catId, ratio] của các nơi gọi cũ.
+      const catId = Array.isArray(a) ? a[0] : a.category_id;
+      const ratio = Array.isArray(a) ? a[1] : a.ratio;
+      if (catId == null || ratio == null) continue;
       this.run('INSERT INTO phase_allocations (phase_id, category_id, ratio) VALUES (?, ?, ?)', [phaseId, catId, ratio]);
     }
     this.save();

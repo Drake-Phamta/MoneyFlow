@@ -1,0 +1,2233 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-30T06:50:23.139Z",
+  "note": "Sinh bằng: node tests/rig/gen-matrix.js — đừng sửa tay ngoài phần waiver trong file đó.",
+  "counts": {
+    "rest": 69,
+    "ipc": 69,
+    "bridge": 69,
+    "client": 67,
+    "ui": 56,
+    "total": 330,
+    "waived": 5
+  },
+  "features": [
+    {
+      "id": "rest:GET /api/params",
+      "kind": "rest",
+      "route": "/api/params",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/params",
+      "kind": "rest",
+      "route": "/api/params",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/params/avg-expense",
+      "kind": "rest",
+      "route": "/api/params/avg-expense",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/params/recalc-goals",
+      "kind": "rest",
+      "route": "/api/params/recalc-goals",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/timeline/regenerate",
+      "kind": "rest",
+      "route": "/api/timeline/regenerate",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/assets",
+      "kind": "rest",
+      "route": "/api/assets",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/assets",
+      "kind": "rest",
+      "route": "/api/assets",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/assets/:id",
+      "kind": "rest",
+      "route": "/api/assets/:id",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/assets/:id/price",
+      "kind": "rest",
+      "route": "/api/assets/:id/price",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/assets/:id",
+      "kind": "rest",
+      "route": "/api/assets/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/categories",
+      "kind": "rest",
+      "route": "/api/categories",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/phases",
+      "kind": "rest",
+      "route": "/api/phases",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/phases/active",
+      "kind": "rest",
+      "route": "/api/phases/active",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/phases/checklist",
+      "kind": "rest",
+      "route": "/api/phases/checklist",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/phases/:id/active",
+      "kind": "rest",
+      "route": "/api/phases/:id/active",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/phases/:id/allocations",
+      "kind": "rest",
+      "route": "/api/phases/:id/allocations",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/phases/:id/allocations",
+      "kind": "rest",
+      "route": "/api/phases/:id/allocations",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/monthly",
+      "kind": "rest",
+      "route": "/api/monthly",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/monthly/filled",
+      "kind": "rest",
+      "route": "/api/monthly/filled",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/monthly/next",
+      "kind": "rest",
+      "route": "/api/monthly/next",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/monthly/:index",
+      "kind": "rest",
+      "route": "/api/monthly/:index",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/monthly",
+      "kind": "rest",
+      "route": "/api/monthly",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/monthly/:index",
+      "kind": "rest",
+      "route": "/api/monthly/:index",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/allocations/all",
+      "kind": "rest",
+      "route": "/api/allocations/all",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/allocations/discrepancies",
+      "kind": "rest",
+      "route": "/api/allocations/discrepancies",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/allocations/adjust",
+      "kind": "rest",
+      "route": "/api/allocations/adjust",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/allocations/:entryId",
+      "kind": "rest",
+      "route": "/api/allocations/:entryId",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/allocations/:entryId",
+      "kind": "rest",
+      "route": "/api/allocations/:entryId",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/transactions",
+      "kind": "rest",
+      "route": "/api/transactions",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/transactions",
+      "kind": "rest",
+      "route": "/api/transactions",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/transactions/:id",
+      "kind": "rest",
+      "route": "/api/transactions/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/portfolio",
+      "kind": "rest",
+      "route": "/api/portfolio",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/portfolio/summary",
+      "kind": "rest",
+      "route": "/api/portfolio/summary",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/activity",
+      "kind": "rest",
+      "route": "/api/activity",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/activity/:id",
+      "kind": "rest",
+      "route": "/api/activity/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/data/stats",
+      "kind": "rest",
+      "route": "/api/data/stats",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/data/transactions",
+      "kind": "rest",
+      "route": "/api/data/transactions",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/data/monthly",
+      "kind": "rest",
+      "route": "/api/data/monthly",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/data/all",
+      "kind": "rest",
+      "route": "/api/data/all",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/data/savings",
+      "kind": "rest",
+      "route": "/api/data/savings",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/import/excel",
+      "kind": "rest",
+      "route": "/api/import/excel",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/export/excel",
+      "kind": "rest",
+      "route": "/api/export/excel",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/database/download",
+      "kind": "rest",
+      "route": "/api/database/download",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/watchlist",
+      "kind": "rest",
+      "route": "/api/watchlist",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/watchlist",
+      "kind": "rest",
+      "route": "/api/watchlist",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/watchlist/:id",
+      "kind": "rest",
+      "route": "/api/watchlist/:id",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/watchlist/:id",
+      "kind": "rest",
+      "route": "/api/watchlist/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/alerts",
+      "kind": "rest",
+      "route": "/api/alerts",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/alerts/count",
+      "kind": "rest",
+      "route": "/api/alerts/count",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/alerts/:id/read",
+      "kind": "rest",
+      "route": "/api/alerts/:id/read",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/alerts/read-all",
+      "kind": "rest",
+      "route": "/api/alerts/read-all",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/price-history/:assetId",
+      "kind": "rest",
+      "route": "/api/price-history/:assetId",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/price-history/:assetId/fetch",
+      "kind": "rest",
+      "route": "/api/price-history/:assetId/fetch",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/prices/refresh",
+      "kind": "rest",
+      "route": "/api/prices/refresh",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/catalog",
+      "kind": "rest",
+      "route": "/api/catalog",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/assets/:id/tracked",
+      "kind": "rest",
+      "route": "/api/assets/:id/tracked",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/savings",
+      "kind": "rest",
+      "route": "/api/savings",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/savings/summary",
+      "kind": "rest",
+      "route": "/api/savings/summary",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/savings/overview",
+      "kind": "rest",
+      "route": "/api/savings/overview",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/savings/maturities",
+      "kind": "rest",
+      "route": "/api/savings/maturities",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET /api/savings/:id",
+      "kind": "rest",
+      "route": "/api/savings/:id",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/savings",
+      "kind": "rest",
+      "route": "/api/savings",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/savings/:id",
+      "kind": "rest",
+      "route": "/api/savings/:id",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/savings/:id",
+      "kind": "rest",
+      "route": "/api/savings/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/savings/:id/transactions",
+      "kind": "rest",
+      "route": "/api/savings/:id/transactions",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:DELETE /api/savings/transactions/:id",
+      "kind": "rest",
+      "route": "/api/savings/transactions/:id",
+      "verb": "DELETE",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:PUT /api/savings/transactions/:id/date",
+      "kind": "rest",
+      "route": "/api/savings/transactions/:id/date",
+      "verb": "PUT",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:POST /api/savings/process-matured",
+      "kind": "rest",
+      "route": "/api/savings/process-matured",
+      "verb": "POST",
+      "mutating": true,
+      "waiver": null
+    },
+    {
+      "id": "rest:GET *",
+      "kind": "rest",
+      "route": "*",
+      "verb": "GET",
+      "mutating": false,
+      "waiver": "Catch-all phục vụ trang SPA, không phải endpoint dữ liệu."
+    },
+    {
+      "id": "ipc:params:get",
+      "kind": "ipc",
+      "channel": "params:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:params:update",
+      "kind": "ipc",
+      "channel": "params:update",
+      "waiver": null
+    },
+    {
+      "id": "ipc:params:avgExpense",
+      "kind": "ipc",
+      "channel": "params:avgExpense",
+      "waiver": null
+    },
+    {
+      "id": "ipc:params:recalcGoals",
+      "kind": "ipc",
+      "channel": "params:recalcGoals",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:get",
+      "kind": "ipc",
+      "channel": "assets:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:add",
+      "kind": "ipc",
+      "channel": "assets:add",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:update",
+      "kind": "ipc",
+      "channel": "assets:update",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:updatePrice",
+      "kind": "ipc",
+      "channel": "assets:updatePrice",
+      "waiver": null
+    },
+    {
+      "id": "ipc:timeline:regenerate",
+      "kind": "ipc",
+      "channel": "timeline:regenerate",
+      "waiver": null
+    },
+    {
+      "id": "ipc:categories:get",
+      "kind": "ipc",
+      "channel": "categories:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:get",
+      "kind": "ipc",
+      "channel": "phases:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:active",
+      "kind": "ipc",
+      "channel": "phases:active",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:setActive",
+      "kind": "ipc",
+      "channel": "phases:setActive",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:allocations",
+      "kind": "ipc",
+      "channel": "phases:allocations",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:updateAllocations",
+      "kind": "ipc",
+      "channel": "phases:updateAllocations",
+      "waiver": null
+    },
+    {
+      "id": "ipc:phases:checklist",
+      "kind": "ipc",
+      "channel": "phases:checklist",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:getAll",
+      "kind": "ipc",
+      "channel": "monthly:getAll",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:get",
+      "kind": "ipc",
+      "channel": "monthly:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:filled",
+      "kind": "ipc",
+      "channel": "monthly:filled",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:next",
+      "kind": "ipc",
+      "channel": "monthly:next",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:save",
+      "kind": "ipc",
+      "channel": "monthly:save",
+      "waiver": null
+    },
+    {
+      "id": "ipc:monthly:delete",
+      "kind": "ipc",
+      "channel": "monthly:delete",
+      "waiver": null
+    },
+    {
+      "id": "ipc:allocations:get",
+      "kind": "ipc",
+      "channel": "allocations:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:allocations:all",
+      "kind": "ipc",
+      "channel": "allocations:all",
+      "waiver": null
+    },
+    {
+      "id": "ipc:allocations:save",
+      "kind": "ipc",
+      "channel": "allocations:save",
+      "waiver": null
+    },
+    {
+      "id": "ipc:allocations:adjust",
+      "kind": "ipc",
+      "channel": "allocations:adjust",
+      "waiver": null
+    },
+    {
+      "id": "ipc:allocations:discrepancies",
+      "kind": "ipc",
+      "channel": "allocations:discrepancies",
+      "waiver": null
+    },
+    {
+      "id": "ipc:transactions:get",
+      "kind": "ipc",
+      "channel": "transactions:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:transactions:add",
+      "kind": "ipc",
+      "channel": "transactions:add",
+      "waiver": null
+    },
+    {
+      "id": "ipc:transactions:delete",
+      "kind": "ipc",
+      "channel": "transactions:delete",
+      "waiver": null
+    },
+    {
+      "id": "ipc:portfolio:get",
+      "kind": "ipc",
+      "channel": "portfolio:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:portfolio:summary",
+      "kind": "ipc",
+      "channel": "portfolio:summary",
+      "waiver": null
+    },
+    {
+      "id": "ipc:activity:get",
+      "kind": "ipc",
+      "channel": "activity:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:activity:delete",
+      "kind": "ipc",
+      "channel": "activity:delete",
+      "waiver": null
+    },
+    {
+      "id": "ipc:import:excel",
+      "kind": "ipc",
+      "channel": "import:excel",
+      "waiver": null
+    },
+    {
+      "id": "ipc:export:excel",
+      "kind": "ipc",
+      "channel": "export:excel",
+      "waiver": null
+    },
+    {
+      "id": "ipc:data:stats",
+      "kind": "ipc",
+      "channel": "data:stats",
+      "waiver": null
+    },
+    {
+      "id": "ipc:data:clearTransactions",
+      "kind": "ipc",
+      "channel": "data:clearTransactions",
+      "waiver": null
+    },
+    {
+      "id": "ipc:data:clearMonthly",
+      "kind": "ipc",
+      "channel": "data:clearMonthly",
+      "waiver": null
+    },
+    {
+      "id": "ipc:data:clearAll",
+      "kind": "ipc",
+      "channel": "data:clearAll",
+      "waiver": null
+    },
+    {
+      "id": "ipc:data:clearSavings",
+      "kind": "ipc",
+      "channel": "data:clearSavings",
+      "waiver": null
+    },
+    {
+      "id": "ipc:dialog:openFile",
+      "kind": "ipc",
+      "channel": "dialog:openFile",
+      "waiver": "Hộp thoại chọn file của hệ điều hành — cần tiến trình Electron thật, rig Express không chạm tới được."
+    },
+    {
+      "id": "ipc:dialog:saveFile",
+      "kind": "ipc",
+      "channel": "dialog:saveFile",
+      "waiver": "Hộp thoại lưu file của hệ điều hành — cần tiến trình Electron thật."
+    },
+    {
+      "id": "ipc:watchlist:get",
+      "kind": "ipc",
+      "channel": "watchlist:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:watchlist:add",
+      "kind": "ipc",
+      "channel": "watchlist:add",
+      "waiver": null
+    },
+    {
+      "id": "ipc:watchlist:update",
+      "kind": "ipc",
+      "channel": "watchlist:update",
+      "waiver": null
+    },
+    {
+      "id": "ipc:watchlist:remove",
+      "kind": "ipc",
+      "channel": "watchlist:remove",
+      "waiver": null
+    },
+    {
+      "id": "ipc:alerts:get",
+      "kind": "ipc",
+      "channel": "alerts:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:alerts:count",
+      "kind": "ipc",
+      "channel": "alerts:count",
+      "waiver": null
+    },
+    {
+      "id": "ipc:alerts:markRead",
+      "kind": "ipc",
+      "channel": "alerts:markRead",
+      "waiver": null
+    },
+    {
+      "id": "ipc:alerts:markAllRead",
+      "kind": "ipc",
+      "channel": "alerts:markAllRead",
+      "waiver": null
+    },
+    {
+      "id": "ipc:priceHistory:get",
+      "kind": "ipc",
+      "channel": "priceHistory:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:priceHistory:fetch",
+      "kind": "ipc",
+      "channel": "priceHistory:fetch",
+      "waiver": null
+    },
+    {
+      "id": "ipc:prices:refresh",
+      "kind": "ipc",
+      "channel": "prices:refresh",
+      "waiver": null
+    },
+    {
+      "id": "ipc:catalog:get",
+      "kind": "ipc",
+      "channel": "catalog:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:setTracked",
+      "kind": "ipc",
+      "channel": "assets:setTracked",
+      "waiver": null
+    },
+    {
+      "id": "ipc:assets:delete",
+      "kind": "ipc",
+      "channel": "assets:delete",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:get",
+      "kind": "ipc",
+      "channel": "savings:get",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:getById",
+      "kind": "ipc",
+      "channel": "savings:getById",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:add",
+      "kind": "ipc",
+      "channel": "savings:add",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:update",
+      "kind": "ipc",
+      "channel": "savings:update",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:delete",
+      "kind": "ipc",
+      "channel": "savings:delete",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:addTransaction",
+      "kind": "ipc",
+      "channel": "savings:addTransaction",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:deleteTransaction",
+      "kind": "ipc",
+      "channel": "savings:deleteTransaction",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:updateTransactionDate",
+      "kind": "ipc",
+      "channel": "savings:updateTransactionDate",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:summary",
+      "kind": "ipc",
+      "channel": "savings:summary",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:overview",
+      "kind": "ipc",
+      "channel": "savings:overview",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:maturities",
+      "kind": "ipc",
+      "channel": "savings:maturities",
+      "waiver": null
+    },
+    {
+      "id": "ipc:savings:processMatured",
+      "kind": "ipc",
+      "channel": "savings:processMatured",
+      "waiver": null
+    },
+    {
+      "id": "bridge:params.get",
+      "kind": "bridge",
+      "channel": "params:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:params.update",
+      "kind": "bridge",
+      "channel": "params:update",
+      "waiver": null
+    },
+    {
+      "id": "bridge:params.avgExpense",
+      "kind": "bridge",
+      "channel": "params:avgExpense",
+      "waiver": null
+    },
+    {
+      "id": "bridge:params.recalcGoals",
+      "kind": "bridge",
+      "channel": "params:recalcGoals",
+      "waiver": null
+    },
+    {
+      "id": "bridge:timeline.regenerate",
+      "kind": "bridge",
+      "channel": "timeline:regenerate",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.get",
+      "kind": "bridge",
+      "channel": "assets:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.add",
+      "kind": "bridge",
+      "channel": "assets:add",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.update",
+      "kind": "bridge",
+      "channel": "assets:update",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.updatePrice",
+      "kind": "bridge",
+      "channel": "assets:updatePrice",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.setTracked",
+      "kind": "bridge",
+      "channel": "assets:setTracked",
+      "waiver": null
+    },
+    {
+      "id": "bridge:assets.delete",
+      "kind": "bridge",
+      "channel": "assets:delete",
+      "waiver": null
+    },
+    {
+      "id": "bridge:categories.get",
+      "kind": "bridge",
+      "channel": "categories:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.get",
+      "kind": "bridge",
+      "channel": "phases:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.active",
+      "kind": "bridge",
+      "channel": "phases:active",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.setActive",
+      "kind": "bridge",
+      "channel": "phases:setActive",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.allocations",
+      "kind": "bridge",
+      "channel": "phases:allocations",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.updateAllocations",
+      "kind": "bridge",
+      "channel": "phases:updateAllocations",
+      "waiver": null
+    },
+    {
+      "id": "bridge:phases.checklist",
+      "kind": "bridge",
+      "channel": "phases:checklist",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.getAll",
+      "kind": "bridge",
+      "channel": "monthly:getAll",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.get",
+      "kind": "bridge",
+      "channel": "monthly:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.filled",
+      "kind": "bridge",
+      "channel": "monthly:filled",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.next",
+      "kind": "bridge",
+      "channel": "monthly:next",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.save",
+      "kind": "bridge",
+      "channel": "monthly:save",
+      "waiver": null
+    },
+    {
+      "id": "bridge:monthly.delete",
+      "kind": "bridge",
+      "channel": "monthly:delete",
+      "waiver": null
+    },
+    {
+      "id": "bridge:allocations.get",
+      "kind": "bridge",
+      "channel": "allocations:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:allocations.all",
+      "kind": "bridge",
+      "channel": "allocations:all",
+      "waiver": null
+    },
+    {
+      "id": "bridge:allocations.save",
+      "kind": "bridge",
+      "channel": "allocations:save",
+      "waiver": null
+    },
+    {
+      "id": "bridge:allocations.adjust",
+      "kind": "bridge",
+      "channel": "allocations:adjust",
+      "waiver": null
+    },
+    {
+      "id": "bridge:allocations.discrepancies",
+      "kind": "bridge",
+      "channel": "allocations:discrepancies",
+      "waiver": null
+    },
+    {
+      "id": "bridge:transactions.get",
+      "kind": "bridge",
+      "channel": "transactions:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:transactions.add",
+      "kind": "bridge",
+      "channel": "transactions:add",
+      "waiver": null
+    },
+    {
+      "id": "bridge:transactions.delete",
+      "kind": "bridge",
+      "channel": "transactions:delete",
+      "waiver": null
+    },
+    {
+      "id": "bridge:portfolio.get",
+      "kind": "bridge",
+      "channel": "portfolio:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:portfolio.summary",
+      "kind": "bridge",
+      "channel": "portfolio:summary",
+      "waiver": null
+    },
+    {
+      "id": "bridge:activity.get",
+      "kind": "bridge",
+      "channel": "activity:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:activity.delete",
+      "kind": "bridge",
+      "channel": "activity:delete",
+      "waiver": null
+    },
+    {
+      "id": "bridge:importExcel",
+      "kind": "bridge",
+      "channel": "import:excel",
+      "waiver": null
+    },
+    {
+      "id": "bridge:exportExcel",
+      "kind": "bridge",
+      "channel": "export:excel",
+      "waiver": null
+    },
+    {
+      "id": "bridge:openFile",
+      "kind": "bridge",
+      "channel": "dialog:openFile",
+      "waiver": "Cầu nối tới hộp thoại Electron, xem ipc:dialog:openFile."
+    },
+    {
+      "id": "bridge:saveFile",
+      "kind": "bridge",
+      "channel": "dialog:saveFile",
+      "waiver": "Cầu nối tới hộp thoại Electron, xem ipc:dialog:saveFile."
+    },
+    {
+      "id": "bridge:watchlist.get",
+      "kind": "bridge",
+      "channel": "watchlist:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:watchlist.add",
+      "kind": "bridge",
+      "channel": "watchlist:add",
+      "waiver": null
+    },
+    {
+      "id": "bridge:watchlist.update",
+      "kind": "bridge",
+      "channel": "watchlist:update",
+      "waiver": null
+    },
+    {
+      "id": "bridge:watchlist.remove",
+      "kind": "bridge",
+      "channel": "watchlist:remove",
+      "waiver": null
+    },
+    {
+      "id": "bridge:catalog.get",
+      "kind": "bridge",
+      "channel": "catalog:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:alerts.get",
+      "kind": "bridge",
+      "channel": "alerts:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:alerts.count",
+      "kind": "bridge",
+      "channel": "alerts:count",
+      "waiver": null
+    },
+    {
+      "id": "bridge:alerts.markRead",
+      "kind": "bridge",
+      "channel": "alerts:markRead",
+      "waiver": null
+    },
+    {
+      "id": "bridge:alerts.markAllRead",
+      "kind": "bridge",
+      "channel": "alerts:markAllRead",
+      "waiver": null
+    },
+    {
+      "id": "bridge:priceHistory.get",
+      "kind": "bridge",
+      "channel": "priceHistory:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:priceHistory.fetch",
+      "kind": "bridge",
+      "channel": "priceHistory:fetch",
+      "waiver": null
+    },
+    {
+      "id": "bridge:prices.refresh",
+      "kind": "bridge",
+      "channel": "prices:refresh",
+      "waiver": null
+    },
+    {
+      "id": "bridge:data.stats",
+      "kind": "bridge",
+      "channel": "data:stats",
+      "waiver": null
+    },
+    {
+      "id": "bridge:data.clearTransactions",
+      "kind": "bridge",
+      "channel": "data:clearTransactions",
+      "waiver": null
+    },
+    {
+      "id": "bridge:data.clearMonthly",
+      "kind": "bridge",
+      "channel": "data:clearMonthly",
+      "waiver": null
+    },
+    {
+      "id": "bridge:data.clearAll",
+      "kind": "bridge",
+      "channel": "data:clearAll",
+      "waiver": null
+    },
+    {
+      "id": "bridge:data.clearSavings",
+      "kind": "bridge",
+      "channel": "data:clearSavings",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.get",
+      "kind": "bridge",
+      "channel": "savings:get",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.getById",
+      "kind": "bridge",
+      "channel": "savings:getById",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.add",
+      "kind": "bridge",
+      "channel": "savings:add",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.update",
+      "kind": "bridge",
+      "channel": "savings:update",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.delete",
+      "kind": "bridge",
+      "channel": "savings:delete",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.addTransaction",
+      "kind": "bridge",
+      "channel": "savings:addTransaction",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.deleteTransaction",
+      "kind": "bridge",
+      "channel": "savings:deleteTransaction",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.updateTransactionDate",
+      "kind": "bridge",
+      "channel": "savings:updateTransactionDate",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.summary",
+      "kind": "bridge",
+      "channel": "savings:summary",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.overview",
+      "kind": "bridge",
+      "channel": "savings:overview",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.maturities",
+      "kind": "bridge",
+      "channel": "savings:maturities",
+      "waiver": null
+    },
+    {
+      "id": "bridge:savings.processMatured",
+      "kind": "bridge",
+      "channel": "savings:processMatured",
+      "waiver": null
+    },
+    {
+      "id": "client:params.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:params.update",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:params.avgExpense",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:params.recalcGoals",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:timeline.regenerate",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.add",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.update",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.updatePrice",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.setTracked",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:assets.delete",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:catalog.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:categories.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.active",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.setActive",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.allocations",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.updateAllocations",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:phases.checklist",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.getAll",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.filled",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.next",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.save",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:monthly.delete",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:allocations.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:allocations.all",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:allocations.save",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:allocations.adjust",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:allocations.discrepancies",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:transactions.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:transactions.add",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:transactions.delete",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:portfolio.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:portfolio.summary",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:activity.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:activity.delete",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:watchlist.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:watchlist.add",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:watchlist.update",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:watchlist.remove",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:alerts.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:alerts.count",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:alerts.markRead",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:alerts.markAllRead",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:priceHistory.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:priceHistory.fetch",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:prices.refresh",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:data.stats",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:data.clearTransactions",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:data.clearMonthly",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:data.clearAll",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:data.clearSavings",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.get",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.getById",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.add",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.update",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.delete",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.addTransaction",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.deleteTransaction",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.updateTransactionDate",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.summary",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.overview",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.maturities",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:savings.processMatured",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:importExcel",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "client:exportExcel",
+      "kind": "client",
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.filled",
+      "kind": "ui",
+      "files": [
+        "src/components/CashFlowPage.jsx",
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/ExecutionLog.jsx",
+        "src/components/MonthlyEntry.jsx",
+        "src/components/Scenarios.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:params.get",
+      "kind": "ui",
+      "files": [
+        "src/components/CashFlowPage.jsx",
+        "src/components/MonthlyEntry.jsx",
+        "src/components/Scenarios.jsx",
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:phases.active",
+      "kind": "ui",
+      "files": [
+        "src/components/CashFlowPage.jsx",
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/MonthlyEntry.jsx",
+        "src/components/Scenarios.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:portfolio.summary",
+      "kind": "ui",
+      "files": [
+        "src/components/CashFlowPage.jsx",
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/Scenarios.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:phases.allocations",
+      "kind": "ui",
+      "files": [
+        "src/components/CashFlowPage.jsx",
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:priceHistory.fetch",
+      "kind": "ui",
+      "files": [
+        "src/components/charts/AssetDetailModal.jsx",
+        "src/components/charts/NetWorthModal.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:transactions.get",
+      "kind": "ui",
+      "files": [
+        "src/components/charts/AssetDetailModal.jsx",
+        "src/components/charts/NetWorthModal.jsx",
+        "src/components/ExecutionLog.jsx",
+        "src/components/SavingsSection.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:categories.get",
+      "kind": "ui",
+      "files": [
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/ExecutionLog.jsx",
+        "src/components/SavingsSection.jsx",
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:allocations.get",
+      "kind": "ui",
+      "files": [
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/ExecutionLog.jsx",
+        "src/components/MonthlyEntry.jsx",
+        "src/components/Scenarios.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:phases.get",
+      "kind": "ui",
+      "files": [
+        "src/components/dashboard/AllocationGoals.jsx",
+        "src/components/Dashboard.jsx",
+        "src/components/MasterLedger.jsx",
+        "src/components/Scenarios.jsx",
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:activity.get",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:alerts.count",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.next",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.summary",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SavingsSection.jsx",
+        "src/components/Scenarios.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.overview",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.maturities",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:alerts.get",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:activity.delete",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.updatePrice",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:prices.refresh",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:alerts.markAllRead",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:alerts.markRead",
+      "kind": "ui",
+      "files": [
+        "src/components/Dashboard.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.get",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx",
+        "src/components/SavingsSection.jsx",
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:catalog.get",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:allocations.discrepancies",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:transactions.add",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx",
+        "src/components/SavingsSection.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:transactions.delete",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:allocations.adjust",
+      "kind": "ui",
+      "files": [
+        "src/components/ExecutionLog.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.getAll",
+      "kind": "ui",
+      "files": [
+        "src/components/MasterLedger.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.save",
+      "kind": "ui",
+      "files": [
+        "src/components/MasterLedger.jsx",
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.get",
+      "kind": "ui",
+      "files": [
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:monthly.delete",
+      "kind": "ui",
+      "files": [
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:allocations.save",
+      "kind": "ui",
+      "files": [
+        "src/components/MonthlyEntry.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.get",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.add",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.delete",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.update",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.deleteTransaction",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.updateTransactionDate",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:savings.addTransaction",
+      "kind": "ui",
+      "files": [
+        "src/components/SavingsSection.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:params.avgExpense",
+      "kind": "ui",
+      "files": [
+        "src/components/Scenarios.jsx",
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:phases.checklist",
+      "kind": "ui",
+      "files": [
+        "src/components/Scenarios.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:data.stats",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:timeline.regenerate",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.add",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.update",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.delete",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:assets.setTracked",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx",
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:data.clearTransactions",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:data.clearMonthly",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:data.clearAll",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:data.clearSavings",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:params.update",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:importExcel",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:exportExcel",
+      "kind": "ui",
+      "files": [
+        "src/components/Settings.jsx"
+      ],
+      "waiver": null
+    },
+    {
+      "id": "ui:watchlist.get",
+      "kind": "ui",
+      "files": [
+        "src/components/SniperPlaybook.jsx"
+      ],
+      "waiver": null
+    }
+  ]
+}

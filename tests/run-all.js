@@ -24,6 +24,18 @@ const STATIC_SUITES = [
 ];
 const SERVER_SUITES = [
   { group: 'parity', file: './parity/P2-signatures' },
+  { group: 'api', file: './api/A01-params' },
+  { group: 'api', file: './api/A02-assets' },
+  { group: 'api', file: './api/A03-phases' },
+  { group: 'api', file: './api/A04-monthly' },
+  { group: 'api', file: './api/A05-allocations' },
+  { group: 'api', file: './api/A06-transactions' },
+  { group: 'api', file: './api/A07-savings' },
+  { group: 'api', file: './api/A08-watchlist-alerts' },
+  { group: 'api', file: './api/A10-data-io' },
+  // A09 ghi price_snapshots và sửa peak_price dù trông như chỉ đọc — chạy sau
+  // các nhóm khác để không làm lệch dữ liệu của chúng.
+  { group: 'api', file: './api/A09-prices' },
   { group: 'consistency', file: './consistency/C01-categories' },
   { group: 'consistency', file: './consistency/C02-networth' },
   { group: 'consistency', file: './consistency/C03-cash-savings' },
