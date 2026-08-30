@@ -172,7 +172,14 @@ async function run() {
     'byCategory phải phân hoạch tài sản đúng một lần (không sót, không đếm hai)',
     ['rest:GET /api/portfolio/summary', 'rest:GET /api/savings'],
     () => {
-      const sumByCat = F.netWorth_AllocationGoals(d);
+      const sn = d.snapshot;
+      const pf = sn.portfolio.byCategory || {};
+      const sv = sn.savings.byCategory || {};
+      const names = new Set([...Object.keys(pf), ...Object.keys(sv)]);
+      const sumByCat = [...names].reduce(
+        (x, n) => x + (pf[n]?.marketValue || 0) + (sv[n]?.balance || 0),
+        0
+      );
       const invest = d.summary.totalCurrentValue || 0;
       const savingsBal = d.savingsAccounts
         .filter((a) => a.status === 'active')

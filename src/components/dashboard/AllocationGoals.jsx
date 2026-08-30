@@ -8,45 +8,15 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function AllocationGoals() {
   const [loading, setLoading] = useState(true);
-  const [summary, setSummary] = useState(null);
-  const [phase, setPhase] = useState(null);
+  const [snap, setSnap] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [filled, setFilled] = useState([]);
-  const [allocsByCategory, setAllocsByCategory] = useState({});
 
   useEffect(() => {
     (async () => {
       try {
-        const [s, p, c, f] = await Promise.all([
-          apiClient.portfolio.summary(),
-          apiClient.phases.active(),
-          apiClient.categories.get(),
-          apiClient.monthly.filled(),
-        ]);
-        setSummary(s);
-        setPhase(p);
-        setCategories(c);
-        setFilled(f);
-        if (p) {
-          const pa = await apiClient.phases.allocations(p.id);
-          setPhaseAllocs(pa || []);
-        }
-        // Fetch allocations for filled months
-        if (f.length > 0) {
-          const allAllocs = await Promise.all(
-            f.map(m => apiClient.allocations.get(m.id).catch(() => []))
-          );
-          const byCat = {};
-          for (const monthAllocs of allAllocs) {
-            for (const a of monthAllocs) {
-              const name = a.category_name;
-              if (!byCat[name]) byCat[name] = { total: 0, color: a.color, icon: a.icon };
-              byCat[name].total += a.actual_amount || a.planned_amount || 0;
-            }
-          }
-          setAllocsByCategory(byCat);
-        }
+        const sn = await apiClient.snapshot.get();
+        setSnap(sn);
+        setPhaseAllocs(sn.phaseAllocations?.[sn.phase?.sortOrder] || []);
       } catch (err) {
         console.error('AllocationGoals load error:', err);
       } finally {
@@ -55,56 +25,70 @@ export default function AllocationGoals() {
     })();
   }, []);
 
-  const portfolio = summary?.portfolio || [];
-  const totalCurrentValue = summary?.totalCurrentValue || 0;
-  const byCategory = summary?.byCategory || {};
+  const portfolio = snap?.portfolio.items || [];
+  const totalCurrentValue = snap?.portfolio.marketValue || 0;
+  const categories = snap?.categories || [];
+  const phase = snap?.phase || null;
+  const targetExpense = snap?.params.FI_MONTHLY_EXPENSE || 0;
 
-  // Total assets = all categories combined (investments + savings + gold + sniper...)
-  const totalAssets = Object.values(byCategory).reduce((s, cat) => s + (cat.currentTotal || 0), 0);
+  // Tong tai san - cung mot con so voi Tong quan va Kich ban.
+  const totalAssets = snap?.netWorth.total || 0;
 
-  // Average monthly savings for timeline estimates
-  const avgMonthlySavings = useMemo(() => {
-    if (filled.length === 0) return 0;
-    const totalIncome = filled.reduce((s, m) => s + (m.income || 0) + (m.bonus || 0), 0);
-    const totalExpense = filled.reduce((s, m) => s + (m.expense || 0), 0);
-    return Math.max(0, (totalIncome - totalExpense) / filled.length);
-  }, [filled]);
+  // Tien de danh moi thang, dung de uoc luong thoi gian con lai.
+  const avgMonthlySavings = snap?.cashflow.inflowMean || 0;
 
-  // Current allocation by category (from portfolio, fallback to monthly allocations)
-  const totalAllocated = Object.values(allocsByCategory).reduce((s, c) => s + c.total, 0);
-  const baseTotal = totalAssets > 0 ? totalAssets : totalAllocated;
+  // Moi danh muc do bang dung mot don vi: gia thi truong voi khoan dau tu,
+  // so du goc + lai voi so tiet kiem. Danh muc chua co tai san la 0%.
   const currentAlloc = useMemo(() => {
-    return categories.map(c => {
-      const catData = byCategory[c.name];
-      const allocTotal = allocsByCategory[c.name]?.total || 0;
-      const currentTotal = catData?.currentTotal || allocTotal;
-      const currentPct = baseTotal > 0 ? (currentTotal / baseTotal) * 100 : 0;
+    if (!snap) return [];
+    const pf = snap.portfolio.byCategory || {};
+    const sv = snap.savings.byCategory || {};
+    const rows = categories.map(c => {
+      const currentTotal = (pf[c.name]?.marketValue || 0) + (sv[c.name]?.balance || 0);
       return {
         name: c.name,
         label: c.name,
         icon: c.icon,
         color: c.color,
-        currentPct,
+        currentPct: totalAssets > 0 ? (currentTotal / totalAssets) * 100 : 0,
         currentTotal,
-        itemCount: catData?.items?.length || 0,
+        itemCount: (pf[c.name]?.items?.length || 0) + (sv[c.name]?.count || 0),
       };
     }).filter(c => c.currentTotal > 0 || phaseAllocs.some(pa => pa.category_name === c.name));
-  }, [categories, byCategory, totalCurrentValue, phaseAllocs, allocsByCategory]);
 
-  // Target allocation from phase — VND based on phase.goal_amount
+    // Tien mat cung la tai san. Tach lam hai vi hai loai nay khac nhau ve y dinh:
+    // mot ben da chia cho danh muc va dang cho lenh mua, mot ben chua chia.
+    const pushCash = (key, label, color, amount) => {
+      if (amount <= 0) return;
+      rows.push({
+        name: key,
+        label,
+        icon: null,
+        color,
+        currentPct: totalAssets > 0 ? (amount / totalAssets) * 100 : 0,
+        currentTotal: amount,
+        itemCount: 0,
+      });
+    };
+    pushCash('__awaiting__', 'Đã chia, chờ lệnh mua', '#64748b', snap.cash.awaitingInvestment);
+    pushCash('__unallocated__', 'Chưa chia cho danh mục nào', '#cbd5e1', snap.cash.unallocated);
+    return rows;
+  }, [snap, categories, phaseAllocs, totalAssets]);
+
+  // Moc cua giai doan quy ra tien cho tung danh muc.
   const targetAlloc = useMemo(() => {
-    if (!phaseAllocs.length || !phase?.goal_amount) return [];
+    if (!phaseAllocs.length || !phase?.goalAmount) return [];
     
-    // In Phase 1, goal_amount is strictly the target for "Dự Phòng".
-    // In Phase 2+, goal_amount is the target for "Tổng tài sản" (Total Assets).
-    const isPhase1 = phase.sort_order === 1;
+    // Giai doan 1 do quy du phong, nen moc cua ca danh muc la moc du phong
+    // chia cho ty le danh cho Du Phong. Tu giai doan 2 moc la tong tai san.
+    const isPhase1 = phase.sortOrder === 1;
     let totalGoal;
     
     if (isPhase1) {
       const dpRatio = phaseAllocs.find(pa => pa.category_name?.toLowerCase().includes('dự phòng'))?.ratio || 1;
-      totalGoal = phase.goal_amount / dpRatio;
+      totalGoal = phase.goalAmount / dpRatio;
     } else {
-      totalGoal = phase.goal_amount;
+      totalGoal = phase.goalAmount;
     }
 
     return phaseAllocs.map(pa => ({
@@ -156,7 +140,7 @@ export default function AllocationGoals() {
 
   const milestones = phases.map(p => ({
     label: p.sort_order.toString(),
-    target: p.goal_amount || 0,
+    target: (p.goal_multiplier || 0) * targetExpense,
     desc: p.goal_description,
     name: p.name,
     multiplier: p.goal_multiplier,
@@ -168,7 +152,7 @@ export default function AllocationGoals() {
     : 0;
   const concentrationRisk = totalCurrentValue > 0 ? (maxSingleAsset / totalCurrentValue) * 100 : 0;
   const assetCount = portfolio.length;
-  const categoryCount = Object.keys(byCategory).length;
+  const categoryCount = currentAlloc.filter(c => !c.name.startsWith('__')).length;
 
   if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
 
@@ -310,13 +294,11 @@ export default function AllocationGoals() {
             // Phase 2: Total assets (đầu tư tăng trưởng)
             // Phase 3: Total assets (tích lũy)
             // Phase 4: FI
-            const duPhongBalance = byCategory['Dự Phòng']?.currentTotal || 0;
-            let currentValue;
-            if (phaseNum === 1) {
-              currentValue = duPhongBalance;
-            } else {
-              currentValue = totalAssets;
-            }
+            // Cung nguong may do giai doan dung: giai doan 1 do quy du phong,
+            // cac giai doan sau do tong tai san.
+            const currentValue = phaseNum === 1
+              ? (snap?.savings.reserveBalance || 0)
+              : totalAssets;
 
             const pct = m.target > 0 ? Math.min((currentValue / m.target) * 100, 100) : 0;
             const reached = m.target > 0 && currentValue >= m.target;

@@ -123,12 +123,9 @@ function netWorth_Scenarios(d) {
   return d.snapshot.netWorth.total;
 }
 
-/** #3 — AllocationGoals.jsx:63  Σ byCategory.currentTotal (không có tiền mặt) */
+/** #3 — AllocationGoals.jsx:56  totalAssets, nay đọc thẳng từ snapshot */
 function netWorth_AllocationGoals(d) {
-  return Object.values(d.summary.byCategory || {}).reduce(
-    (s, c) => s + (c.currentTotal || 0),
-    0
-  );
+  return d.snapshot.netWorth.total;
 }
 
 /** #4 — database.js:2592 _resolvePhase đọc core.netWorth.total */
@@ -149,7 +146,7 @@ function netWorth_CashFlowPage(d) {
 const NET_WORTH_FORMULAS = [
   { key: 'Dashboard',       label: 'Dashboard "Tổng tài sản ròng"', src: 'Dashboard.jsx:265',        fn: netWorth_Dashboard },
   { key: 'Scenarios',       label: 'Kịch bản (tử số tỷ lệ FI)',     src: 'Scenarios.jsx:195',        fn: netWorth_Scenarios },
-  { key: 'AllocationGoals', label: 'Tab Phân bổ (mẫu số mọi %)',    src: 'AllocationGoals.jsx:63',   fn: netWorth_AllocationGoals },
+  { key: 'AllocationGoals', label: 'Tab Phân bổ (mẫu số mọi %)',    src: 'AllocationGoals.jsx:56',   fn: netWorth_AllocationGoals },
   { key: 'PhaseEngine',     label: 'Máy dò giai đoạn (backend)',    src: 'database.js:2592',         fn: netWorth_PhaseEngine },
   { key: 'Checklist',       label: 'Bảng kiểm tra (backend)',       src: 'database.js:1151',         fn: netWorth_Checklist },
   { key: 'CashFlowPage',    label: 'Dòng tiền "Đã tích lũy"',       src: 'CashFlowPage.jsx:317',     fn: netWorth_CashFlowPage },
@@ -174,23 +171,20 @@ function phaseProgress_Scenarios(d) {
   return { current, goal, pct: goal > 0 ? Math.min((current / goal) * 100, 100) : 100 };
 }
 
-/** AllocationGoals.jsx:313-321 */
+/** AllocationGoals.jsx:295-299 — cùng ngưỡng với máy dò giai đoạn */
 function phaseProgress_AllocationGoals(d) {
   const p = d.phase;
   if (!p) return null;
-  const byCategory = d.summary.byCategory || {};
-  const goal = p.goal_amount;
+  const goal = (p.goal_multiplier || 0) * d.params.FI_MONTHLY_EXPENSE;
   const current =
-    p.sort_order === 1
-      ? byCategory['Dự Phòng']?.currentTotal || 0
-      : netWorth_AllocationGoals(d);
+    p.sort_order === 1 ? d.snapshot.savings.reserveBalance : netWorth_AllocationGoals(d);
   return { current, goal, pct: goal > 0 ? Math.min((current / goal) * 100, 100) : 100 };
 }
 
 const PHASE_PROGRESS_FORMULAS = [
   { key: 'Dashboard',       src: 'Dashboard.jsx:280-282',       fn: phaseProgress_Dashboard },
   { key: 'Scenarios',       src: 'Scenarios.jsx:249-259',       fn: phaseProgress_Scenarios },
-  { key: 'AllocationGoals', src: 'AllocationGoals.jsx:313-321', fn: phaseProgress_AllocationGoals },
+  { key: 'AllocationGoals', src: 'AllocationGoals.jsx:295-299', fn: phaseProgress_AllocationGoals },
 ];
 
 // ═══════════════ "Đã giải ngân" — hai định nghĩa ═══════════════

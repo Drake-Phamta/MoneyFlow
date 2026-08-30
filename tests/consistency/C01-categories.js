@@ -12,9 +12,11 @@
  *     (số tiền KẾ HOẠCH), trong khi mẫu số baseTotal là giá trị THỊ TRƯỜNG.
  *     Mọi phần trăm và mọi cảnh báo "Cần rebalance" đều sai đơn vị.
  */
-const { group, t, fail, ok, fmt } = require('../rig/assert');
+const { group, t, fail, ok, fmt, approx } = require('../rig/assert');
 const { reset } = require('../rig/reset');
 const F = require('./_formulas');
+
+const TOL = 1;
 
 async function run() {
   group('C01 — Nhất quán tên danh mục');
@@ -73,37 +75,45 @@ async function run() {
   await t(
     'C1c',
     'Tab Phân bổ: tử số và mẫu số của mỗi % phải cùng đơn vị (giá thị trường)',
-    ['ui:portfolio.summary', 'rest:GET /api/categories'],
+    ['ui:portfolio.summary', 'rest:GET /api/categories', 'rest:GET /api/snapshot'],
     () => {
-      // AllocationGoals.jsx:74-81
-      const byCategory = d.summary.byCategory || {};
+      // AllocationGoals.jsx:40-72 — mỗi danh mục = giá thị trường + số dư sổ,
+      // mẫu số là tổng tài sản. Không danh mục nào được lấy tiền kế hoạch
+      // làm tử số nữa.
+      const sn = d.snapshot;
+      const pf = sn.portfolio.byCategory || {};
+      const sv = sn.savings.byCategory || {};
       const allocsByCat = F.allocsByCategory(d);
-      const baseTotal = F.netWorth_AllocationGoals(d); // Σ byCategory.currentTotal
 
-      const mixed = [];
-      for (const c of d.categories) {
-        const fromMarket = byCategory[c.name]; // giá thị trường
-        const fromPlan = allocsByCat[c.name]; // tiền đã phân bổ (kế hoạch)
-        if (!fromMarket && fromPlan && fromPlan.total > 0) {
-          mixed.push(
-            `"${c.name}": tử số ${fmt(fromPlan.total)} (tiền phân bổ) / ` +
-              `mẫu số ${fmt(baseTotal)} (giá thị trường) = ` +
-              `${((fromPlan.total / baseTotal) * 100).toFixed(1)}%`
-          );
-        }
-      }
-      if (mixed.length) {
-        fail(
-          `${mixed.length} danh mục có phần trăm trộn hai đơn vị:\n      ` +
-            mixed.join('\n      ')
+      const rows = d.categories.map((c) => ({
+        name: c.name,
+        total: (pf[c.name]?.marketValue || 0) + (sv[c.name]?.balance || 0),
+      }));
+      const sumRows = rows.reduce((s, r) => s + r.total, 0);
+
+      // Mọi phần trăm cộng lại (kể cả lát tiền mặt) đúng bằng 100.
+      approx(
+        sumRows + sn.cash.total,
+        sn.netWorth.total,
+        TOL,
+        `Σ danh mục (${fmt(sumRows)}) + tiền mặt (${fmt(sn.cash.total)}) ` +
+          `≠ tổng tài sản (${fmt(sn.netWorth.total)}) — biểu đồ tròn không cộng thành 100%`
+      );
+
+      // Tiền đã chia cho một danh mục nhưng chưa mua gì phải nằm trong lát tiền
+      // mặt, không được hiện thành giá trị của danh mục đó.
+      const earmarked = rows.filter(
+        (r) => r.total === 0 && (allocsByCat[r.name]?.total || 0) > 0
+      );
+      if (earmarked.length) {
+        const sumEarmarked = earmarked.reduce((x, r) => x + allocsByCat[r.name].total, 0);
+        ok(
+          sn.cash.awaitingInvestment >= sumEarmarked - TOL,
+          `${fmt(sumEarmarked)} đã chia cho ${earmarked.map((r) => r.name).join(', ')} ` +
+            `nhưng lát tiền mặt chờ lệnh mua chỉ có ${fmt(sn.cash.awaitingInvestment)} — ` +
+            `số tiền này biến mất khỏi biểu đồ`
         );
       }
-    },
-    {
-      knownFail:
-        'AllocationGoals.jsx:78-80 — byCategory[c.name] undefined nên rơi về ' +
-        'allocsByCategory[c.name].total (VNĐ kế hoạch), còn baseTotal ở :63 là ' +
-        'giá thị trường.',
     }
   );
 
