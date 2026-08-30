@@ -6,7 +6,7 @@
  * con số của backend — trong khi SavingsSection thì có đọc. Hai màn hình, cùng
  * một câu chữ, hai con số.
  */
-const { group, t, fail, ok, fmt, approx } = require('../rig/assert');
+const { group, t, fail, ok, eq, fmt, approx } = require('../rig/assert');
 const { reset } = require('../rig/reset');
 const { getOk, post, put } = require('../rig/http');
 const F = require('./_formulas');
@@ -211,12 +211,11 @@ async function run() {
   await t(
     'C8',
     'Checklist "dự phòng ≥ 3×" phải dùng cùng định nghĩa với máy dò giai đoạn',
-    ['rest:GET /api/phases/checklist', 'rest:GET /api/phases/active'],
+    ['rest:GET /api/phases/checklist', 'rest:GET /api/phases/active', 'rest:GET /api/snapshot'],
     async () => {
       await reset();
-      // Dựng điều kiện phân kỳ: ghi nhận một lần trả lãi vào sổ Dự Phòng.
-      // Máy dò giai đoạn cộng các giao dịch type='interest' (database.js:1084-1087),
-      // còn checklist chỉ lấy principal (database.js:1166-1169).
+      // Ghi một lần trả lãi vào sổ Dự Phòng — đây là lúc hai định nghĩa cũ
+      // tách nhau ra: một bên cộng lãi, một bên chỉ lấy gốc.
       const cats0 = await getOk('/api/categories');
       const dp0 = cats0.find((c) => c.name.includes('Dự Phòng'));
       const accounts0 = await getOk('/api/savings');
@@ -232,42 +231,27 @@ async function run() {
       });
 
       const d2 = await F.loadAll();
-      const expense = d2.params.FI_MONTHLY_EXPENSE;
-      const dpCat = d2.categories.find((c) => c.name.includes('Dự Phòng'));
-      ok(dpCat, 'không có danh mục Dự Phòng');
+      const sn = d2.snapshot;
+      const expense = sn.params.FI_MONTHLY_EXPENSE;
+      const reserve = sn.savings.reserveBalance;
+      const met = reserve >= 3 * expense;
 
-      // checklist: chỉ GỐC của sổ gắn danh mục Dự Phòng (database.js:1166-1169)
-      const checklistBasis = d2.savingsAccounts
-        .filter((a) => a.status === 'active' && a.category_id === dpCat.id)
-        .reduce((s, a) => s + (a.principal || 0), 0);
-
-      // máy dò: max(gốc + lãi đã trả, tổng phân bổ Dự Phòng) (database.js:1082-1104)
-      const withInterest = d2.savingsAccounts
-        .filter((a) => a.status === 'active' && a.category_id === dpCat.id)
-        .reduce((s, a) => s + (a.principal || 0) + (a.total_interest || 0), 0);
-      const dpAllocated = d2.savingsOverview.duPhongAllocated || 0;
-      const phaseBasis = Math.max(withInterest, dpAllocated);
-
-      // So CƠ SỞ chứ không so kết luận: hai cơ sở khác nhau thì sớm muộn cũng
-      // cho hai kết luận khác nhau, chỉ là chưa rơi vào vùng ngưỡng mà thôi.
-      approx(
-        checklistBasis,
-        phaseBasis,
-        TOL,
-        `Ngưỡng 3× chi tiêu = ${fmt(3 * expense)}. ` +
-          `checklist dùng ${fmt(checklistBasis)} (chỉ gốc sổ Dự Phòng) → ` +
-          `${checklistBasis >= 3 * expense}; ` +
-          `máy dò dùng ${fmt(phaseBasis)} (gồm lãi + tổng phân bổ) → ` +
-          `${phaseBasis >= 3 * expense}. ` +
-          `Chênh ${fmt(Math.abs(phaseBasis - checklistBasis))} nên hai bên sẽ ` +
-          `mâu thuẫn ngay khi tài sản rơi vào khoảng giữa hai con số này.`
+      // Một cơ sở, hai nơi đọc. Nếu hai nơi kết luận khác nhau thì người dùng
+      // thấy checklist đã tick mà giai đoạn không lên, hoặc ngược lại.
+      eq(
+        !!sn.checklist?.[1]?.emergency_3x,
+        met,
+        `checklist nói ${!!sn.checklist?.[1]?.emergency_3x} trong khi quỹ dự phòng ` +
+          `${fmt(reserve)} so với ngưỡng ${fmt(3 * expense)} cho ra ${met}`
       );
+      eq(
+        sn.phase.sortOrder >= 2,
+        met,
+        `máy dò xếp giai đoạn ${sn.phase.sortOrder} trong khi quỹ dự phòng ` +
+          `${fmt(reserve)} so với ngưỡng ${fmt(3 * expense)} cho ra ${met}`
+      );
+
       await reset();
-    },
-    {
-      knownFail:
-        'database.js:1226 dùng gốc-only còn database.js:1104 dùng ' +
-        'max(gốc+lãi, tổng phân bổ) — hai định nghĩa cho cùng một điều kiện.',
     }
   );
 }

@@ -211,50 +211,61 @@ async function run() {
   await t(
     'C13',
     'Huỷ xác nhận chênh lệch phải hoàn tác thật, và lặp lại không được cộng dồn',
-    ['rest:POST /api/allocations/adjust', 'rest:GET /api/allocations/discrepancies'],
+    [
+      'rest:POST /api/allocations/adjust',
+      'rest:DELETE /api/allocations/adjust/:id',
+      'rest:GET /api/allocations/discrepancies',
+      'ipc:allocations:revert',
+      'bridge:allocations.revert',
+      'client:allocations.revert',
+    ],
     async () => {
       await reset();
       const cats = await getOk('/api/categories');
       const target = cats.find((c) => c.name.includes('Chứng Khoán'));
       ok(target, 'không có danh mục Chứng Khoán');
 
-      const before = await getOk('/api/allocations/discrepancies');
-      const allocBefore = (await getOk('/api/allocations/all'))
-        .filter((a) => a.category_id === target.id)
-        .reduce((s, a) => s + (a.actual_amount || a.planned_amount || 0), 0);
+      const sumAlloc = async () =>
+        (await getOk('/api/allocations/all'))
+          .filter((a) => a.category_id === target.id)
+          .reduce((s, a) => s + (a.actual_amount || a.planned_amount || 0), 0);
 
-      // Ba vòng xác nhận rồi huỷ. ExecutionLog.jsx:175-179 chỉ xoá localStorage
-      // nên phía DB không có gì được hoàn lại.
+      const before = await getOk('/api/allocations/discrepancies');
+      const allocBefore = await sumAlloc();
+
+      // Ba vòng xác nhận rồi huỷ. Sau cùng mọi thứ phải y như lúc đầu.
       for (let i = 0; i < 3; i++) {
-        await post('/api/allocations/adjust', {
+        const r = await post('/api/allocations/adjust', {
           discrepancyAmount: 1000000,
           categoryId: target.id,
           reason: `Vòng ${i + 1}`,
           date: new Date().toISOString().slice(0, 10),
         });
-        // "Huỷ xác nhận" ở giao diện: không gọi API nào cả.
+        ok(r.data && r.data.id, 'xác nhận phải trả về id của bút toán để còn huỷ được');
+        approx(
+          await sumAlloc(),
+          allocBefore + 1000000,
+          TOL,
+          `vòng ${i + 1}: xác nhận không cộng đúng 1.000.000 vào phân bổ`
+        );
+        const undo = await del(`/api/allocations/adjust/${r.data.id}`);
+        eq(undo.status, 200, `vòng ${i + 1}: huỷ bút toán thất bại`);
       }
 
       const after = await getOk('/api/allocations/discrepancies');
-      const allocAfter = (await getOk('/api/allocations/all'))
-        .filter((a) => a.category_id === target.id)
-        .reduce((s, a) => s + (a.actual_amount || a.planned_amount || 0), 0);
+      eq(after.length, before.length, 'số dòng nhật ký chênh lệch sau 3 vòng');
+      approx(
+        await sumAlloc(),
+        allocBefore,
+        TOL,
+        'phân bổ Chứng Khoán không trở lại như trước sau khi huỷ hết'
+      );
 
-      if (after.length !== before.length || Math.abs(allocAfter - allocBefore) > TOL) {
-        fail(
-          `Sau 3 vòng xác nhận-rồi-huỷ: discrepancy_logs ${before.length} → ` +
-            `${after.length} dòng, phân bổ Chứng Khoán ${fmt(allocBefore)} → ` +
-            `${fmt(allocAfter)} (cộng thêm ${fmt(allocAfter - allocBefore)}). ` +
-            `Không có đường nào để hoàn tác.`
-        );
-      }
+      // Huỷ một bút toán không tồn tại phải báo 404, không âm thầm trừ tiếp.
+      const missing = await del('/api/allocations/adjust/999999');
+      eq(missing.status, 404, 'huỷ bút toán không có thật phải trả 404');
+
       await reset();
-    },
-    {
-      knownFail:
-        'ExecutionLog.jsx:175-179 handleRevokeConfirmation chỉ ' +
-        'localStorage.removeItem, không đảo bút toán đã ghi bởi ' +
-        'database.js:1385 adjustInvestmentAllocation.',
     }
   );
 

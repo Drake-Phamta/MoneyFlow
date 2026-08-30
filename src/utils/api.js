@@ -67,6 +67,7 @@ export const api = {
     save: (entryId, allocs) => post(`/allocations/${entryId}`, { allocations: allocs }),
     adjust: (discrepancyAmount, categoryId, reason, date) => post('/allocations/adjust', { discrepancyAmount, categoryId, reason, date }),
     discrepancies: () => get('/allocations/discrepancies'),
+    revert: (logId) => del(`/allocations/adjust/${logId}`),
   },
   transactions: {
     get: () => get('/transactions'),

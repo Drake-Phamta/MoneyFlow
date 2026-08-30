@@ -138,20 +138,23 @@ export default function ExecutionLog({ embedded }) {
 
   // Discrepancy handlers
   async function handleConfirmDiscrepancy() {
+    let logId = null;
     try {
-      // Update allocation in database to match actual invested amount
-      await apiClient.allocations.adjust(discrepancy, parseInt(targetCategoryId), discrepancyReason, todayLocal());
-      // Refresh allocated amount and logs
+      const r = await apiClient.allocations.adjust(discrepancy, parseInt(targetCategoryId), discrepancyReason, todayLocal());
+      logId = r && r.id ? r.id : null;
       setInvestmentAllocated(prev => prev + discrepancy);
       setDiscrepancyLogs(await apiClient.allocations.discrepancies().catch(() => []));
     } catch (err) {
       console.error('Adjust allocation error:', err);
+      return;
     }
+    // Giữ logId để nút huỷ còn biết phải đảo bút toán nào.
     const monthKey = currentMonthKey();
     const record = {
+      logId,
       amount: discrepancy,
       reason: discrepancyReason || 'Không có lý do cụ thể',
-      date: new Date().toISOString(),
+      date: todayLocal(),
     };
     localStorage.setItem(`discrepancy_${monthKey}`, JSON.stringify(record));
     setDiscrepancyConfirmed(record);
@@ -159,9 +162,20 @@ export default function ExecutionLog({ embedded }) {
     setDiscrepancyReason('');
   }
 
-  function handleRevokeConfirmation() {
-    const monthKey = currentMonthKey();
-    localStorage.removeItem(`discrepancy_${monthKey}`);
+  async function handleRevokeConfirmation() {
+    // Xoá dấu vết trên máy thôi thì chưa đủ — bút toán đã ghi vào sổ phải được
+    // đảo lại, nếu không mỗi lần xác nhận rồi huỷ là một lần cộng thêm.
+    if (discrepancyConfirmed?.logId) {
+      try {
+        await apiClient.allocations.revert(discrepancyConfirmed.logId);
+        setInvestmentAllocated(prev => prev - discrepancyConfirmed.amount);
+        setDiscrepancyLogs(await apiClient.allocations.discrepancies().catch(() => []));
+      } catch (err) {
+        console.error('Revert allocation error:', err);
+        return;
+      }
+    }
+    localStorage.removeItem(`discrepancy_${currentMonthKey()}`);
     setDiscrepancyConfirmed(null);
   }
 

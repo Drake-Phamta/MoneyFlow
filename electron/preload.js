@@ -45,6 +45,7 @@ contextBridge.exposeInMainWorld('api', {
     all: () => ipcRenderer.invoke('allocations:all'),
     save: (entryId, allocs) => ipcRenderer.invoke('allocations:save', entryId, allocs),
     adjust: (discrepancyAmount, categoryId, reason, date) => ipcRenderer.invoke('allocations:adjust', discrepancyAmount, categoryId, reason, date),
+    revert: (logId) => ipcRenderer.invoke('allocations:revert', logId),
     discrepancies: () => ipcRenderer.invoke('allocations:discrepancies'),
   },
   transactions: {

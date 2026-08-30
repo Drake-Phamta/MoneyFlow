@@ -1432,9 +1432,44 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     }
 
     this.run('INSERT INTO discrepancy_logs (date, month_index, month_label, amount, reason, target_category_id) VALUES (?, ?, ?, ?, ?, ?)',
-      [dateStr || new Date().toISOString().split('T')[0], latest.month_index, latest.month_label, discrepancyAmount, reason || '', categoryId || null]);
+      [dateStr || this._todayLocal(), latest.month_index, latest.month_label, discrepancyAmount, reason || '', categoryId || null]);
 
+    // Lấy id TRƯỚC save() — save() xuất lại cả tệp nên last_insert_rowid() mất.
+    const id = this.lastId();
     this.save();
+    return { id, amount: discrepancyAmount };
+  }
+
+  /**
+   * Đảo lại một bút toán điều chỉnh đã ghi. Không có hàm này thì nút "huỷ xác
+   * nhận" chỉ xoá dấu vết trên máy người dùng, còn số liệu trong sổ vẫn cộng
+   * thêm mỗi lần bấm.
+   */
+  revertInvestmentAllocation(logId) {
+    const log = this.queryOne('SELECT * FROM discrepancy_logs WHERE id = ?', [logId]);
+    if (!log) return { reverted: false, reason: 'not_found' };
+
+    const entry = this.queryOne('SELECT id FROM monthly_entries WHERE month_index = ?', [log.month_index]);
+    if (entry && log.target_category_id) {
+      const target = this.queryOne(
+        'SELECT * FROM allocations WHERE monthly_entry_id = ? AND category_id = ?',
+        [entry.id, log.target_category_id]
+      );
+      if (target) {
+        const newAmount = (target.actual_amount || target.planned_amount || 0) - log.amount;
+        // Dòng do chính bút toán này sinh ra (kế hoạch bằng 0) thì xoá hẳn,
+        // đừng để lại một dòng 0 đồng trong bảng phân bổ.
+        if (!target.planned_amount && newAmount <= 0) {
+          this.run('DELETE FROM allocations WHERE id = ?', [target.id]);
+        } else {
+          this.run('UPDATE allocations SET actual_amount = ? WHERE id = ?', [Math.max(0, newAmount), target.id]);
+        }
+      }
+    }
+
+    this.run('DELETE FROM discrepancy_logs WHERE id = ?', [logId]);
+    this.save();
+    return { reverted: true, amount: log.amount };
   }
 
   // ===== TRANSACTIONS =====

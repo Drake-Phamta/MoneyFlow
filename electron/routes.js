@@ -173,8 +173,16 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
   });
 
   app.post('/api/allocations/adjust', (req, res) => {
-    try { db.adjustInvestmentAllocation(req.body.discrepancyAmount, req.body.categoryId, req.body.reason, req.body.date); res.json(true); }
+    try { res.json(db.adjustInvestmentAllocation(req.body.discrepancyAmount, req.body.categoryId, req.body.reason, req.body.date) || true); }
     catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
+  app.delete('/api/allocations/adjust/:id', (req, res) => {
+    try {
+      const r = db.revertInvestmentAllocation(parseInt(req.params.id));
+      if (!r.reverted) return res.status(404).json({ error: 'khong tim thay but toan nay' });
+      res.json(r);
+    } catch (e) { res.status(500).json({ error: errText(e) }); }
   });
 
   app.get('/api/allocations/:entryId', (req, res) => {
