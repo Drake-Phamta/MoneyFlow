@@ -402,7 +402,7 @@ export default function Dashboard() {
           <button onClick={() => setShowAlerts(!showAlerts)} className="relative btn-ghost text-sm">
             <Bell size={18} weight="regular" />
             {alertCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
+              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-fs-2 rounded-full w-4 h-4 flex items-center justify-center">{alertCount}</span>
             )}
           </button>
 
@@ -451,7 +451,7 @@ export default function Dashboard() {
                         }`}></span>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-slate-700 leading-relaxed">{alert.message}</p>
-                          <p className="text-[10px] text-slate-400 mt-1">{formatRelativeTime(alert.created_at)}</p>
+                          <p className="text-fs-2 text-slate-400 mt-1">{formatRelativeTime(alert.created_at)}</p>
                         </div>
                       </div>
                     </div>
@@ -472,7 +472,7 @@ export default function Dashboard() {
       {maturities.length > 0 && (
         <div className="p-4 bg-amber-50 border border-amber-200 rounded-[1.25rem] flex items-center justify-between shadow-sm">
           <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-amber-700 flex items-center gap-1.5">
+            <p className="text-fs-1 uppercase tracking-widest font-semibold text-amber-700 flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
               Sắp đáo hạn ({maturities.length} sổ tiết kiệm)
             </p>
@@ -493,7 +493,7 @@ export default function Dashboard() {
               <Calendar size={20} weight="duotone" />
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-blue-600">Nhắc nhở nhập liệu</p>
+              <p className="text-fs-1 uppercase tracking-widest font-semibold text-blue-600">Nhắc nhở nhập liệu</p>
               <p className="text-sm font-bold text-blue-900 mt-0.5">
                 Chưa có dữ liệu cho <span className="text-blue-600">{nextMonth.month_label}</span>
               </p>
@@ -508,11 +508,11 @@ export default function Dashboard() {
         <div className="bento-card bg-primary-50 border-primary-200">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-primary-600 mb-1">{phase.name}</p>
+              <p className="text-fs-1 uppercase tracking-widest font-semibold text-primary-600 mb-1">{phase.name}</p>
               <h3 className="text-lg font-bold text-slate-800 tracking-tight">{phase.goal_description}</h3>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Mục tiêu</p>
+              <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Mục tiêu</p>
               <p className="text-2xl font-bold text-primary-600 tracking-tight">
                 {phase.goal_amount > 0 ? formatVND(phase.goal_amount) : 'Tự do tài chính'}
               </p>
@@ -523,7 +523,7 @@ export default function Dashboard() {
           {phaseProgress && phase.goal_amount > 0 && (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">{phaseProgress.label}</span>
+                <span className="text-fs-1 uppercase tracking-widest font-semibold text-slate-500">{phaseProgress.label}</span>
                 <span className="text-xs font-bold text-primary-600">{phaseProgress.pct.toFixed(1)}%</span>
               </div>
               <div className="w-full h-3 bg-slate-200/60 rounded-full overflow-hidden shadow-inner">
@@ -536,7 +536,7 @@ export default function Dashboard() {
               </div>
               {/* Remaining amount hint */}
               {phaseProgress.current < phaseProgress.goal && (
-                <p className="text-[10px] font-medium text-slate-500 mt-2">
+                <p className="text-fs-3 font-medium text-slate-500 mt-2">
                   Còn lại <span className="font-bold text-primary-600">{formatVND(phaseProgress.goal - phaseProgress.current)}</span> để đạt mục tiêu
                 </p>
               )}
@@ -546,7 +546,7 @@ export default function Dashboard() {
           {/* Phase allocation targets */}
           {phaseAllocs.length > 0 && (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-4 pt-4 border-t border-primary-100/50">
-              <span className="text-[10px] uppercase tracking-widest font-semibold text-slate-400">Phân bổ:</span>
+              <span className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400">Phân bổ:</span>
               {phaseAllocs.map(a => (
                 <span key={a.category_id} className="text-xs font-medium text-slate-600 bg-white/50 px-2 py-1 rounded-md">
                   {a.ratio * 100}% {a.category_name}
@@ -557,7 +557,7 @@ export default function Dashboard() {
 
           {/* Next phase hint */}
           {nextPhase && (
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mt-4 text-center bg-white/40 py-2 rounded-xl">
+            <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mt-4 text-center bg-white/40 py-2 rounded-xl">
               Tiếp theo: <span className="text-primary-600">{nextPhase.name}</span>
               {nextPhase.entry_condition && ` — ${nextPhase.entry_condition}`}
             </p>
@@ -575,7 +575,7 @@ export default function Dashboard() {
 
           <div className="relative z-10 space-y-8">
             <div>
-              <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+              <span className="text-fs-1 font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-[pulse_2s_ease-in-out_infinite]"></div>
                 Tổng tài sản ròng
               </span>
@@ -583,14 +583,14 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-wrap items-center gap-6">
               <div>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Tổng lợi nhuận</p>
+                <p className="text-fs-1 text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Tổng lợi nhuận</p>
                 <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {totalOverallGain >= 0 ? '+' : ''}{formatVND(totalOverallGain)}
                 </p>
               </div>
               <div className="w-px h-10 bg-slate-200"></div>
               <div>
-                <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Hiệu suất tài sản</p>
+                <p className="text-fs-1 text-slate-400 font-semibold uppercase tracking-widest mb-1.5">Hiệu suất tài sản</p>
                 <p className={`text-2xl font-bold tracking-tight ${totalOverallGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                   {totalInvested + totalSavingsPrincipal > 0 ? ((totalOverallGain / (totalInvested + totalSavingsPrincipal)) * 100).toFixed(2) : '0.00'}%
                 </p>
@@ -601,7 +601,7 @@ export default function Dashboard() {
 
         {/* Allocation Pie Chart (Bento) */}
         <div className="lg:col-span-2 bento-card flex flex-col">
-          <h3 className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-6">Cơ cấu tài sản</h3>
+          <h3 className="text-fs-1 font-semibold text-slate-400 uppercase tracking-widest mb-6">Cơ cấu tài sản</h3>
           <div className="flex-1 flex items-center justify-center min-h-[200px]">
             <AllocationPie data={allocPieData} layout="horizontal" theme="light" />
           </div>
@@ -620,27 +620,27 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-6 flex-1">
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Vốn đầu tư
                 <InfoTooltip content="Tổng số tiền gốc đã thực nạp vào các tài sản Đầu tư (Cổ phiếu, Quỹ, Vàng...)" />
               </p>
               <div>
                 <p className="text-xl font-bold text-slate-800 tracking-tight">{formatVND(totalInvested)}</p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Cổ phiếu, Quỹ, Vàng</p>
+                <p className="text-fs-3 text-slate-400 mt-1 font-medium">Cổ phiếu, Quỹ, Vàng</p>
               </div>
             </div>
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Giá trị hiện tại
                 <InfoTooltip content="Giá trị thị trường tính theo thời gian thực của toàn bộ tài sản Đầu tư." />
               </p>
               <div>
                 <p className="text-xl font-bold text-blue-600 tracking-tight">{formatVND(totalCurrentValue)}</p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Bao gồm cả vốn lẫn lãi</p>
+                <p className="text-fs-3 text-slate-400 mt-1 font-medium">Bao gồm cả vốn lẫn lãi</p>
               </div>
             </div>
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Lãi/Lỗ
                 <InfoTooltip content="Phần chênh lệch giữa Giá trị hiện tại và Vốn đầu tư gốc." />
               </p>
@@ -649,7 +649,7 @@ export default function Dashboard() {
                   {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
                 </p>
                 {totalGainPct !== 0 && (
-                  <p className={`text-[10px] font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-400'}`}>
+                  <p className={`text-fs-3 font-medium mt-1 ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-400'}`}>
                     {totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%
                   </p>
                 )}
@@ -668,41 +668,41 @@ export default function Dashboard() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 gap-y-8 flex-1">
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Tiền mặt
                 <InfoTooltip content="Tổng tiền chưa triển khai: gồm tiền chưa phân bổ và tiền đã chuyển vào TK chứng khoán nhưng chưa giao dịch." />
               </p>
               <div>
                 <p className="text-xl font-bold text-amber-600 tracking-tight">{formatVND(totalCashOnHand)}</p>
                 {uninvestedCash > 0 && (
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiền nhàn rỗi: {formatVND(uninvestedCash)}</p>
+                  <p className="text-fs-3 text-slate-400 mt-1 font-medium">Tiền nhàn rỗi: {formatVND(uninvestedCash)}</p>
                 )}
                 {totalCashUnallocated > 0 && (
-                  <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Chưa phân bổ: {formatVND(totalCashUnallocated)}</p>
+                  <p className="text-fs-3 text-slate-400 mt-0.5 font-medium">Chưa phân bổ: {formatVND(totalCashUnallocated)}</p>
                 )}
                 {totalCashOnHand === 0 && (
-                  <p className="text-[10px] text-slate-400 mt-1 font-medium">Đã phân bổ hết</p>
+                  <p className="text-fs-3 text-slate-400 mt-1 font-medium">Đã phân bổ hết</p>
                 )}
               </div>
             </div>
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Gốc tiết kiệm
                 <InfoTooltip content="Tổng số tiền gốc đang được gửi ở các sổ tiết kiệm." />
               </p>
               <div>
                 <p className="text-xl font-bold text-violet-600 tracking-tight">{formatVND(totalSavingsPrincipal)}</p>
-                {savingsSummary && <p className="text-[10px] text-slate-400 mt-1 font-medium">{savingsSummary.accountCount} sổ tiết kiệm</p>}
+                {savingsSummary && <p className="text-fs-3 text-slate-400 mt-1 font-medium">{savingsSummary.accountCount} sổ tiết kiệm</p>}
               </div>
             </div>
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Thanh khoản
                 <InfoTooltip content="Tiền mặt cộng các sổ không kỳ hạn. Sổ có kỳ hạn không tính vào đây vì rút sớm là mất lãi." />
               </p>
               <div>
                 <p className="text-xl font-bold text-slate-800 tracking-tight">{formatVND(liquidity)}</p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">
+                <p className="text-fs-3 text-slate-400 mt-1 font-medium">
                   {snap?.savings.termPrincipal > 0
                     ? `Đang khoá kỳ hạn: ${formatVND(snap.savings.termPrincipal)}`
                     : 'Rút được ngay'}
@@ -710,7 +710,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div className="flex flex-col justify-between">
-              <p className="text-[10px] text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
+              <p className="text-fs-1 text-slate-400 mb-1.5 font-semibold uppercase tracking-widest flex items-center">
                 Tỷ lệ tiết kiệm
                 <InfoTooltip content="Phần trăm thu nhập được giữ lại so với chi tiêu (Thu nhập thuần / Tổng Thu)." />
               </p>
@@ -718,7 +718,7 @@ export default function Dashboard() {
                 <p className={`text-xl font-bold tracking-tight ${savingsRate >= 30 ? 'text-emerald-600' : savingsRate >= 20 ? 'text-amber-600' : 'text-red-600'}`}>
                   {savingsRate !== null ? `${savingsRate.toFixed(1)}%` : '--'}
                 </p>
-                <p className="text-[10px] text-slate-400 mt-1 font-medium">Tiết kiệm / Thu nhập</p>
+                <p className="text-fs-3 text-slate-400 mt-1 font-medium">Tiết kiệm / Thu nhập</p>
               </div>
             </div>
           </div>
@@ -734,10 +734,10 @@ export default function Dashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h3 className="text-lg font-bold text-slate-800 tracking-tight">Danh mục giao dịch</h3>
-                <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mt-1">Click giá để cập nhật</p>
+                <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mt-1">Click giá để cập nhật</p>
               </div>
               {portfolio.length > 0 && (
-                <span className="text-[10px] uppercase tracking-widest font-medium text-slate-400">{portfolio.length} tài sản</span>
+                <span className="text-fs-1 uppercase tracking-widest font-medium text-slate-400">{portfolio.length} tài sản</span>
               )}
             </div>
             {portfolio.length === 0 ? (
@@ -769,27 +769,27 @@ export default function Dashboard() {
                             </div>
                             <div className="min-w-0">
                               <p className="text-sm font-bold text-slate-800 truncate tracking-tight">{p.name}</p>
-                              <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400">{p.category}</p>
+                              <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400">{p.category}</p>
                             </div>
                           </div>
                           <div className={`text-right ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
                             <p className="text-sm font-bold tracking-tight">{isPositive ? '+' : ''}{formatVND(gain)}</p>
-                            <p className="text-[10px] font-medium">{isPositive ? '+' : ''}{gainPct.toFixed(2)}%</p>
+                            <p className="text-fs-3 font-medium">{isPositive ? '+' : ''}{gainPct.toFixed(2)}%</p>
                           </div>
                         </div>
 
                         {/* Details grid */}
                         <div className="grid grid-cols-3 gap-2 mb-4">
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Khối lượng</p>
+                            <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Khối lượng</p>
                             <p className="text-xs font-semibold text-slate-700 font-mono">{p.total_quantity}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Giá vốn</p>
+                            <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Giá vốn</p>
                             <p className="text-xs font-semibold text-slate-600 font-mono">{formatVND(p.avg_cost)}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Giá hiện tại</p>
+                            <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Giá hiện tại</p>
                             {isEditing ? (
                               <input autoFocus type="text" inputMode="numeric"
                                 value={priceValue ? formatNumberInput(priceValue) : ''}
@@ -809,7 +809,7 @@ export default function Dashboard() {
 
                         {/* Footer: Value */}
                         <div className="flex items-center justify-between pt-3 border-t border-slate-100/60">
-                          <span className="text-[10px] uppercase tracking-widest font-medium text-slate-400">Giá trị hiện tại</span>
+                          <span className="text-fs-1 uppercase tracking-widest font-medium text-slate-400">Giá trị hiện tại</span>
                           <span className="text-base font-bold text-slate-800 tracking-tight">{formatVND(p.current_value)}</span>
                         </div>
                       </div>
@@ -820,23 +820,23 @@ export default function Dashboard() {
                 {/* Summary card */}
                 <div className="mt-5 p-5 bg-slate-50/50 rounded-2xl border border-slate-100">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-[10px] uppercase tracking-widest font-semibold text-slate-500">Tổng cộng</span>
+                    <span className="text-fs-1 uppercase tracking-widest font-semibold text-slate-500">Tổng cộng</span>
                     <div className={`text-right ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       <span className="text-base font-bold tracking-tight">{totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}</span>
-                      <span className="text-[10px] ml-1 font-medium">({totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%)</span>
+                      <span className="text-fs-3 ml-1 font-medium">({totalGain >= 0 ? '+' : ''}{totalGainPct.toFixed(2)}%)</span>
                     </div>
                   </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Vốn đầu tư</p>
+                      <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Vốn đầu tư</p>
                       <p className="text-sm font-bold text-slate-700 tracking-tight">{formatVND(totalInvested)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Giá trị hiện tại</p>
+                      <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Giá trị hiện tại</p>
                       <p className="text-sm font-bold text-slate-800 tracking-tight">{formatVND(totalCurrentValue)}</p>
                     </div>
                     <div>
-                      <p className="text-[10px] uppercase tracking-widest font-medium text-slate-400 mb-1">Tài sản</p>
+                      <p className="text-fs-1 uppercase tracking-widest font-medium text-slate-400 mb-1">Tài sản</p>
                       <p className="text-sm font-bold text-slate-700 tracking-tight">{portfolio.length}</p>
                     </div>
                   </div>
@@ -850,7 +850,7 @@ export default function Dashboard() {
             <div className="bento-card">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-slate-800 tracking-tight">Thu chi 6 tháng gần nhất</h3>
-                <button onClick={() => navigate('/cashflow')} className="text-[10px] uppercase tracking-widest font-semibold text-primary-600 hover:text-primary-700 transition-colors">Xem tất cả →</button>
+                <button onClick={() => navigate('/cashflow')} className="text-fs-1 uppercase tracking-widest font-semibold text-primary-600 hover:text-primary-700 transition-colors">Xem tất cả →</button>
               </div>
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={miniChartData} margin={{ top: 5, right: 10, bottom: 5, left: 10 }}>
@@ -920,7 +920,7 @@ export default function Dashboard() {
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: meta.color }}></span>
                         {meta.name}
                         {items.length > 0 && (
-                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                          <span className="text-fs-2 text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
                         )}
                       </span>
                       <span className="flex items-center gap-1.5">
@@ -937,11 +937,11 @@ export default function Dashboard() {
                     {catTarget !== null && (
                       <div className="ml-[18px] mt-1.5">
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-fs-2 text-slate-400">
                             {formatVND(actual)} / {formatVND(catTarget)}
                           </span>
                           {diff !== null && diff !== 0 && (
-                            <span className={`text-[10px] font-medium ${diff > 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
+                            <span className={`text-fs-3 font-medium ${diff > 0 ? 'text-emerald-600' : 'text-blue-600'}`}>
                               {diff > 0 ? '+' : ''}{formatVND(diff)}
                             </span>
                           )}
@@ -986,7 +986,7 @@ export default function Dashboard() {
                                   {item.ticker || item.name}
                                 </span>
                                 {item.total_quantity > 0 && (
-                                  <span className="text-[10px] text-slate-400">{item.total_quantity} {item.unit || 'cp'}</span>
+                                  <span className="text-fs-2 text-slate-400">{item.total_quantity} {item.unit || 'cp'}</span>
                                 )}
                               </div>
                               <div className="text-right flex-shrink-0">
@@ -994,7 +994,7 @@ export default function Dashboard() {
                                   {formatVND(itemValue)}
                                 </span>
                                 {itemInvested > 0 && itemGain !== 0 && (
-                                  <span className={`text-[10px] ml-1 ${isPositive ? 'text-emerald-600' : 'text-red-400'}`}>
+                                  <span className={`text-fs-2 ml-1 ${isPositive ? 'text-emerald-600' : 'text-red-400'}`}>
                                     {isPositive ? '+' : ''}{itemGainPct.toFixed(1)}%
                                   </span>
                                 )}

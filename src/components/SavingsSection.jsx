@@ -343,9 +343,9 @@ export default function SavingsSection() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
             {/* Card 1: Tổng tiền */}
             <div className="card bg-white/70 border-blue-100 flex flex-col justify-center items-center p-4">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wide mb-1">Tổng tiền nhàn rỗi</p>
+              <p className="text-fs-1 text-slate-500 uppercase tracking-wide mb-1">Tổng tiền nhàn rỗi</p>
               <p className="text-2xl font-bold text-slate-800">{formatVND(totalInflow)}</p>
-              <p className="text-[10px] text-slate-400 mt-1">Từ các tháng nhập liệu</p>
+              <p className="text-fs-2 text-slate-400 mt-1">Từ các tháng nhập liệu</p>
             </div>
 
             {/* Card 2: Dự Phòng */}
@@ -355,11 +355,11 @@ export default function SavingsSection() {
                   <AppIcon name="wallet" className="text-blue-600" size={18} />
                   <div>
                     <p className="text-sm font-semibold text-slate-700">Quỹ Dự phòng</p>
-                    <p className="text-[10px] text-slate-400">Sổ không kỳ hạn</p>
+                    <p className="text-fs-2 text-slate-400">Sổ không kỳ hạn</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
+                  <span className="text-fs-3 font-medium text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
                     Mục tiêu: {Math.round(savingsRatio * 100)}% dòng tiền
                   </span>
                 </div>
@@ -389,7 +389,7 @@ export default function SavingsSection() {
                 }} />
               </div>
               {availableForDuPhong > 0 && (
-                <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                <p className="text-fs-2 text-amber-600 mt-2 flex items-center gap-1">
                   <Warning size={10} weight="fill" /> Còn {formatVND(availableForDuPhong)} chưa gửi
                 </p>
               )}
@@ -402,11 +402,11 @@ export default function SavingsSection() {
                   <AppIcon name="bank" className="text-violet-500" size={18} />
                   <div>
                     <p className="text-sm font-semibold text-slate-700">Tiết kiệm và Trái phiếu</p>
-                    <p className="text-[10px] text-slate-400">Sổ kỳ hạn 3–12 tháng</p>
+                    <p className="text-fs-2 text-slate-400">Sổ kỳ hạn 3–12 tháng</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="text-[10px] font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">
+                  <span className="text-fs-3 font-medium text-violet-600 bg-violet-50 px-1.5 py-0.5 rounded">
                     Mục tiêu: {Math.round(tktpRatio * 100)}% dòng tiền
                   </span>
                 </div>
@@ -436,7 +436,7 @@ export default function SavingsSection() {
                 }} />
               </div>
               {availableForTKTP > 0 && (
-                <p className="text-[10px] text-amber-600 mt-2 flex items-center gap-1">
+                <p className="text-fs-2 text-amber-600 mt-2 flex items-center gap-1">
                   <Warning size={10} weight="fill" /> Còn {formatVND(availableForTKTP)} chưa gửi
                 </p>
               )}
@@ -518,7 +518,7 @@ export default function SavingsSection() {
             <p className="text-lg font-bold text-amber-700">{formatVND(availableGoldFund)}</p>
             <p className="text-xs text-amber-600 mt-0.5">Quỹ Vàng còn lại / {formatVND(sjcPrice)} (1 chỉ)</p>
             {goldAllocated > 0 && (
-              <p className="text-[10px] text-slate-400 mt-0.5">
+              <p className="text-fs-2 text-slate-400 mt-0.5">
                 Tổng phân bổ: {formatVND(goldAllocated)} · Đã mua: {formatVND(goldSpent)}
               </p>
             )}
@@ -526,11 +526,11 @@ export default function SavingsSection() {
               <div className="h-full rounded-full transition-all" style={{ width: `${goldProgress}%`, background: canBuyGold ? '#0F5D4A' : '#B06D22' }} />
             </div>
             <div className="flex justify-between mt-1">
-              <span className="text-[10px] text-amber-600">{goldProgress.toFixed(0)}%</span>
+              <span className="text-fs-2 text-amber-600">{goldProgress.toFixed(0)}%</span>
               {canBuyGold ? (
                 <span className="text-xs font-bold text-emerald-600">✓ Đủ mua 1 chỉ!</span>
               ) : (
-                <span className="text-[10px] text-amber-600">Còn thiếu {formatVND(sjcPrice - availableGoldFund)}</span>
+                <span className="text-fs-2 text-amber-600">Còn thiếu {formatVND(sjcPrice - availableGoldFund)}</span>
               )}
             </div>
             {canBuyGold && (
@@ -542,10 +542,10 @@ export default function SavingsSection() {
               </button>
             )}
             {!canBuyGold && goldBought > 0 && (
-              <p className="mt-2 text-[10px] text-amber-400 text-center">Tiếp tục tích luỹ để mua chỉ thứ {goldBought + 1}</p>
+              <p className="mt-2 text-fs-2 text-amber-400 text-center">Tiếp tục tích luỹ để mua chỉ thứ {goldBought + 1}</p>
             )}
             {goldAllocated === 0 && (
-              <p className="mt-2 text-[10px] text-slate-400 text-center">Chưa có dữ liệu phân bổ danh mục Vàng</p>
+              <p className="mt-2 text-fs-2 text-slate-400 text-center">Chưa có dữ liệu phân bổ danh mục Vàng</p>
             )}
           </div>
         </div>
@@ -911,7 +911,7 @@ export default function SavingsSection() {
                           <span className="shrink-0">{a.type === 'liquid' ? <Drop size={16} className="text-blue-400" weight="regular" /> : <Lock size={16} className="text-emerald-400" weight="regular" />}</span>
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-slate-700 truncate">{a.name}</p>
-                            <p className="text-[10px] text-slate-400">{a.product_type === 'bond' ? 'Trái phiếu' : 'Tiết kiệm'}</p>
+                            <p className="text-fs-2 text-slate-400">{a.product_type === 'bond' ? 'Trái phiếu' : 'Tiết kiệm'}</p>
                           </div>
                         </div>
                       </td>

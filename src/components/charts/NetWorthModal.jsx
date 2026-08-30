@@ -11,27 +11,27 @@ function NetWorthTooltip({ active, payload, label }) {
     if (data.netWorth === null) {
       return (
         <div className="bg-white p-3 rounded-xl shadow-xl border border-slate-100 min-w-[150px]">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
+          <p className="text-fs-1 font-semibold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
           <p className="text-base font-bold text-slate-800 tracking-tight">—</p>
         </div>
       );
     }
     return (
       <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 min-w-[220px] space-y-2">
-        <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
+        <p className="text-fs-1 font-semibold text-slate-400 uppercase tracking-widest">{label}</p>
         
         <div className="border-b border-slate-100 pb-2">
-          <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Tổng tài sản ròng</p>
+          <p className="text-fs-1 uppercase tracking-wider font-semibold text-slate-400">Tổng tài sản ròng</p>
           <p className="text-base font-bold text-slate-800 tracking-tight font-mono">{formatVND(data.netWorth)}</p>
         </div>
 
         <div className="grid grid-cols-2 gap-4 text-xs pt-1">
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Tiền mặt & Tiết kiệm</p>
+            <p className="text-fs-1 uppercase tracking-wider font-semibold text-slate-400">Tiền mặt & Tiết kiệm</p>
             <p className="font-semibold text-slate-700 font-mono">{formatVND(data.cashAndSavings)}</p>
           </div>
           <div>
-            <p className="text-[9px] uppercase tracking-wider font-semibold text-slate-400">Giá trị đầu tư</p>
+            <p className="text-fs-1 uppercase tracking-wider font-semibold text-slate-400">Giá trị đầu tư</p>
             <p className="font-semibold text-slate-700 font-mono">{formatVND(data.investmentValue)}</p>
           </div>
         </div>
@@ -357,7 +357,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
         <div className="p-6 sm:p-8 pb-4 border-b border-slate-100 flex items-start justify-between">
           <div>
             <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">Tổng tài sản ròng</h2>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mt-1">Biến động quỹ đạo tích lũy</p>
+            <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mt-1">Biến động quỹ đạo tích lũy</p>
           </div>
           <button onClick={onClose} className="p-2 bg-slate-100 hover:bg-slate-200 rounded-full text-slate-500 transition-colors">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -369,7 +369,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
           {/* Main Price & Stats */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
             <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Hiện tại</p>
+              <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Hiện tại</p>
               <div className="flex items-end gap-3">
                 <p className="text-4xl font-bold text-slate-800 tracking-tight">{formatVND(grandTotal)}</p>
                 {stats && (
@@ -445,19 +445,19 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-8 pt-8 border-t border-slate-100">
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Đỉnh ({FILTERS.find(f=>f.value===filter)?.label})</p>
+                <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Đỉnh ({FILTERS.find(f=>f.value===filter)?.label})</p>
                 <p className="text-lg font-bold text-slate-800 tracking-tight">{formatVND(stats.high)}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Đáy ({FILTERS.find(f=>f.value===filter)?.label})</p>
+                <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Đáy ({FILTERS.find(f=>f.value===filter)?.label})</p>
                 <p className="text-lg font-bold text-slate-800 tracking-tight">{formatVND(stats.low)}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Khởi điểm ({FILTERS.find(f=>f.value===filter)?.label})</p>
+                <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Khởi điểm ({FILTERS.find(f=>f.value===filter)?.label})</p>
                 <p className="text-lg font-bold text-slate-800 tracking-tight">{formatVND(stats.startPrice)}</p>
               </div>
               <div className="bg-slate-50 p-4 rounded-2xl">
-                <p className="text-[10px] uppercase tracking-widest font-semibold text-slate-400 mb-1">Biên độ dao động</p>
+                <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Biên độ dao động</p>
                 <p className="text-lg font-bold text-slate-800 tracking-tight font-mono">{formatVND(stats.high - stats.low)}</p>
               </div>
             </div>

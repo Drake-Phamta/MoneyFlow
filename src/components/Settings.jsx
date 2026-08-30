@@ -300,7 +300,7 @@ export default function Settings() {
               className="input input-lg"
               placeholder="4,000,000"
             />
-            <p className="text-[10px] text-slate-400 mt-1">Dùng để đặt mục tiêu tham chiếu</p>
+            <p className="text-fs-2 text-slate-400 mt-1">Dùng để đặt mục tiêu tham chiếu</p>
           </div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Dòng tiền nhàn rỗi kỳ vọng (₫)</label>
@@ -314,36 +314,36 @@ export default function Settings() {
               className="input input-lg"
               placeholder="3,700,000"
             />
-            <p className="text-[10px] text-slate-400 mt-1">Dùng để tính kịch bản tương lai</p>
+            <p className="text-fs-2 text-slate-400 mt-1">Dùng để tính kịch bản tương lai</p>
           </div>
           <div>
             <label className="text-xs text-slate-400 mb-1 block">Chi tiêu thực tế trung bình (₫)</label>
             <div className="input input-lg bg-slate-50 text-slate-700 cursor-not-allowed">
               {formatVND(avgExpense)}
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Tự tính từ dữ liệu nhập hàng tháng</p>
+            <p className="text-fs-2 text-slate-400 mt-1">Tự tính từ dữ liệu nhập hàng tháng</p>
           </div>
         </div>
         <div className="grid grid-cols-4 gap-3">
           <div className="p-3 bg-slate-50 rounded-xl text-center">
-            <p className="text-[10px] text-slate-400">Dự phòng (3×)</p>
+            <p className="text-fs-2 text-slate-400">Dự phòng (3×)</p>
             <p className="text-sm font-bold text-primary-600">{formatVND(targetExpense * 3)}</p>
-            <p className="text-[10px] text-slate-400">mục tiêu</p>
+            <p className="text-fs-2 text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
-            <p className="text-[10px] text-slate-400">Tăng tốc (6×)</p>
+            <p className="text-fs-2 text-slate-400">Tăng tốc (6×)</p>
             <p className="text-sm font-bold text-blue-600">{formatVND(targetExpense * 6)}</p>
-            <p className="text-[10px] text-slate-400">mục tiêu</p>
+            <p className="text-fs-2 text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-slate-50 rounded-xl text-center">
-            <p className="text-[10px] text-slate-400">Tích lũy (24×)</p>
+            <p className="text-fs-2 text-slate-400">Tích lũy (24×)</p>
             <p className="text-sm font-bold text-violet-600">{formatVND(targetExpense * 24)}</p>
-            <p className="text-[10px] text-slate-400">mục tiêu</p>
+            <p className="text-fs-2 text-slate-400">mục tiêu</p>
           </div>
           <div className="p-3 bg-emerald-50 rounded-xl text-center">
-            <p className="text-[10px] text-emerald-600">Tự do tài chính (quy tắc 4%)</p>
+            <p className="text-fs-2 text-emerald-600">Tự do tài chính (quy tắc 4%)</p>
             <p className="text-sm font-bold text-emerald-700">{formatVND(targetExpense * 12 / 0.04)}</p>
-            <p className="text-[10px] text-emerald-400">mục tiêu</p>
+            <p className="text-fs-2 text-emerald-400">mục tiêu</p>
           </div>
         </div>
       </div>
@@ -467,7 +467,7 @@ export default function Settings() {
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-bold text-primary-600">{goalDisplay}</span>
-                    {multDisplay && <span className="text-[10px] text-slate-400 ml-1">{multDisplay}</span>}
+                    {multDisplay && <span className="text-fs-2 text-slate-400 ml-1">{multDisplay}</span>}
                   </div>
                 </div>
                 <p className="text-xs text-slate-500 mb-1">{p.goal_description}</p>
@@ -511,14 +511,14 @@ export default function Settings() {
       {/* Danh mục phân loại (Parent Assets) */}
       <div className="card">
         <h3 className="text-sm font-semibold text-slate-700 mb-3">Danh mục phân loại</h3>
-        <p className="text-[10px] text-slate-400 mb-3">Các nhóm tài sản lớn. Tài sản cụ thể thuộc về một trong các danh mục này.</p>
+        <p className="text-fs-2 text-slate-400 mb-3">Các nhóm tài sản lớn. Tài sản cụ thể thuộc về một trong các danh mục này.</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
           {parentAssets.map(a => (
             <div key={a.id} className="flex items-center gap-2 p-2 rounded-lg border border-slate-100 bg-slate-50">
               <AppIcon name={a.icon} size={16} />
               <div>
                 <p className="text-xs font-medium text-slate-700">{a.name}</p>
-                <p className="text-[10px] text-slate-400">{a.unit}</p>
+                <p className="text-fs-2 text-slate-400">{a.unit}</p>
               </div>
             </div>
           ))}
@@ -530,7 +530,7 @@ export default function Settings() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h3 className="text-sm font-semibold text-slate-700">Tài sản cụ thể</h3>
-            <p className="text-[10px] text-slate-400">{childAssets.length} tài sản · {selectedAssets.size} đã chọn</p>
+            <p className="text-fs-2 text-slate-400">{childAssets.length} tài sản · {selectedAssets.size} đã chọn</p>
           </div>
           <div className="flex gap-2">
             {selectedAssets.size > 0 && (
@@ -618,7 +618,7 @@ export default function Settings() {
                     <td className="px-3 py-2"><input type="checkbox" checked={selectedAssets.has(a.id)} onChange={() => toggleSelectAsset(a.id)} className="rounded" /></td>
                     <td className="px-3 py-2"><div className="flex items-center gap-2"><AppIcon name={a.icon} size={16} /><span className="font-medium text-slate-700">{a.name}</span></div></td>
                     <td className="px-3 py-2 font-mono text-xs text-slate-500">{a.ticker}</td>
-                    <td className="px-3 py-2"><span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{a.category}</span></td>
+                    <td className="px-3 py-2"><span className="text-fs-2 px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">{a.category}</span></td>
                     <td className="px-3 py-2 text-xs text-slate-500">{a.unit}</td>
                     <td className="px-3 py-2 text-center">
                       <button onClick={() => handleToggleTrack(a.id, a.is_tracked)} className={`p-1 rounded-lg transition ${a.is_tracked ? 'text-emerald-600 hover:bg-emerald-50' : 'text-slate-400 hover:bg-slate-100'}`} title={a.is_tracked ? 'Đang theo dõi' : 'Chưa theo dõi'}>
@@ -635,7 +635,7 @@ export default function Settings() {
             </tbody>
           </table>
         </div>
-        <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
+        <div className="mt-2 flex items-center justify-between text-fs-2 text-slate-400">
           <span>{filteredAssets.length} / {childAssets.length} tài sản</span>
           {selectedAssets.size > 0 && <button onClick={() => setSelectedAssets(new Set())} className="text-primary-600 hover:underline">Bỏ chọn tất cả</button>}
         </div>
@@ -650,23 +650,23 @@ export default function Settings() {
           <div className="grid grid-cols-5 gap-3 mb-4">
             <div className="p-3 bg-slate-50 rounded-xl text-center">
               <p className="text-lg font-bold text-slate-800">{stats.monthly}</p>
-              <p className="text-[10px] text-slate-400">Tháng đã nhập</p>
+              <p className="text-fs-2 text-slate-400">Tháng đã nhập</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl text-center">
               <p className="text-lg font-bold text-slate-800">{stats.txns}</p>
-              <p className="text-[10px] text-slate-400">Giao dịch</p>
+              <p className="text-fs-2 text-slate-400">Giao dịch</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl text-center">
               <p className="text-lg font-bold text-slate-800">{stats.allocs}</p>
-              <p className="text-[10px] text-slate-400">Phân bổ</p>
+              <p className="text-fs-2 text-slate-400">Phân bổ</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl text-center">
               <p className="text-lg font-bold text-slate-800">{stats.savings || 0}</p>
-              <p className="text-[10px] text-slate-400">Sổ tiết kiệm</p>
+              <p className="text-fs-2 text-slate-400">Sổ tiết kiệm</p>
             </div>
             <div className="p-3 bg-slate-50 rounded-xl text-center">
               <p className="text-lg font-bold text-slate-800">{stats.activity}</p>
-              <p className="text-[10px] text-slate-400">Hoạt động</p>
+              <p className="text-fs-2 text-slate-400">Hoạt động</p>
             </div>
           </div>
         )}

@@ -187,7 +187,7 @@ export default function AllocationGoals() {
                       </div>
                       <span className="text-xs font-bold text-slate-800">{c.currentPct.toFixed(1)}%</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 ml-5">{formatVND(c.currentTotal)}</p>
+                    <p className="text-fs-2 text-slate-400 ml-5">{formatVND(c.currentTotal)}</p>
                   </div>
                 ))}
               </div>
@@ -222,7 +222,7 @@ export default function AllocationGoals() {
                         <AppIcon name={t.icon} size={16} /> {t.label}
                       </span>
                       <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${
+                        <span className={`text-fs-3 font-medium px-1.5 py-0.5 rounded-full ${
                           reached ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
                         }`}>
                           {reached ? '✓ Đạt' : `Còn ${formatVND(Math.abs(diff))}`}
@@ -273,7 +273,7 @@ export default function AllocationGoals() {
                   <span className="text-amber-600">
                     {a.direction === 'thừa' ? 'Thừa' : 'Thiếu'} {formatVND(Math.abs(a.diffVND))}
                   </span>
-                  <span className="text-amber-400 text-[10px] ml-1.5">
+                  <span className="text-amber-400 text-fs-2 ml-1.5">
                     ({a.current.toFixed(0)}% → {a.target.toFixed(0)}%)
                   </span>
                 </div>
@@ -315,13 +315,13 @@ export default function AllocationGoals() {
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{m.name}</p>
                       <p className="text-xs text-slate-400">{m.desc}</p>
-                      {m.multiplier > 0 && <p className="text-[10px] text-slate-400">= {m.multiplier}× chi tiêu mục tiêu</p>}
+                      {m.multiplier > 0 && <p className="text-fs-2 text-slate-400">= {m.multiplier}× chi tiêu mục tiêu</p>}
                     </div>
                   </div>
                   {!isFI && (
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-800">{pct.toFixed(1)}%</p>
-                      <p className="text-[10px] text-slate-400">{formatVND(currentValue)} / {formatVND(m.target)}</p>
+                      <p className="text-fs-2 text-slate-400">{formatVND(currentValue)} / {formatVND(m.target)}</p>
                       {!reached && avgMonthlySavings > 0 && (() => {
                         const gap = m.target - currentValue;
                         // Phase 1: only allocation ratio goes to Dự Phòng
@@ -329,7 +329,7 @@ export default function AllocationGoals() {
                         const duPhongRatio = phaseAllocs.find(a => a.category_name === 'Dự Phòng')?.ratio || 0.7;
                         const monthlyRate = phaseNum === 1 ? avgMonthlySavings * duPhongRatio : avgMonthlySavings;
                         const months = monthlyRate > 0 ? Math.ceil(gap / monthlyRate) : 999;
-                        return <p className="text-[10px] text-blue-600">Đạt trong ~{months} tháng</p>;
+                        return <p className="text-fs-2 text-blue-600">Đạt trong ~{months} tháng</p>;
                       })()}
                     </div>
                   )}

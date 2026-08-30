@@ -118,6 +118,40 @@ async function run() {
       );
     }
   );
+  await t(
+    'UI-S-04',
+    'Không màn hình nào còn cỡ chữ dưới 11px',
+    [],
+    () => {
+      // Dưới 11px thì dấu tiếng Việt dính vào nhau, và người trên 40 tuổi
+      // phải nheo mắt đọc số tiền của chính mình.
+      const glob = require('fs');
+      const files = [];
+      const walk = (d) => {
+        for (const e of glob.readdirSync(d, { withFileTypes: true })) {
+          const q = path.join(d, e.name);
+          if (e.isDirectory()) walk(q);
+          else if (q.endsWith('.jsx')) files.push(q);
+        }
+      };
+      walk(path.join(REPO_ROOT, 'src'));
+
+      const tiny = /text-\[(?:9|10)px\]/;
+      const hits = [];
+      for (const f of files) {
+        const src = glob.readFileSync(f, 'utf8');
+        src.split('\n').forEach((line, i) => {
+          if (tiny.test(line)) {
+            hits.push(rel(f) + ':' + (i + 1) + ' ' + line.trim().slice(0, 60));
+          }
+        });
+      }
+      ok(
+        hits.length === 0,
+        hits.length + ' chỗ còn cỡ chữ dưới 11px: ' + hits.slice(0, 6).join(' | ')
+      );
+    }
+  );
 }
 
 module.exports = { run };

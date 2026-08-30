@@ -202,15 +202,15 @@ export default function CashFlowPage() {
             {avgSavingsRate.toFixed(1)}%
           </p>
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${avgSavingsRate >= savingsTargetPct ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
+            <span className={`text-fs-3 px-1.5 py-0.5 rounded-full font-medium ${avgSavingsRate >= savingsTargetPct ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}`}>
               Mục tiêu ≥ {savingsTargetPct}%
             </span>
             {streak >= 3 ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
+              <span className="text-fs-3 px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
                 {streak} tháng liên tục 🔥
               </span>
             ) : streak > 0 ? (
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600">
+              <span className="text-fs-3 px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600">
                 {streak} tháng liên tục
               </span>
             ) : null}
@@ -223,14 +223,14 @@ export default function CashFlowPage() {
           </p>
           <div className="flex items-center gap-1.5 flex-wrap">
             {investTargetPct > 0 && (
-              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+              <span className={`text-fs-3 px-1.5 py-0.5 rounded-full font-medium ${
                 avgInvestRate >= investTargetPct * 0.9 ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
               }`}>
                 Mục tiêu {investTargetPct}% theo phase
               </span>
             )}
             {totalInvested > 0 && (
-              <p className="text-[10px] text-slate-400 w-full">= {formatVND(totalInvested)} đã đầu tư</p>
+              <p className="text-fs-2 text-slate-400 w-full">= {formatVND(totalInvested)} đã đầu tư</p>
             )}
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function CashFlowPage() {
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-[10px] text-slate-400">Dựa trên trung bình {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
+                <p className="text-fs-2 text-slate-400">Dựa trên trung bình {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
                     <p className="text-xs text-slate-500 mb-1">Xu hướng 3 tháng gần nhất</p>
@@ -363,7 +363,7 @@ export default function CashFlowPage() {
                           <div>
                             <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
                             {diff !== 0 && (
-                              <p className={`text-[10px] ${diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              <p className={`text-fs-2 ${diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                                 {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với trung bình
                               </p>
                             )}

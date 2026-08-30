@@ -215,7 +215,7 @@ export default function SniperPlaybook({ embedded }) {
           {unreadAlerts.length > 0 && (
             <button onClick={() => setShowAlerts(!showAlerts)} className="relative btn-ghost text-sm">
               <Bell size={18} />
-              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-[10px] rounded-full w-4 h-4 flex items-center justify-center">{unreadAlerts.length}</span>
+              <span className="absolute -top-1 -right-1 bg-danger text-oncolor text-fs-2 rounded-full w-4 h-4 flex items-center justify-center">{unreadAlerts.length}</span>
             </button>
           )}
           <button onClick={handleRefreshPrices} disabled={refreshing} className="btn-ghost text-sm">
@@ -234,13 +234,13 @@ export default function SniperPlaybook({ embedded }) {
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {alerts.map(a => (
               <div key={a.id} className={`flex items-start gap-3 p-2 rounded-lg ${a.read ? 'opacity-50' : ''}`}>
-                <span className={`badge text-[10px] ${alertTypeColor[a.type] || 'text-slate-600 bg-slate-50'}`}>
+                <span className={`badge text-fs-2 ${alertTypeColor[a.type] || 'text-slate-600 bg-slate-50'}`}>
                   {alertTypeLabel[a.type] || a.type}
                 </span>
                 <p className="text-xs text-slate-700 flex-1">{a.message}</p>
-                <span className="text-[10px] text-slate-400 whitespace-nowrap">{a.created_at?.split(' ')[0]}</span>
+                <span className="text-fs-2 text-slate-400 whitespace-nowrap">{a.created_at?.split(' ')[0]}</span>
                 {!a.read && (
-                  <button onClick={() => markAlertRead(a.id)} className="text-[10px] text-amber-600 hover:underline">OK</button>
+                  <button onClick={() => markAlertRead(a.id)} className="text-fs-2 text-amber-600 hover:underline">OK</button>
                 )}
               </div>
             ))}
@@ -253,17 +253,17 @@ export default function SniperPlaybook({ embedded }) {
         <div className="card">
           <p className="text-xs text-slate-400 mb-1">Tổng phân bổ</p>
           <p className="text-2xl font-bold text-slate-800">{formatVND(sniperAllocated)}</p>
-          <p className="text-[10px] text-slate-400 mt-1">Từ phân bổ hàng tháng → Bắn Tỉa</p>
+          <p className="text-fs-2 text-slate-400 mt-1">Từ phân bổ hàng tháng → Bắn Tỉa</p>
         </div>
         <div className="card">
           <p className="text-xs text-slate-400 mb-1">Đã triển khai</p>
           <p className="text-2xl font-bold text-amber-600">{formatVND(sniperDeployed)}</p>
-          <p className="text-[10px] text-slate-400 mt-1">Đã mua tài sản bằng tiền bắn tỉa</p>
+          <p className="text-fs-2 text-slate-400 mt-1">Đã mua tài sản bằng tiền bắn tỉa</p>
         </div>
         <div className="card bg-primary-50 border-primary-200">
           <p className="text-xs text-primary-600 mb-1">Khả dụng</p>
           <p className="text-2xl font-bold text-primary-700">{formatVND(available)}</p>
-          <p className="text-[10px] text-primary-400 mt-1">Sẵn sàng bắn tỉa</p>
+          <p className="text-fs-2 text-primary-400 mt-1">Sẵn sàng bắn tỉa</p>
         </div>
       </div>
 
@@ -301,13 +301,13 @@ export default function SniperPlaybook({ embedded }) {
 
                   {/* Giá hiện tại */}
                   <div className="w-36 shrink-0">
-                    <p className="text-[10px] text-slate-400 uppercase">Giá</p>
-                    <p className="text-sm font-semibold text-slate-700">{(w.current_price || 0).toLocaleString('vi-VN')} <span className="text-[10px] text-slate-400">{w.unit}</span></p>
+                    <p className="text-fs-1 text-slate-400 uppercase">Giá</p>
+                    <p className="text-sm font-semibold text-slate-700">{(w.current_price || 0).toLocaleString('vi-VN')} <span className="text-fs-2 text-slate-400">{w.unit}</span></p>
                   </div>
 
                   {/* Đỉnh */}
                   <div className="w-36 shrink-0">
-                    <p className="text-[10px] text-slate-400 uppercase">Đỉnh</p>
+                    <p className="text-fs-1 text-slate-400 uppercase">Đỉnh</p>
                     <p className="text-sm font-semibold text-slate-700">{(w.peak_price || 0).toLocaleString('vi-VN')}</p>
                   </div>
 
@@ -328,7 +328,7 @@ export default function SniperPlaybook({ embedded }) {
                     <p className={`text-xl font-bold leading-none ${isHot ? 'text-red-600' : 'text-slate-200'}`}>
                       {(dd * 100).toFixed(1)}%
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-0.5">sụt giảm</p>
+                    <p className="text-fs-2 text-slate-400 mt-0.5">sụt giảm</p>
                   </div>
 
                   {/* Remove */}
@@ -383,7 +383,7 @@ export default function SniperPlaybook({ embedded }) {
                       <span className="text-sm font-semibold text-slate-800">{item.ticker}</span>
                       <span className="text-xs text-slate-400">{item.name}</span>
                     </div>
-                    <span className="text-[10px] text-slate-400">{item.unit} · {item.asset_class === 'stock' ? 'Cổ phiếu' : item.asset_class === 'etf' ? 'ETF' : item.asset_class === 'gold' ? 'Vàng' : 'Khác'}</span>
+                    <span className="text-fs-2 text-slate-400">{item.unit} · {item.asset_class === 'stock' ? 'Cổ phiếu' : item.asset_class === 'etf' ? 'ETF' : item.asset_class === 'gold' ? 'Vàng' : 'Khác'}</span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -421,7 +421,7 @@ export default function SniperPlaybook({ embedded }) {
           {opportunities.length > 1 && (
             <div className="mb-3 flex gap-2 flex-wrap">
               {opportunities.map(o => (
-                <span key={o.id} className={`badge text-[10px] ${o.level.bg} ${o.level.text}`}>
+                <span key={o.id} className={`badge text-fs-2 ${o.level.bg} ${o.level.text}`}>
                   {o.ticker || o.name}: -{(o.drawdown * 100).toFixed(1)}%
                 </span>
               ))}

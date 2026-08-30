@@ -467,13 +467,13 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-semibold text-slate-700 truncate">{a.category_name}</p>
                             <span
-                              className="text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0"
+                              className="text-fs-3 font-bold px-1.5 py-0.5 rounded-full shrink-0"
                               style={{ background: a.color + '15', color: a.color }}
                             >
                               {(a.ratio * 100).toFixed(0)}%
                             </span>
                             {adjustMode && isChanged && (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">
+                              <span className="text-fs-3 font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 shrink-0">
                                 → {pct.toFixed(0)}%
                               </span>
                             )}
@@ -720,7 +720,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                                 <AppIcon emoji={a.icon} size={12} color="white" />
                               </div>
                               <div className="min-w-0">
-                                <p className="text-[10px] text-slate-500 truncate">{a.category_name}</p>
+                                <p className="text-fs-2 text-slate-500 truncate">{a.category_name}</p>
                                 <p className="text-xs font-bold" style={{ color: a.color || '#64748b' }}>
                                   {formatVND(a.actual_amount || a.planned_amount || 0)}
                                 </p>

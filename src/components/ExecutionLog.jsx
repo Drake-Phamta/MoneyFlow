@@ -239,7 +239,7 @@ export default function ExecutionLog({ embedded }) {
               }}
             />
           </div>
-          <p className="text-[10px] text-slate-400 mt-1.5">
+          <p className="text-fs-2 text-slate-400 mt-1.5">
             Đã dùng {investmentAllocated > 0 ? ((totalInvested / investmentAllocated) * 100).toFixed(0) : 0}% phân bổ
           </p>
         </div>
@@ -338,7 +338,7 @@ export default function ExecutionLog({ embedded }) {
                 </p>
               </div>
             </div>
-            <button onClick={handleRevokeConfirmation} className="text-[10px] text-slate-400 hover:text-red-600 px-2 py-1 rounded transition">
+            <button onClick={handleRevokeConfirmation} className="text-fs-2 text-slate-400 hover:text-red-600 px-2 py-1 rounded transition">
               Hủy xác nhận
             </button>
           </div>

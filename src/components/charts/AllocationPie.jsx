@@ -35,7 +35,7 @@ export default function AllocationPie({ data = [], layout = 'vertical', theme = 
           </div>
           <div className="flex items-baseline gap-1 mt-0.5 ml-3.5">
             <span className={`text-xs font-bold ${valueColor} truncate`}>{formatVND(d.value)}</span>
-            <span className={`text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-400'} flex-shrink-0`}>
+            <span className={`text-fs-2 ${isDark ? 'text-slate-400' : 'text-slate-400'} flex-shrink-0`}>
               ({((d.value / total) * 100).toFixed(0)}%)
             </span>
           </div>
