@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { formatVND, formatDate } from '../utils/formatters';
+import { formatVND, formatDate, todayLocal, currentMonthKey } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
@@ -21,7 +21,7 @@ export default function ExecutionLog({ embedded }) {
   const [discrepancyReason, setDiscrepancyReason] = useState('');
   const [targetCategoryId, setTargetCategoryId] = useState('');
   const [form, setForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayLocal(),
     asset_type_id: '',
     asset_name: '',
     type: 'BUY',
@@ -69,7 +69,7 @@ export default function ExecutionLog({ embedded }) {
           setInvestmentAllocated(invested);
 
           // Check for previously confirmed discrepancy
-          const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+          const monthKey = currentMonthKey(); // YYYY-MM
           const saved = localStorage.getItem(`discrepancy_${monthKey}`);
           if (saved) {
             try { setDiscrepancyConfirmed(JSON.parse(saved)); } catch {}
@@ -130,7 +130,7 @@ export default function ExecutionLog({ embedded }) {
         strategy: form.strategy || '',
       });
       const firstSpecific = catalogItems.find(c => c.asset_class === parentAsset?.asset_class);
-      setForm({ date: new Date().toISOString().split('T')[0], asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '', strategy: '' });
+      setForm({ date: todayLocal(), asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '', strategy: '' });
       setShowForm(false);
       setTransactions(await apiClient.transactions.get());
     } catch (err) {
@@ -153,14 +153,14 @@ export default function ExecutionLog({ embedded }) {
   async function handleConfirmDiscrepancy() {
     try {
       // Update allocation in database to match actual invested amount
-      await apiClient.allocations.adjust(discrepancy, parseInt(targetCategoryId), discrepancyReason, new Date().toISOString().split('T')[0]);
+      await apiClient.allocations.adjust(discrepancy, parseInt(targetCategoryId), discrepancyReason, todayLocal());
       // Refresh allocated amount and logs
       setInvestmentAllocated(prev => prev + discrepancy);
       setDiscrepancyLogs(await apiClient.allocations.discrepancies().catch(() => []));
     } catch (err) {
       console.error('Adjust allocation error:', err);
     }
-    const monthKey = new Date().toISOString().slice(0, 7);
+    const monthKey = currentMonthKey();
     const record = {
       amount: discrepancy,
       reason: discrepancyReason || 'Không có lý do cụ thể',
@@ -173,7 +173,7 @@ export default function ExecutionLog({ embedded }) {
   }
 
   function handleRevokeConfirmation() {
-    const monthKey = new Date().toISOString().slice(0, 7);
+    const monthKey = currentMonthKey();
     localStorage.removeItem(`discrepancy_${monthKey}`);
     setDiscrepancyConfirmed(null);
   }

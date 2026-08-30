@@ -1,3 +1,4 @@
+require('./_guard');
 const puppeteer = require('puppeteer');
 
 async function delay(time) {

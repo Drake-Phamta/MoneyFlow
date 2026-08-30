@@ -1,3 +1,4 @@
+require('./_guard');
 /**
  * Money_Flow — Comprehensive Test Suite (42 Test Cases, 8 Groups)
  * 

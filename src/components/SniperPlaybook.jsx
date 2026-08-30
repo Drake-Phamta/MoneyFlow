@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { formatVND, formatDate } from '../utils/formatters';
+import { formatVND, formatDate, todayLocal } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
@@ -24,7 +24,7 @@ export default function SniperPlaybook({ embedded }) {
   const [catalogSearch, setCatalogSearch] = useState('');
 
   const [deployForm, setDeployForm] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: todayLocal(),
     asset_type_id: '',
     quantity: '',
     price: '',
@@ -188,7 +188,7 @@ export default function SniperPlaybook({ embedded }) {
       strategy: 'Sniper',
     });
 
-    setDeployForm({ date: new Date().toISOString().split('T')[0], asset_type_id: watchlist.length > 0 ? watchlist[0].id.toString() : '', quantity: '', price: '', note: '' });
+    setDeployForm({ date: todayLocal(), asset_type_id: watchlist.length > 0 ? watchlist[0].id.toString() : '', quantity: '', price: '', note: '' });
     setShowDeploy(false);
     loadData();
   }

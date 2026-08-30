@@ -30,3 +30,27 @@ export function formatDate(dateStr) {
   const d = new Date(dateStr);
   return d.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
+
+/**
+ * Ngày hôm nay theo giờ địa phương, dạng YYYY-MM-DD.
+ *
+ * KHÔNG dùng new Date().toISOString().split('T')[0] cho việc này: toISOString()
+ * trả về giờ UTC, mà Việt Nam là UTC+7, nên từ 00:00 đến 07:00 giờ Việt Nam nó
+ * cho ra ngày HÔM QUA. Giao dịch ghi lúc 6h sáng sẽ bị lùi một ngày, và khoá
+ * dạng YYYY-MM sinh vào ngày 1 hàng tháng sẽ trỏ vào tháng trước.
+ */
+export function todayLocal() {
+  return toLocalDateStr(new Date());
+}
+
+/** Một đối tượng Date bất kỳ → chuỗi YYYY-MM-DD theo giờ địa phương. */
+export function toLocalDateStr(date) {
+  const d = date instanceof Date ? date : new Date(date);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+/** Tháng hiện tại theo giờ địa phương, dạng YYYY-MM. */
+export function currentMonthKey() {
+  return todayLocal().slice(0, 7);
+}

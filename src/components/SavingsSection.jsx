@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { formatVND } from '../utils/formatters';
+import { formatVND, todayLocal, toLocalDateStr } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
@@ -18,17 +18,17 @@ export default function SavingsSection() {
   const [editingId, setEditingId] = useState(null);
   const [editForm, setEditForm] = useState({});
   const [depositingId, setDepositingId] = useState(null);
-  const [depositForm, setDepositForm] = useState({ amount: '', date: new Date().toISOString().split('T')[0], note: '' });
+  const [depositForm, setDepositForm] = useState({ amount: '', date: todayLocal(), note: '' });
   const [categories, setCategories] = useState([]);
   const [sjcPrice, setSjcPrice] = useState(SJC_FALLBACK_PRICE);
   const [sjcAssetId, setSjcAssetId] = useState(null);
   const [goldBought, setGoldBought] = useState(0); // total chỉ vàng SJC đã mua
   const [showGoldBuyModal, setShowGoldBuyModal] = useState(false);
   const [goldBuying, setGoldBuying] = useState(false);
-  const [goldBuyDate, setGoldBuyDate] = useState(new Date().toISOString().split('T')[0]);
+  const [goldBuyDate, setGoldBuyDate] = useState(todayLocal());
   const [savingsForm, setSavingsForm] = useState({
     name: '', bank: '', type: 'term', product_type: 'savings', principal: '', interest_rate: '',
-    term_months: '', start_date: new Date().toISOString().split('T')[0],
+    term_months: '', start_date: todayLocal(),
     auto_renew: false, category_id: '',
   });
 
@@ -108,13 +108,13 @@ export default function SavingsSection() {
       if (data.type === 'term' && data.term_months > 0) {
         const d = new Date(data.start_date);
         d.setMonth(d.getMonth() + data.term_months);
-        data.maturity_date = d.toISOString().split('T')[0];
+        data.maturity_date = toLocalDateStr(d);
       }
       await apiClient.savings.add(data);
       setAddingSavings(false);
       setSavingsForm({
         name: '', bank: '', type: 'term', product_type: 'savings', principal: '', interest_rate: '',
-        term_months: '', start_date: new Date().toISOString().split('T')[0],
+        term_months: '', start_date: todayLocal(),
         auto_renew: false, category_id: '',
       });
       loadData();
@@ -159,7 +159,7 @@ export default function SavingsSection() {
       if (data.type === 'term' && data.term_months > 0) {
         const d = new Date(data.start_date);
         d.setMonth(d.getMonth() + data.term_months);
-        data.maturity_date = d.toISOString().split('T')[0];
+        data.maturity_date = toLocalDateStr(d);
       } else if (data.type === 'liquid') {
         data.maturity_date = null;
         data.term_months = 0;
@@ -219,7 +219,7 @@ export default function SavingsSection() {
     try {
       await apiClient.savings.addTransaction(id, 'deposit', amount, depositForm.date, depositForm.note || 'Bơm vốn');
       setDepositingId(null);
-      setDepositForm({ amount: '', date: new Date().toISOString().split('T')[0], note: '' });
+      setDepositForm({ amount: '', date: todayLocal(), note: '' });
       loadData();
     } catch (err) {
       alert('Lỗi: ' + err.message);
@@ -901,7 +901,7 @@ export default function SavingsSection() {
                             </div>
                             <div className="flex gap-2 mt-3">
                               <button onClick={() => handleDeposit(a.id)} className="btn-primary text-sm" disabled={!depositForm.amount}>Xác nhận bơm</button>
-                              <button onClick={() => { setDepositingId(null); setDepositForm({ amount: '', date: new Date().toISOString().split('T')[0], note: '' }); }} className="btn-ghost text-sm">Hủy</button>
+                              <button onClick={() => { setDepositingId(null); setDepositForm({ amount: '', date: todayLocal(), note: '' }); }} className="btn-ghost text-sm">Hủy</button>
                             </div>
                           </div>
                         </td>

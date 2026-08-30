@@ -45,7 +45,7 @@ const STEPS = [
   { id: 3, label: 'Hoàn tất', desc: 'Xác nhận tháng' },
 ];
 
-export default function MonthlyEntry() {
+export default function MonthlyEntry({ onSaved, onComplete }) {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -109,26 +109,50 @@ export default function MonthlyEntry() {
   const totalInflow = Math.max(0, parseNumberInput(income) - parseNumberInput(expense) + parseNumberInput(bonus));
   const allocsInitialized = useRef(false);
 
+  // Số tiền nhàn rỗi mà mảng allocs hiện tại đang tương ứng.
+  // Effect bên dưới chỉ chia lại khi con số này THỰC SỰ đổi. Nếu không có mốc
+  // so sánh, effect sẽ chạy ngay sau startEdit() (lúc state income/expense vừa
+  // được nạp) và ghi đè toàn bộ phân bổ đã lưu bằng tỷ lệ mặc định của giai
+  // đoạn — nghĩa là chỉ cần bấm "Sửa" để đổi một dấu chấm trong ghi chú là mất
+  // sạch khoản "Điều chỉnh tạm" đã ghi nhận trước đó.
+  const allocsForInflow = useRef(null);
+
   useEffect(() => {
-    if (totalInflow > 0 && phaseAllocs.length > 0) {
-      setAllocs(prev => {
-        if (prev.length === 0) {
-          allocsInitialized.current = true;
-          return phaseAllocs.map(pa => ({
-            category_id: pa.category_id,
-            category_name: pa.category_name,
-            color: pa.color,
-            icon: pa.icon,
-            ratio: pa.ratio,
-            planned_amount: Math.round(totalInflow * pa.ratio),
-          }));
-        }
+    if (totalInflow <= 0 || phaseAllocs.length === 0) return;
+
+    // Phân bổ đã khớp với số tiền hiện tại → không đụng vào.
+    // Giữ nguyên mọi điều chỉnh thủ công người dùng đã làm.
+    if (allocsInitialized.current && allocsForInflow.current === totalInflow) return;
+
+    setAllocs(prev => {
+      if (prev.length === 0) {
+        allocsInitialized.current = true;
+        allocsForInflow.current = totalInflow;
+        return phaseAllocs.map(pa => ({
+          category_id: pa.category_id,
+          category_name: pa.category_name,
+          color: pa.color,
+          icon: pa.icon,
+          ratio: pa.ratio,
+          planned_amount: Math.round(totalInflow * pa.ratio),
+        }));
+      }
+      // Tiền nhàn rỗi đổi thật (người dùng sửa thu/chi/thưởng) → chia lại theo
+      // tỷ trọng HIỆN TẠI của từng mục, không quay về tỷ lệ mặc định, để phần
+      // điều chỉnh thủ công vẫn được giữ tương đối.
+      const prevTotal = prev.reduce((s, a) => s + (a.planned_amount || 0), 0);
+      allocsForInflow.current = totalInflow;
+      if (prevTotal > 0) {
         return prev.map(a => ({
           ...a,
-          planned_amount: Math.round(totalInflow * (a.ratio || 0)),
+          planned_amount: Math.round(totalInflow * ((a.planned_amount || 0) / prevTotal)),
         }));
-      });
-    }
+      }
+      return prev.map(a => ({
+        ...a,
+        planned_amount: Math.round(totalInflow * (a.ratio || 0)),
+      }));
+    });
   }, [totalInflow, phaseAllocs]);
 
   // Load existing month for editing
@@ -148,6 +172,9 @@ export default function MonthlyEntry() {
 
       if (allocData.length > 0) {
         allocsInitialized.current = true;
+        // Ghim mốc: phân bổ vừa nạp tương ứng với tiền nhàn rỗi của chính tháng
+        // này, nên effect chia lại sẽ bỏ qua và không ghi đè.
+        allocsForInflow.current = entry.total_inflow;
         setAllocs(allocData.map(a => ({
           category_id: a.category_id,
           category_name: a.category_name,
@@ -170,6 +197,7 @@ export default function MonthlyEntry() {
     setAllocs([]);
     setAdjustMode(false); setAdjustReason(''); setCustomReason('');
     allocsInitialized.current = false;
+    allocsForInflow.current = null;
     setStep(1);
     loadAll();
   }
@@ -273,6 +301,12 @@ export default function MonthlyEntry() {
       }
 
       setStep(3);
+      // Báo cho trang cha nạp lại biểu đồ và KPI, nhưng KHÔNG đóng wizard —
+      // người dùng cần xem hết bước 3 (danh sách việc cần làm với từng danh mục).
+      // Trước đây component không nhận prop nào cả nên callback của
+      // CashFlowPage.jsx:124 không bao giờ chạy: lưu xong, số liệu phía sau vẫn
+      // là số cũ cho tới khi rời trang rồi quay lại.
+      if (typeof onSaved === 'function') onSaved();
     } catch (err) {
       console.error('Save error:', err);
       alert('Lỗi khi lưu: ' + err.message);
@@ -286,6 +320,7 @@ export default function MonthlyEntry() {
     setAllocs([]);
     setAdjustMode(false); setAdjustReason(''); setCustomReason('');
     allocsInitialized.current = false;
+    allocsForInflow.current = null;
     setStep(1);
     loadAll();
   }
@@ -635,7 +670,16 @@ export default function MonthlyEntry() {
 
             <div className="flex justify-center gap-3">
               <button onClick={() => navigate('/')} className="btn-secondary">Về Dashboard</button>
-              <button onClick={resetAndNew} className="btn-primary">{editMode ? 'Xong' : 'Nhập tháng tiếp'}</button>
+              <button
+                onClick={() => {
+                  // "Xong" khi đang sửa = đóng wizard; "Nhập tháng tiếp" = ở lại.
+                  if (editMode && typeof onComplete === 'function') onComplete();
+                  else resetAndNew();
+                }}
+                className="btn-primary"
+              >
+                {editMode ? 'Xong' : 'Nhập tháng tiếp'}
+              </button>
             </div>
           </div>
         )}

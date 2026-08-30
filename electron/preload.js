@@ -39,6 +39,7 @@ contextBridge.exposeInMainWorld('api', {
   },
   allocations: {
     get: (entryId) => ipcRenderer.invoke('allocations:get', entryId),
+    all: () => ipcRenderer.invoke('allocations:all'),
     save: (entryId, allocs) => ipcRenderer.invoke('allocations:save', entryId, allocs),
     adjust: (discrepancyAmount, categoryId, reason, date) => ipcRenderer.invoke('allocations:adjust', discrepancyAmount, categoryId, reason, date),
     discrepancies: () => ipcRenderer.invoke('allocations:discrepancies'),
@@ -96,6 +97,8 @@ contextBridge.exposeInMainWorld('api', {
     update: (id, data) => ipcRenderer.invoke('savings:update', id, data),
     delete: (id) => ipcRenderer.invoke('savings:delete', id),
     addTransaction: (accountId, type, amount, date, note) => ipcRenderer.invoke('savings:addTransaction', accountId, type, amount, date, note),
+    deleteTransaction: (id) => ipcRenderer.invoke('savings:deleteTransaction', id),
+    updateTransactionDate: (id, date) => ipcRenderer.invoke('savings:updateTransactionDate', id, date),
     summary: () => ipcRenderer.invoke('savings:summary'),
     overview: () => ipcRenderer.invoke('savings:overview'),
     maturities: (days) => ipcRenderer.invoke('savings:maturities', days),

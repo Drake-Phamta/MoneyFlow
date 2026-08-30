@@ -359,7 +359,11 @@ export default function Scenarios() {
                         <p className="text-xs font-medium text-slate-600 mb-2">Bảng kiểm tra (tự động):</p>
                         <div className="space-y-1.5">
                           {checklist.map(item => {
-                            const itemChecked = isDone || !!(checklistStatus[p.sort_order]?.[item.id]);
+                            // Chỉ tick khi dữ liệu thật sự xác nhận. Trước đây
+                            // `isDone ||` khiến mọi mục của giai đoạn đã qua đều
+                            // bị gạch xanh — kể cả việc người dùng chưa từng làm —
+                            // vì điều kiện qua giai đoạn chỉ là ngưỡng tài sản.
+                            const itemChecked = !!(checklistStatus[p.sort_order]?.[item.id]);
                             return (
                               <div key={item.id}
                                 className={`flex items-center gap-2 text-sm w-full text-left py-0.5 ${itemChecked ? '' : 'opacity-80'}`}>

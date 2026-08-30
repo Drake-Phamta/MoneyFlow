@@ -132,8 +132,8 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
   app.post('/api/monthly', (req, res) => {
     try {
       const data = { ...req.body };
-      const calculated = (data.income || 0) + (data.bonus || 0) - (data.expense || 0);
-      data.total_inflow = Math.max(0, data.total_inflow != null ? data.total_inflow : calculated);
+      // Chuẩn hoá total_inflow đã chuyển vào db.saveMonthlyEntry() để bản web và
+      // bản Electron (đi thẳng qua IPC) dùng chung một logic.
       db.saveMonthlyEntry(data);
       const entry = db.getMonthlyEntry(data.month_index);
       res.json(entry || true);

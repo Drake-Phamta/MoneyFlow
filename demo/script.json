@@ -1,0 +1,87 @@
+{
+  "_": "FILE DUY NHẤT CẦN SỬA để đổi nội dung video. Sửa 'vo' của scene nào thì chỉ cần chạy lại VO + scene đó.",
+  "voice": "vi-VN-HoaiMyNeural",
+  "voiceAlt": "vi-VN-NamMinhNeural",
+  "rate": "+8%",
+  "output": "MoneyFlow-Demo-vi-1080p.mp4",
+
+  "scenes": [
+    {
+      "id": "01-intro",
+      "title": "Mở đầu",
+      "padStart": 0.8,
+      "padEnd": 1.0,
+      "vo": "Money Flow — ứng dụng quản lý tài chính cá nhân, chạy hoàn toàn trên máy của bạn, không gửi dữ liệu đi đâu cả."
+    },
+    {
+      "id": "02-dashboard",
+      "title": "Tổng quan",
+      "padStart": 0.6,
+      "padEnd": 1.2,
+      "vo": "Mở app, toàn bộ bức tranh tài chính hiện ra trong một màn hình. Ngay đầu trang là hai lời nhắc: một sổ tiết kiệm sắp đáo hạn, và tháng chín chưa có dữ liệu. Tiếp đến là giai đoạn bạn đang đứng trên lộ trình, kèm thanh tiến độ tới mục tiêu. Rồi tổng tài sản ròng, tổng lợi nhuận và hiệu suất, tính theo giá thị trường mới nhất. Bên dưới, tài sản được tách làm hai nhóm rõ ràng: phần đầu tư có biến động giá, và phần an toàn gồm tiền mặt cùng tiết kiệm."
+    },
+    {
+      "id": "03-networth",
+      "title": "Quỹ đạo tài sản",
+      "padStart": 0.5,
+      "padEnd": 1.2,
+      "vo": "Bấm vào thẻ tài sản ròng để mở biểu đồ quỹ đạo tích lũy. Đường này được dựng lại theo từng ngày, từ lịch sử giá, giao dịch và dòng tiền thực tế. Lọc theo một tháng, sáu tháng, hay toàn bộ hành trình: mười tám tháng, từ bốn mươi chín triệu lên hai trăm bốn mươi bảy triệu."
+    },
+    {
+      "id": "04-cashflow",
+      "title": "Dòng tiền",
+      "padStart": 0.5,
+      "padEnd": 1.0,
+      "vo": "Trang Dòng tiền trả lời đúng một câu hỏi: mỗi tháng bạn giữ lại được bao nhiêu. Thu nhập, chi tiêu và tiền nhàn rỗi của mười tám tháng nằm cạnh nhau — cột cao vọt kia là tháng có thưởng Tết. Tỷ lệ tiết kiệm được đặt cạnh mục tiêu, kèm chuỗi tháng liên tục đạt chuẩn và các kỷ lục cao nhất, thấp nhất."
+    },
+    {
+      "id": "05-wizard",
+      "title": "Nhập liệu",
+      "padStart": 0.5,
+      "padEnd": 1.2,
+      "vo": "Nhập liệu một tháng mới chỉ mất ba bước. Bước một: điền thu nhập, chi tiêu, thưởng — tiền nhàn rỗi tự tính ngay. Bước hai: hệ thống tự phân bổ theo tỷ lệ của giai đoạn hiện tại. Tháng này thị trường giảm, muốn tăng mua chứng khoán, chỉ cần điều chỉnh tạm — phần còn lại tự cân bằng, kèm lý do được ghi lại. Bước ba: xong, và app trả về danh sách việc cần làm tiếp theo."
+    },
+    {
+      "id": "06-ledger",
+      "title": "Sổ cái",
+      "padStart": 0.5,
+      "padEnd": 1.0,
+      "vo": "Toàn bộ lịch sử nằm trong sổ cái. Sửa trực tiếp trên bảng, như một bảng tính: bấm vào ô, gõ số mới, Enter là lưu. Lọc theo giai đoạn, hoặc chỉ xem những tháng đã có dữ liệu."
+    },
+    {
+      "id": "07-savings",
+      "title": "Tiết kiệm",
+      "padStart": 0.5,
+      "padEnd": 1.2,
+      "vo": "Tab Tiết kiệm theo dõi từng sổ: lãi suất, kỳ hạn, và lãi được tính theo số dư từng ngày chứ không phải ước lượng. Sổ nào sắp đáo hạn thì đếm ngược. Còn đây là bộ đếm tích lũy vàng: gom đủ tiền mua một chỉ SJC, ghi nhận chỉ bằng một cú bấm. Danh mục vàng vừa tăng từ hai lên ba chỉ."
+    },
+    {
+      "id": "08-sniper",
+      "title": "Bắn Tỉa",
+      "padStart": 0.5,
+      "padEnd": 1.0,
+      "vo": "Bắn Tỉa là chiến lược chờ mua khi giá giảm sâu. Radar theo dõi mức sụt giảm từ đỉnh của từng mã: VNM đang giảm hai mươi lăm phần trăm, HPG và SSI quanh mười tám. Bộ quy tắc bốn cấp quyết định triển khai bao nhiêu phần kho đạn, thay vì mua theo cảm tính."
+    },
+    {
+      "id": "09-allocation",
+      "title": "Phân bổ",
+      "padStart": 0.5,
+      "padEnd": 1.0,
+      "vo": "Phân bổ thực tế được đặt cạnh mục tiêu của giai đoạn, kèm cảnh báo lệch và chỉ số tập trung rủi ro — để biết danh mục có đang dồn quá nhiều vào một chỗ hay không."
+    },
+    {
+      "id": "10-scenarios",
+      "title": "Kịch bản FI",
+      "padStart": 0.5,
+      "padEnd": 1.2,
+      "vo": "Cuối cùng là lộ trình. Bốn giai đoạn, mỗi giai đoạn có bảng kiểm tra tự động chấm theo dữ liệu thật, không phải tự đánh dấu. Và ba kịch bản tự do tài chính — thận trọng, cơ sở, lạc quan — tính trên lãi kép, lạm phát ba phẩy năm phần trăm và quy tắc bốn phần trăm. Chuyển giữa số thực tế và số kỳ vọng để xem đích đến dịch chuyển bao xa."
+    },
+    {
+      "id": "11-outro",
+      "title": "Kết",
+      "padStart": 0.6,
+      "padEnd": 1.4,
+      "vo": "Money Flow. Electron, React và SQLite. Toàn bộ dữ liệu nằm trên máy bạn."
+    }
+  ]
+}

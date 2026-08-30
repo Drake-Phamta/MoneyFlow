@@ -121,7 +121,10 @@ export default function CashFlowPage() {
 
         {showWizard && (
           <div className="card border-primary-200 bg-primary-50/30">
-            <MonthlyEntry onComplete={() => { setShowWizard(false); loadData(); }} />
+            <MonthlyEntry
+              onSaved={loadData}
+              onComplete={() => { setShowWizard(false); loadData(); }}
+            />
           </div>
         )}
 
@@ -161,7 +164,10 @@ export default function CashFlowPage() {
       {/* Monthly Entry Wizard (collapsible) */}
       {showWizard && (
         <div className="card border-primary-200 bg-primary-50/30">
-          <MonthlyEntry onComplete={() => { setShowWizard(false); loadData(); }} />
+          <MonthlyEntry
+              onSaved={loadData}
+              onComplete={() => { setShowWizard(false); loadData(); }}
+            />
         </div>
       )}
 

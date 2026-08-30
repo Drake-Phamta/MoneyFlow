@@ -119,6 +119,7 @@ ipcMain.handle('monthly:delete', async (_, monthIndex) => { await ready(); db.de
 
 // Allocations
 ipcMain.handle('allocations:get', async (_, entryId) => { await ready(); return db.getAllocations(entryId); });
+ipcMain.handle('allocations:all', async () => { await ready(); return db.getAllAllocations(); });
 ipcMain.handle('allocations:save', async (_, entryId, allocs) => { await ready(); db.saveAllocations(entryId, allocs); return true; });
 ipcMain.handle('allocations:adjust', async (_, discrepancyAmount, categoryId, reason, date) => { await ready(); db.adjustInvestmentAllocation(discrepancyAmount, categoryId, reason, date); return true; });
 ipcMain.handle('allocations:discrepancies', async () => { await ready(); return db.getDiscrepancyLogs(); });
@@ -200,6 +201,8 @@ ipcMain.handle('savings:add', async (_, data) => { await ready(); return db.addS
 ipcMain.handle('savings:update', async (_, id, data) => { await ready(); db.updateSavingsAccount(id, data); return true; });
 ipcMain.handle('savings:delete', async (_, id) => { await ready(); db.deleteSavingsAccount(id); return true; });
 ipcMain.handle('savings:addTransaction', async (_, accountId, type, amount, date, note) => { await ready(); return db.addSavingsTransaction(accountId, type, amount, date, note); });
+ipcMain.handle('savings:deleteTransaction', async (_, id) => { await ready(); return db.deleteSavingsTransaction(id); });
+ipcMain.handle('savings:updateTransactionDate', async (_, id, date) => { await ready(); return db.updateSavingsTransactionDate(id, date); });
 ipcMain.handle('savings:summary', async () => { await ready(); return db.getSavingsSummary(); });
 ipcMain.handle('savings:overview', async () => { await ready(); return db.getSavingsOverview(); });
 ipcMain.handle('savings:maturities', async (_, days) => { await ready(); return db.getUpcomingMaturities(days || 30); });

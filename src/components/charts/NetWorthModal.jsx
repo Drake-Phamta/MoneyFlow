@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { formatVND } from '../../utils/formatters';
+import { formatVND, todayLocal, toLocalDateStr } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 
 // Tùy chỉnh Tooltip hiển thị
@@ -191,7 +191,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
       if (parsed) dateSet.add(parsed);
     });
     
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = todayLocal();
     dateSet.add(todayStr);
 
     let allDates = [...dateSet].sort();
@@ -225,7 +225,7 @@ export default function NetWorthModal({ filled, grandTotal, portfolio, onClose }
     if (selectedFilter && selectedFilter.days > 0) {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - selectedFilter.days);
-      const cutoffStr = cutoff.toISOString().split('T')[0];
+      const cutoffStr = toLocalDateStr(cutoff);
       allDates = allDates.filter(d => d >= cutoffStr);
     }
 

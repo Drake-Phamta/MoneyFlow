@@ -1171,7 +1171,10 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const goldAssets = portfolio.filter(p => p.asset_class === 'gold');
     const stockAssets = portfolio.filter(p => p.asset_class !== 'gold' && p.asset_class !== 'etf');
     const etfAssets = portfolio.filter(p => p.asset_class === 'etf');
-    const sniperTxns = this.query("SELECT COUNT(*) as cnt FROM transactions WHERE strategy = 'sniper'");
+    // LOWER(): giao diện ghi 'Sniper' (SniperPlaybook.jsx:188, ExecutionLog.jsx:395)
+    // còn SQLite so sánh TEXT phân biệt hoa thường, nên `= 'sniper'` không bao giờ
+    // khớp. Cùng phép so ở :1538 vốn đã dùng LOWER() cho đúng.
+    const sniperTxns = this.query("SELECT COUNT(*) as cnt FROM transactions WHERE LOWER(strategy) = 'sniper'");
     const sniperDeployed = (sniperTxns[0]?.cnt || 0) > 0;
     const hasAnySavings = savings.length > 0;
     const hasAnyStocks = stockAssets.length > 0 || etfAssets.length > 0;
@@ -1225,7 +1228,10 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         broker_acc: portfolio.length > 0,
         emergency_3x: duPhongSavings >= 3 * monthlyExpense,
         first_etf: hasAnyStocks,
-        track_money: true,
+        // Đã ghi nhận ít nhất một tháng nghĩa là người dùng có ghi chép thật.
+        // Trước đây mục này hardcode `true` nên luôn hiện đã hoàn thành dù hệ
+        // thống chưa từng kiểm gì.
+        track_money: this.getFilledMonths().length > 0,
       },
       2: {
         emergency_done: duPhongSavings >= 3 * monthlyExpense,
@@ -1312,19 +1318,33 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   saveMonthlyEntry(data) {
+    // total_inflow LUÔN được suy ra từ thu/chi/thưởng, không nhận giá trị do
+    // nơi gọi truyền vào. Hai lý do:
+    //  1. Trước đây phép chuẩn hoá này chỉ nằm ở routes.js nên bản web và bản
+    //     Electron (gọi thẳng IPC) lưu ra hai con số khác nhau cho cùng input.
+    //  2. Nơi gọi có thể gửi total_inflow mâu thuẫn với chính thu/chi của nó,
+    //     mà mọi phép tính phía sau (phân bổ, tiền mặt, giai đoạn) đều đọc
+    //     total_inflow — sai một chỗ là sai cả chuỗi.
+    const income = Number(data.income) || 0;
+    const expense = Number(data.expense) || 0;
+    const bonus = Number(data.bonus) || 0;
+    const totalInflow = Math.max(0, income + bonus - expense);
+
     const existing = this.getMonthlyEntry(data.month_index);
     if (existing) {
       this.run(`UPDATE monthly_entries SET
         income = ?, expense = ?, bonus = ?, total_inflow = ?, note = ?, phase_id = ?, status = ?
         WHERE month_index = ?`,
-        [data.income || 0, data.expense || 0, data.bonus || 0, data.total_inflow || 0,
+        [income, expense, bonus, totalInflow,
          data.note || null, data.phase_id || null, data.status || 'confirmed', data.month_index]);
     } else {
       this.run(`INSERT INTO monthly_entries (month_index, month_label, income, expense, bonus, total_inflow, note, phase_id, status)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [data.month_index, data.month_label, data.income || 0, data.expense || 0, data.bonus || 0,
-         data.total_inflow || 0, data.note || null, data.phase_id || null, data.status || 'confirmed']);
+        [data.month_index, data.month_label, income, expense, bonus,
+         totalInflow, data.note || null, data.phase_id || null, data.status || 'confirmed']);
     }
+    // Để lời gọi bên dưới (ghi nhật ký) dùng đúng con số đã chuẩn hoá.
+    data = { ...data, total_inflow: totalInflow };
     // Clean up old activity for this month to avoid duplicates
     if (data.month_label) {
       this.run(`DELETE FROM activity_log WHERE type = 'MONTHLY_ENTRY' AND description LIKE ?`, [`Nhập liệu ${data.month_label}%`]);
@@ -1540,11 +1560,15 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     );
     if (sniperTx?.cnt > 0) return 'Bắn Tỉa';
 
-    // Map by asset_class
+    // Map by asset_class.
+    // Tên trả về PHẢI trùng với categories.name, nếu không thì byCategory sinh ra
+    // một khoá không ai tra được: Dashboard lọc theo tên danh mục nên sẽ bỏ sót
+    // cả nhóm, còn tab Phân bổ rơi về số tiền kế hoạch trong khi mẫu số là giá
+    // thị trường. migrateToV5 (:581) đã đổi 'Đầu Tư' → 'Chứng Khoán'.
     switch (assetClass) {
       case 'stock':
       case 'etf':
-        return 'Đầu Tư';
+        return 'Chứng Khoán';
       case 'gold':
         return 'Vàng';
       case 'crypto':
@@ -1553,7 +1577,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       case 'savings':
         return 'Tiết kiệm & Trái phiếu';
       default:
-        return 'Đầu Tư';
+        return 'Chứng Khoán';
     }
   }
 
@@ -2276,9 +2300,18 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   }
 
   _calcMaturityDate(startDate, termMonths) {
-    const d = new Date(startDate);
-    d.setMonth(d.getMonth() + termMonths);
-    return d.toISOString().split('T')[0];
+    // setMonth() tự tràn sang tháng sau khi ngày gốc không tồn tại ở tháng đích:
+    // 31/01 + 1 tháng cho ra 03/03 vì tháng 2 không có ngày 31. Kẹp về ngày cuối
+    // tháng đích mới đúng cách ngân hàng tính kỳ hạn.
+    // Cũng dựng ngày theo giờ địa phương thay vì toISOString() (vốn là giờ UTC).
+    const [y, m, day] = String(startDate).split('T')[0].split('-').map(Number);
+    const targetMonth = m - 1 + termMonths;
+    const targetYear = y + Math.floor(targetMonth / 12);
+    const normMonth = ((targetMonth % 12) + 12) % 12;
+    const lastDay = new Date(targetYear, normMonth + 1, 0).getDate();
+    const d = new Date(targetYear, normMonth, Math.min(day, lastDay));
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
   close() {

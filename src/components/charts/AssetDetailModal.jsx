@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts';
-import { formatVND } from '../../utils/formatters';
+import { formatVND, toLocalDateStr } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
 
 // Tùy chỉnh Tooltip hiển thị đầy đủ thông số đầu tư thực tế
@@ -201,7 +201,7 @@ export default function AssetDetailModal({ asset, onClose }) {
     
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - selectedFilter.days);
-    const cutoffStr = cutoff.toISOString().split('T')[0];
+    const cutoffStr = toLocalDateStr(cutoff);
     
     return allData.filter(d => d.date >= cutoffStr);
   }, [allData, filter]);

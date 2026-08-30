@@ -225,7 +225,10 @@ class PriceService {
     const alerts = [];
 
     // Alert thresholds for price drops (only alert at these specific levels)
-    const DROP_THRESHOLDS = [0.15, 0.20, 0.25, 0.30, 0.40, 0.50];
+    // Phải chứa đủ các ngưỡng cấp của Bắn Tỉa (15% / 25% / 35% — xem
+    // SniperPlaybook.jsx getLevel), nếu không người dùng sẽ không được báo
+    // đúng lúc lên Cấp 3, tức lúc quy tắc bảo triển khai 40% kho đạn.
+    const DROP_THRESHOLDS = [0.15, 0.20, 0.25, 0.30, 0.35, 0.40, 0.50];
 
     for (const item of tracked) {
       if (!item.current_price || !item.peak_price) continue;
@@ -295,12 +298,13 @@ class PriceService {
       }
     }
 
-    // Check for stop-loss on sniper transactions (strategy = 'sniper')
+    // Check for stop-loss on sniper transactions.
+    // LOWER(): giao diện ghi 'Sniper' viết hoa chữ S.
     const sniperTxns = this.db.query(`
       SELECT t.*, a.ticker, a.name as asset_type_name, a.current_price as market_price
       FROM transactions t
       JOIN asset_types a ON a.id = t.asset_type_id
-      WHERE t.type = 'BUY' AND t.strategy = 'sniper'
+      WHERE t.type = 'BUY' AND LOWER(t.strategy) = 'sniper'
     `);
 
     for (const txn of sniperTxns) {

@@ -84,14 +84,17 @@ function LoadingSkeleton() {
   );
 }
 
-// Category metadata (matching database categories)
-const CATEGORY_META = [
-  { name: 'Dự Phòng', color: '#10b981', icon: 'wallet' },
-  { name: 'Đầu Tư', color: '#3b82f6', icon: 'chart-line' },
-  { name: 'Vàng', color: '#f59e0b', icon: 'coins' },
-  { name: 'Bắn Tỉa', color: '#ef4444', icon: 'crosshair' },
-  { name: 'Tiết kiệm & Trái phiếu', color: '#8b5cf6', icon: 'bank' },
-];
+// Màu và icon dự phòng, tra theo tên danh mục. Chỉ dùng khi bản ghi trong DB
+// thiếu color/icon — tên danh mục luôn lấy từ DB chứ không viết cứng ở đây,
+// vì viết cứng đúng là thứ đã làm nhóm Chứng Khoán biến mất khỏi biểu đồ
+// (danh mục từng tên là 'Đầu Tư', migrateToV5 đổi tên mà chỗ này không đổi theo).
+const CATEGORY_FALLBACK = {
+  'Dự Phòng': { color: '#10b981', icon: 'wallet' },
+  'Chứng Khoán': { color: '#3b82f6', icon: 'chart-line' },
+  'Vàng': { color: '#f59e0b', icon: 'coins' },
+  'Bắn Tỉa': { color: '#ef4444', icon: 'crosshair' },
+  'Tiết kiệm & Trái phiếu': { color: '#8b5cf6', icon: 'bank' },
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -99,6 +102,7 @@ export default function Dashboard() {
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [allPhases, setAllPhases] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [filled, setFilled] = useState([]);
   const [activity, setActivity] = useState([]);
   const [nextMonth, setNextMonth] = useState(null);
@@ -161,7 +165,7 @@ export default function Dashboard() {
   async function loadData() {
     try {
       setLoading(true);
-      const [s, p, f, a, n, ac, ss, so, mats, phases, alertsData] = await Promise.all([
+      const [s, p, f, a, n, ac, ss, so, mats, phases, alertsData, cats] = await Promise.all([
         apiClient.portfolio.summary().catch(e => { console.error('portfolio.summary error:', e); return null; }),
         apiClient.phases.active(),
         apiClient.monthly.filled(),
@@ -173,7 +177,9 @@ export default function Dashboard() {
         apiClient.savings.maturities(30).catch(() => []),
         apiClient.phases.get().catch(() => []),
         apiClient.alerts.get().catch(() => []),
+        apiClient.categories.get().catch(() => []),
       ]);
+      setCategories(cats || []);
       setSummary(s);
       setPhase(p);
       setFilled(f);
@@ -281,12 +287,7 @@ export default function Dashboard() {
       : 4000000;
     const goal = phase.goal_amount || (phase.goal_multiplier * monthlyExpense);
 
-    // Calculate allocated amounts from allocations table
     const duPhongAlloc = phaseAllocs.find(a => a.category_name === 'Dự Phòng');
-    const allocatedToDuPhong = duPhongAlloc ? filled.reduce((s, m) => {
-      const alloc = m.allocations?.find(a => a.category_id === duPhongAlloc.category_id);
-      return s + (alloc?.planned_amount || duPhongAlloc.ratio * (m.total_inflow || 0));
-    }, 0) : 0;
 
     let current = 0;
     let label = '';
@@ -320,15 +321,28 @@ export default function Dashboard() {
     return allPhases[idx + 1];
   }, [phase, allPhases]);
 
-  // Allocation pie data (all 5 categories)
+  // Danh mục lấy thẳng từ DB, theo đúng sort_order. Màu/icon ưu tiên giá trị
+  // trong DB, chỉ dùng bảng dự phòng khi bản ghi thiếu.
+  const categoryMeta = useMemo(() => {
+    return (categories || []).map(c => {
+      const fb = CATEGORY_FALLBACK[c.name] || {};
+      return {
+        name: c.name,
+        color: c.color || fb.color || '#64748b',
+        icon: c.icon || fb.icon || 'package',
+      };
+    });
+  }, [categories]);
+
+  // Allocation pie data (mọi danh mục)
   const allocPieData = useMemo(() => {
-    return CATEGORY_META.map(c => ({
+    return categoryMeta.map(c => ({
       name: c.name,
       value: byCategory[c.name]?.currentTotal || 0,
       color: c.color,
       icon: c.icon,
     }));
-  }, [byCategory]);
+  }, [byCategory, categoryMeta]);
 
   // Target allocation lookup — VND per category
   // phase.goal_amount = target of the dominant category (e.g. Dự Phòng = 3× expense)
@@ -770,13 +784,13 @@ export default function Dashboard() {
                     const gainPct = p.total_invested > 0 ? (gain / p.total_invested) * 100 : 0;
                     const isEditing = editingPrice === p.asset_type_id;
                     const isPositive = gain >= 0;
-                    const isInteractive = !['Tiền mặt', 'Tiết kiệm', 'Trái phiếu', 'Tiết kiệm & Trái phiếu', 'Dự Phòng'].includes(p.category);
+
 
                     return (
                       <div 
                         key={p.asset_type_id} 
-                        className={`portfolio-card overflow-hidden relative ${isInteractive ? 'cursor-pointer hover:border-primary-200 hover:shadow-md transition-all group' : ''}`}
-                        onClick={() => isInteractive && setSelectedAssetForModal(p)}
+                        className="portfolio-card overflow-hidden relative cursor-pointer hover:border-primary-200 hover:shadow-md transition-all group"
+                        onClick={() => setSelectedAssetForModal(p)}
                       >
                         {/* Header: Icon + Name + Category */}
                         <div className="flex items-center justify-between mb-4">
@@ -914,7 +928,7 @@ export default function Dashboard() {
 
             {/* Category list with target VND progress */}
             <div className="space-y-1">
-              {CATEGORY_META.filter(meta => (byCategory[meta.name]?.currentTotal || 0) > 0).map(meta => {
+              {categoryMeta.filter(meta => (byCategory[meta.name]?.currentTotal || 0) > 0).map(meta => {
                 const catData = byCategory[meta.name];
                 const actual = catData?.currentTotal || 0;
                 const invested = catData?.total || 0;
@@ -1024,7 +1038,7 @@ export default function Dashboard() {
                   </div>
                 );
               })}
-              {CATEGORY_META.filter(meta => (byCategory[meta.name]?.currentTotal || 0) > 0).length === 0 && (
+              {categoryMeta.filter(meta => (byCategory[meta.name]?.currentTotal || 0) > 0).length === 0 && (
                 <p className="text-xs text-slate-400 text-center py-4">Chưa có dữ liệu phân bổ</p>
               )}
             </div>

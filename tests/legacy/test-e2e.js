@@ -1,3 +1,4 @@
+require('./_guard');
 const http = require('http');
 const BASE = 'http://localhost:3001';
 let passed = 0, failed = 0;

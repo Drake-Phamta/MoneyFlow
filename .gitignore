@@ -20,3 +20,10 @@ trash/
 # OS files
 Thumbs.db
 desktop.ini
+
+# Kết quả kiểm thử (sinh lại được)
+tests/reports/
+
+# Sản phẩm dựng video demo (nặng, sinh lại được)
+demo/build/
+demo/out/

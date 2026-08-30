@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>Money Flow — Intro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:#f8fafc; color:#0f172a;
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  /* mesh gradient nền, cùng ngôn ngữ với thẻ hero trong app */
+  .blob { position:absolute; border-radius:999px; filter:blur(90px); pointer-events:none; }
+  .b1 { width:52vw; height:52vw; right:-12vw; top:-18vw;
+        background:linear-gradient(210deg, rgba(59,130,246,.30), rgba(139,92,246,.18), transparent 70%); }
+  .b2 { width:44vw; height:44vw; left:-14vw; bottom:-20vw;
+        background:linear-gradient(30deg, rgba(16,185,129,.22), rgba(59,130,246,.14), transparent 70%); }
+
+  .wrap { position:relative; text-align:center; }
+
+  .logo {
+    width:132px; height:132px; border-radius:34px; margin:0 auto 34px;
+    box-shadow:0 26px 60px rgba(15,23,42,.16);
+    opacity:0; transform:scale(.82) translateY(14px);
+  }
+  h1 { font-size:82px; font-weight:800; letter-spacing:-.035em; line-height:1;
+       opacity:0; transform:translateY(20px); }
+  .tag { margin-top:18px; font-size:25px; font-weight:500; color:#64748b; letter-spacing:-.01em;
+         opacity:0; transform:translateY(16px); }
+
+  .rule { width:0; height:3px; margin:40px auto 0; border-radius:3px;
+          background:linear-gradient(90deg,#3b82f6,#8b5cf6); }
+
+  .chips { margin-top:34px; display:flex; gap:11px; justify-content:center; }
+  .chip { padding:9px 19px; border-radius:999px; background:#fff; border:1px solid #e2e8f0;
+          font-size:15px; font-weight:600; color:#475569; box-shadow:0 3px 12px rgba(15,23,42,.05);
+          opacity:0; transform:translateY(12px); }
+
+  body.go .logo { animation:pop .9s cubic-bezier(.16,1,.3,1) .05s forwards; }
+  body.go h1    { animation:rise .8s cubic-bezier(.16,1,.3,1) .34s forwards; }
+  body.go .tag  { animation:rise .8s cubic-bezier(.16,1,.3,1) .56s forwards; }
+  body.go .rule { animation:grow .9s cubic-bezier(.16,1,.3,1) .8s forwards; }
+  body.go .chip:nth-child(1) { animation:rise .7s cubic-bezier(.16,1,.3,1) 1.05s forwards; }
+  body.go .chip:nth-child(2) { animation:rise .7s cubic-bezier(.16,1,.3,1) 1.17s forwards; }
+  body.go .chip:nth-child(3) { animation:rise .7s cubic-bezier(.16,1,.3,1) 1.29s forwards; }
+  body.go .chip:nth-child(4) { animation:rise .7s cubic-bezier(.16,1,.3,1) 1.41s forwards; }
+
+  @keyframes pop  { to { opacity:1; transform:scale(1) translateY(0); } }
+  @keyframes rise { to { opacity:1; transform:translateY(0); } }
+  @keyframes grow { to { width:132px; } }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="wrap">
+    <img class="logo" src="../../public/icon.png" alt="Money Flow" />
+    <h1>Money Flow</h1>
+    <div class="tag">Quản lý tài chính cá nhân — chạy offline trên máy bạn</div>
+    <div class="rule"></div>
+    <div class="chips">
+      <div class="chip">Electron</div>
+      <div class="chip">React</div>
+      <div class="chip">SQLite</div>
+      <div class="chip">Recharts</div>
+    </div>
+  </div>
+</body>
+</html>

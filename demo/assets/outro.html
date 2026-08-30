@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<title>Money Flow — Outro</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body {
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:#f8fafc; color:#0f172a;
+    display:flex; align-items:center; justify-content:center; position:relative;
+  }
+  .blob { position:absolute; border-radius:999px; filter:blur(90px); pointer-events:none; }
+  .b1 { width:50vw; height:50vw; left:-14vw; top:-16vw;
+        background:linear-gradient(150deg, rgba(139,92,246,.24), rgba(59,130,246,.16), transparent 70%); }
+  .b2 { width:46vw; height:46vw; right:-14vw; bottom:-20vw;
+        background:linear-gradient(330deg, rgba(59,130,246,.24), rgba(16,185,129,.14), transparent 70%); }
+
+  .wrap { position:relative; text-align:center; }
+
+  .head { display:flex; align-items:center; gap:22px; justify-content:center;
+          opacity:0; transform:translateY(18px); }
+  .logo { width:84px; height:84px; border-radius:22px; box-shadow:0 16px 40px rgba(15,23,42,.14); }
+  h1 { font-size:62px; font-weight:800; letter-spacing:-.035em; line-height:1; }
+
+  .stack { margin-top:36px; display:flex; gap:11px; justify-content:center; }
+  .chip { padding:10px 20px; border-radius:999px; background:#fff; border:1px solid #e2e8f0;
+          font-size:16px; font-weight:600; color:#475569; box-shadow:0 3px 12px rgba(15,23,42,.05);
+          opacity:0; transform:translateY(12px); }
+
+  .privacy { margin-top:40px; display:inline-flex; align-items:center; gap:12px;
+             padding:14px 26px; border-radius:999px;
+             background:rgba(16,185,129,.10); border:1px solid rgba(16,185,129,.28);
+             font-size:19px; font-weight:600; color:#047857;
+             opacity:0; transform:translateY(14px); }
+  .dot { width:9px; height:9px; border-radius:999px; background:#10b981; }
+
+  .by { margin-top:44px; font-size:16px; font-weight:500; color:#94a3b8; letter-spacing:.01em;
+        opacity:0; }
+
+  body.go .head    { animation:rise .85s cubic-bezier(.16,1,.3,1) .1s forwards; }
+  body.go .chip:nth-child(1) { animation:rise .7s cubic-bezier(.16,1,.3,1) .6s forwards; }
+  body.go .chip:nth-child(2) { animation:rise .7s cubic-bezier(.16,1,.3,1) .72s forwards; }
+  body.go .chip:nth-child(3) { animation:rise .7s cubic-bezier(.16,1,.3,1) .84s forwards; }
+  body.go .privacy { animation:rise .8s cubic-bezier(.16,1,.3,1) 1.3s forwards; }
+  body.go .by      { animation:fade .9s ease 2.1s forwards; }
+
+  @keyframes rise { to { opacity:1; transform:translateY(0); } }
+  @keyframes fade { to { opacity:1; } }
+</style>
+</head>
+<body>
+  <div class="blob b1"></div>
+  <div class="blob b2"></div>
+  <div class="wrap">
+    <div class="head">
+      <img class="logo" src="../../public/icon.png" alt="Money Flow" />
+      <h1>Money Flow</h1>
+    </div>
+    <div class="stack">
+      <div class="chip">Electron</div>
+      <div class="chip">React</div>
+      <div class="chip">SQLite</div>
+    </div>
+    <div class="privacy"><span class="dot"></span>Toàn bộ dữ liệu nằm trên máy bạn</div>
+    <div class="by">github.com/Drake-Phamta</div>
+  </div>
+</body>
+</html>

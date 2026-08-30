@@ -11,7 +11,14 @@
     "vite:dev": "vite",
     "electron:dev": "wait-on http://localhost:5173 && env -u ELECTRON_RUN_AS_NODE electron .",
     "build": "vite build && electron-builder",
-    "start": "node server.js"
+    "start": "node server.js",
+    "test": "node tests/run-all.js",
+    "test:guard": "node tests/run-all.js --mode=guard",
+    "test:parity": "node tests/run-all.js --only=parity",
+    "test:consistency": "node tests/run-all.js --only=consistency",
+    "test:rig:up": "node tests/rig/server.js --keep-alive",
+    "test:smoke": "node tests/rig/smoke.js",
+    "test:inventory": "node tests/rig/inventory.js"
   },
   "browserslist": [
     "last 1 chrome version",
