@@ -24,7 +24,8 @@
     "test:ui": "node tests/run-all.js --only=ui",
     "test:electron": "node tests/run-all.js --only=electron",
     "test:content": "node tests/run-all.js --only=content",
-    "test:projection": "node tests/run-all.js --only=projection"
+    "test:projection": "node tests/run-all.js --only=projection",
+    "prestart": "vite build"
   },
   "browserslist": [
     "last 1 chrome version",
