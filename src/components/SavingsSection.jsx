@@ -5,12 +5,14 @@ import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon from '../utils/iconMap';
 import { Warning, ClipboardText, Lightbulb, Drop, Lock, Diamond, Bank } from '../utils/iconMap';
+import { buildSavingsGuidance } from '../content/phases.js';
 
 const SJC_FALLBACK_PRICE = 16000000; // 1 chỉ SJC (giá định mức)
 
 export default function SavingsSection() {
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
+  const [snap, setSnap] = useState(null);
   const [savingsSummary, setSavingsSummary] = useState(null);
   const [savingsAccounts, setSavingsAccounts] = useState([]);
   const [maturities, setMaturities] = useState([]);
@@ -36,7 +38,7 @@ export default function SavingsSection() {
 
   async function loadData() {
     try {
-      const [ov, sum, mats, cats, accounts, assets, txns] = await Promise.all([
+      const [ov, sum, mats, cats, accounts, assets, txns, sn] = await Promise.all([
         apiClient.savings.overview().catch(() => null),
         apiClient.savings.summary().catch(() => null),
         apiClient.savings.maturities(30).catch(() => []),
@@ -44,7 +46,9 @@ export default function SavingsSection() {
         apiClient.savings.get().catch(() => []),
         apiClient.assets.get().catch(() => []),
         apiClient.transactions.get().catch(() => []),
+        apiClient.snapshot.get().catch(() => null),
       ]);
+      setSnap(sn);
       setOverview(ov);
       setSavingsSummary(sum);
       setMaturities(mats);
@@ -287,56 +291,11 @@ export default function SavingsSection() {
   const goldRatio       = phaseAllocs.find(pa => pa.category_name?.includes('Vàng'))?.ratio || 0;
   const totalSavingsRatio = savingsRatio + tktpRatio;
 
-  // ── Guidance text — rõ ràng từng bucket ─────────────────────────────────
-  function getSavingsGuidance() {
-    if (!phase) return null;
-    const dpPct   = Math.round(savingsRatio * 100);
-    const tktpPct = Math.round(tktpRatio * 100);
-    const goldPct = Math.round(goldRatio * 100);
-    
-    if (phase.sort_order === 1) {
-      return {
-        title: phase.name,
-        buckets: [
-          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Sổ Không kỳ hạn, hoặc sổ Có kỳ hạn 1 tháng xoay vòng (tối ưu lãi suất, vẫn đảm bảo thanh khoản). Mục tiêu: ≥ 3× chi tiêu/tháng.', type: 'duPhong' },
-        ],
-        tip: 'Ưu tiên thanh khoản — dùng sổ kỳ hạn 1 tháng xoay vòng gốc lẫn lãi là một chiến thuật rất khôn ngoan.',
-      };
-    }
-    if (phase.sort_order === 2) {
-      return {
-        title: phase.name,
-        buckets: [
-          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Sổ Không kỳ hạn hoặc Có kỳ hạn 1 tháng xoay vòng. Duy trì ≥ 3× chi tiêu mục tiêu.', type: 'duPhong' },
-          { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: 'Sổ Có kỳ hạn 3–6 tháng — lãi cao hơn. Khi đáo hạn → gửi lại kỳ hạn dài hơn.', type: 'tktp' },
-          { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Tạo sổ Có kỳ hạn gom tiền (ví dụ 3-6 tháng), căn lúc đáo hạn khớp với lúc gom đủ tiền để mua 1 chỉ SJC.', type: 'gold' },
-        ],
-        tip: 'Tận dụng sổ Có kỳ hạn ngắn để gom tiền mua vàng sẽ giúp bạn ăn thêm lãi suất trong lúc chờ đợi.',
-      };
-    }
-    if (phase.sort_order === 3) {
-      return {
-        title: phase.name,
-        buckets: [
-          { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Duy trì sổ Không kỳ hạn hoặc 1 tháng xoay vòng. Mục tiêu ≥ 6× chi tiêu.', type: 'duPhong' },
-          { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: '"Thang bậc": nhiều sổ kỳ hạn 3, 6, 12 tháng. Luôn có sổ đáo hạn mỗi quý.', type: 'tktp' },
-          { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Tiếp tục gom tiền qua sổ kỳ hạn ngắn. Mua 1–2 chỉ SJC/năm tích trữ.', type: 'gold' },
-        ],
-        tip: 'Sổ ngắn hạn đáo hạn → chuyển ngay sang kỳ hạn dài hơn để tối đa lãi suất.',
-      };
-    }
-    return {
-      title: phase.name,
-      buckets: [
-        { label: `🛡️ Dự Phòng (${dpPct}%)`, text: 'Duy trì sổ Không kỳ hạn hoặc 1 tháng xoay vòng. Mục tiêu ≥ 6× chi tiêu.', type: 'duPhong' },
-        { label: `💰 Tiết kiệm & Trái phiếu (${tktpPct}%)`, text: 'Trái phiếu chính phủ hoặc sổ kỳ hạn 12+ tháng. Tập trung thu nhập thụ động.', type: 'tktp' },
-        { label: `🪙 Tích luỹ Vàng (${goldPct}%)`, text: 'Duy trì tỷ lệ vàng. Mua đều đặn, không đầu cơ.', type: 'gold' },
-      ],
-      tip: 'An toàn vốn và tạo thu nhập thụ động là ưu tiên số một ở giai đoạn này.',
-    };
-  }
-
-  const guidance = getSavingsGuidance();
+  const guidance = buildSavingsGuidance(
+    overview?.phase ? { sortOrder: overview.phase.sort_order, name: overview.phase.name } : null,
+    phaseAllocs,
+    { targetExpense: snap?.params.FI_MONTHLY_EXPENSE, goldUnitPrice: sjcPrice }
+  );
 
   if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Đang tải...</div>;
 
@@ -463,30 +422,26 @@ export default function SavingsSection() {
       )}
 
       {/* ===== Phase Guidance ===== */}
-      {guidance && (
+      {guidance && guidance.buckets.length > 0 && (
         <div className="card">
           <div className="flex items-center gap-2 mb-3">
             <ClipboardText size={20} weight="regular" />
-            <h3 className="text-sm font-semibold text-slate-700">Hướng dẫn — {guidance.title}</h3>
+            <h3 className="text-sm font-semibold text-slate-700">Gửi thế nào — {guidance.name}</h3>
           </div>
 
-          {/* Per-bucket instructions */}
-          <div className="space-y-2 mb-3">
-            {guidance.buckets?.map(b => (
-              <div key={b.type} className={`p-2.5 rounded-lg text-xs ${
-                b.type === 'duPhong' ? 'bg-blue-50 text-blue-800' :
-                b.type === 'tktp'   ? 'bg-violet-50 text-violet-800' :
+          <div className="space-y-2">
+            {guidance.buckets.map(b => (
+              <div key={b.name} className={`p-2.5 rounded-lg text-xs ${
+                b.kind === 'reserve' ? 'bg-blue-50 text-blue-800' :
+                b.kind === 'savings' ? 'bg-violet-50 text-violet-800' :
                 'bg-amber-50 text-amber-800'
               }`}>
-                <p className="font-semibold mb-0.5">{b.label}</p>
-                <p className="opacity-80">{b.text}</p>
+                <p className="font-semibold mb-0.5">{b.name} — {Math.round(b.ratio * 100)}% tiền nhàn rỗi</p>
+                <p className="opacity-80">{b.how}</p>
+                {b.target && <p className="opacity-70 mt-0.5">{b.target}</p>}
               </div>
             ))}
           </div>
-
-          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded-lg flex items-start gap-1.5">
-            <Lightbulb size={14} className="shrink-0 mt-0.5" weight="regular" /> {guidance.tip}
-          </p>
         </div>
       )}
 

@@ -2770,6 +2770,14 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         available: Math.max(0, sniperAllocated - sniperDeployed),
         feePolicy: 'included',
       },
+      // Giá dùng trong văn bản hướng dẫn. Không có ở đây thì chữ đóng băng ở
+      // một mức giá cũ — hướng dẫn từng ghi "đủ ~16 triệu mua 1 chỉ SJC" trong
+      // khi giá thật là 14,72 triệu.
+      prices: {
+        goldUnit: this.queryOne(
+          "SELECT current_price as v FROM asset_types WHERE ticker = 'SJC' LIMIT 1"
+        )?.v || 0,
+      },
       plan: this.getPlanVsActual(),
       risk: this.getPriceRiskStats(),
       checklist: this.getChecklistStatus(),

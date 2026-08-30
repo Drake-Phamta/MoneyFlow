@@ -51,7 +51,33 @@ class Browser {
     await this.rec.page.goto(url, { waitUntil: 'networkidle2', timeout: 60000 });
     await this.rec.page.waitForSelector(waitSelector, { timeout: 20000 }).catch(() => {});
     await this.rec.page.evaluate(() => document.fonts.ready).catch(() => {});
-    await this.sleep(700);
+    await this.waitForData();
+  }
+
+  /**
+   * Đợi tới khi trang thật sự có dữ liệu, thay vì ngủ một khoảng cố định.
+   *
+   * Mỗi trang tự gọi API rồi mới render, nên "mạng đã rảnh" chưa có nghĩa là
+   * React đã vẽ xong. Ngủ cố định thì máy chậm là hỏng, máy nhanh là phí thời
+   * gian — và bộ test trở nên lúc xanh lúc đỏ.
+   */
+  async waitForData(timeout = 15000) {
+    const started = Date.now();
+    while (Date.now() - started < timeout) {
+      const state = await this.rec.page
+        .evaluate(() => {
+          const m = document.querySelector('main') || document.body;
+          const txt = m.innerText || '';
+          return { loading: txt.includes('Đang tải'), chars: txt.trim().length };
+        })
+        .catch(() => null);
+      if (state && !state.loading && state.chars > 40) {
+        // Một nhịp nữa cho các khối phụ thuộc lời gọi thứ hai kịp vẽ.
+        await this.sleep(250);
+        return;
+      }
+      await this.sleep(100);
+    }
   }
 
   sleep(ms) {

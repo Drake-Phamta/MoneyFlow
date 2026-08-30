@@ -3,145 +3,9 @@ import { formatVND, formatCompact as formatVNDShort } from '../utils/formatters'
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Check, CaretDown } from '../utils/iconMap';
 
-// Phase checklists — concrete actionable items per phase
-const PHASE_CHECKLISTS = {
-  1: [
-    { id: 'savings_acc', label: 'Mở tài khoản tiết kiệm online' },
-    { id: 'broker_acc', label: 'Mở tài khoản chứng khoán (SSI, VPS, TCBS)' },
-    { id: 'emergency_3x', label: 'Dự phòng ≥ 3× chi tiêu mục tiêu' },
-    { id: 'first_etf', label: 'Mua mã cổ phiếu hoặc ETF đầu tiên' },
-    { id: 'track_money', label: 'Ghi chép mọi khoản vào Money Flow' },
-  ],
-  2: [
-    { id: 'emergency_done', label: 'Dự phòng đã đạt mục tiêu' },
-    { id: 'diversify_stocks', label: 'Sở hữu ≥ 3 mã cổ phiếu hoặc ETF' },
-    { id: 'gold_fund', label: 'Bắt đầu phân bổ quỹ vàng hàng tháng' },
-    { id: 'sniper_ammo', label: 'Đã phân bổ tiền vào quỹ Bắn Tỉa' },
-    { id: 'start_tktp', label: 'Bắt đầu tiết kiệm kỳ hạn / trái phiếu' },
-  ],
-  3: [
-    { id: 'gold_1chi', label: 'Sở hữu ≥ 1 chỉ vàng SJC' },
-    { id: 'dividend_stocks', label: 'Sở hữu ≥ 3 mã cổ phiếu riêng lẻ' },
-    { id: 'tktp_1so', label: 'Có ≥ 1 sổ tiết kiệm kỳ hạn' },
-    { id: 'sniper_deploy', label: 'Bắn Tỉa triển khai thành công khi thị trường sụt giảm' },
-    { id: 'gov_bonds', label: 'Sở hữu trái phiếu chính phủ/doanh nghiệp' },
-  ],
-  4: [
-    { id: 'passive_income', label: 'Lãi và cổ tức thực nhận ≥ chi tiêu mục tiêu mỗi tháng' },
-    { id: 'balanced_portfolio', label: 'Danh mục cân bằng giữa tăng trưởng và thu nhập' },
-    { id: 'emergency_6x', label: 'Quỹ dự phòng ≥ 6× chi tiêu' },
-    { id: 'rebalance_quarterly', label: 'Cân lại danh mục trong 90 ngày — rót tiền vào ≥ 2 nhóm, hoặc bán bớt' },
-  ],
-};
-
-// Financial knowledge sections
-const KNOWLEDGE_SECTIONS = [
-  {
-    id: 'compound',
-    icon: 'trend-up',
-    title: 'Lãi kép — Siêu sức mạnh của thời gian',
-    content: `Lãi kép là yếu tố quan trọng nhất trong đầu tư dài hạn. Albert Einstein từng gọi nó là "kỳ quan thứ 8 của thế giới".
-
-Công thức: A = P × (1 + r/n)^(nt)
-
-Trong đó:
-• P = vốn ban đầu
-• r = lãi suất năm (dạng thập phân)
-• n = số lần tính lãi/năm
-• t = số năm
-
-Ví dụ thực tế:
-Gửi 100 triệu với lãi 7%/năm, sau 10 năm bạn có 196.7 triệu (gần gấp đôi).
-Sau 20 năm: 386.9 triệu (gấp gần 4 lần).
-Sau 30 năm: 761.2 triệu (gấp 7.6 lần).
-
-Bài học: Bắt đầu sớm 5 năm có thể thêm hàng trăm triệu nhờ lãi kép. Mỗi tháng trì hoãn là mất đi cơ hội tăng trưởng.`,
-  },
-  {
-    id: 'inflation',
-    icon: 'trend-down',
-    title: 'Tác động của lạm phát — Kẻ thù thầm lặng',
-    content: `Lạm phát ở Việt Nam trung bình 3.5-4%/năm. Điều này có nghĩa:
-
-• 4 triệu hôm nay = 5.6 triệu sau 10 năm (cùng sức mua)
-• 4 triệu hôm nay = 7.8 triệu sau 20 năm
-• 100 triệu để không = mất 30-40% sức mua sau 10 năm
-
-Lợi suất thực = Lợi suất danh nghĩa - Lạm phát
-Ví dụ: Gửi ngân hàng 6%/năm, lạm phát 4% → lợi suất thực chỉ 2%.
-
-Bài học: Để tiền không đầu tư = mất 3-4% mỗi năm một cách thầm lặng. Đầu tư không phải để giàu, để bảo vệ giá trị đồng tiền.`,
-  },
-  {
-    id: 'four_pct',
-    icon: 'crosshair',
-    title: 'Quy tắc 4% — Con số tự do tài chính',
-    content: `Quy tắc 4% (từ nghiên cứu Trinity Study, 1998) cho biết:
-
-Nếu bạn rút 4% tài sản mỗi năm, tiền gần như không bao giờ hết trong 30 năm.
-
-Công thức FI Number = Chi tiêu năm × 25
-Ví dụ: Chi tiêu 48 triệu/năm → FI Number = 1.2 tỷ
-
-Tại sao 25×?
-• Rút 4%/năm = 1/25 tài sản
-• Phần còn lại (96%) tiếp tục sinh lời 7%/năm
-• Lợi nhuận bù được phần rút ra
-
-Lưu ý quan trọng:
-• 4% là tỷ lệ an toàn, không phải tỷ lệ tối ưu
-• Nếu rút ít hơn (3%), tiền gần như không bao giờ hết
-• Thị trường VN có thể biến động mạnh hơn → có thể cần 3.5% cho an toàn`,
-  },
-  {
-    id: 'allocation',
-    icon: 'scales',
-    title: 'Phân bổ tài sản — Đa dạng hóa đúng cách',
-    content: `Phân bổ tài sản là quyết định quan trọng nhất trong đầu tư (chiếm 90% kết quả theo nghiên cứu).
-
-Quy tắc cơ bản:
-• Tuổi trẻ → chịu được rủi ro cao → nhiều cổ phiếu
-• Tuổi cao → ưu tiên ổn định → nhiều trái phiếu/tiết kiệm
-
-Phổ rủi ro từ thấp đến cao:
-Tiết kiệm & Trái phiếu (3-7%/năm) → Dự Phòng (3-5%) → Vàng (5-10%) → Chứng Khoán (8-15%) → Bắn Tỉa (15-30%+)
-
-Tại sao 5 danh mục?
-• Dự Phòng: thanh khoản cao, không rủi ro
-• Chứng Khoán: tăng trưởng dài hạn
-• Vàng: hedge chống lạm phát, trú ẩn an toàn
-• Bắn Tỉa: lợi nhuận cao khi thị trường sụt giảm
-• Tiết kiệm & Trái phiếu: ổn định, thu nhập thụ động
-
-Rebalance: Mỗi quý, kiểm tra tỷ lệ thực tế vs mục tiêu. Chênh lệch >5% → điều chỉnh.`,
-  },
-  {
-    id: 'savings_strategy',
-    icon: 'bank',
-    title: 'Chiến lược tiết kiệm — Thang bậc lãi suất',
-    content: `Tiết kiệm không phải để giàu, để bảo vệ vốn trước khi đầu tư.
-
-Chiến lược "Ladder" (Thang bậc):
-Chia tiền thành nhiều sổ, mỗi sổ kỳ hạn khác nhau.
-
-Ví dụ với 30 triệu:
-• 10 triệu: không kỳ hạn (3-4%/năm) — dự phòng khẩn cấp
-• 10 triệu: 3 tháng (5%/năm) — đáo hạn luân phiên
-• 10 triệu: 6 tháng (6%/năm) — lãi suất cao hơn
-
-Khi sổ 3 tháng đáo hạn → gửi lại 6 tháng (lãi cao hơn).
-Kết quả: luôn có tiền đáo hạn mỗi 3 tháng, lãi suất trung bình cao hơn.
-
-Lãi suất tham khảo:
-• Không kỳ hạn: 0.5-1%/năm
-• 1 tháng: 3.5-4%/năm
-• 3 tháng: 4.5-5%/năm
-• 6 tháng: 5.5-6.5%/năm
-• 12 tháng: 6-7%/năm
-
-Mẹo: Gửi online thường được lãi suất cao hơn 0.5-1% so với tại quầy.`,
-  },
-];
+import { PHASE_CHECKLISTS } from '../content/checklists.js';
+import { knowledgeSections } from '../content/knowledge.js';
+import { buildPhaseGuidance } from '../content/phases.js';
 
 export default function Scenarios() {
   const [filled, setFilled] = useState([]);
@@ -190,6 +54,17 @@ export default function Scenarios() {
 
   const totalInflow = filled.reduce((s, m) => s + (m.total_inflow || 0), 0);
   const avgInflow = filled.length > 0 ? totalInflow / filled.length : 0;
+  const knowledge = useMemo(
+    () =>
+      knowledgeSections({
+        targetExpense: snap?.params.FI_MONTHLY_EXPENSE,
+        inflation: snap?.params.INFLATION_RATE,
+        stockReturn: snap?.params.EXPECTED_RETURN_STOCK,
+        savingsRate: snap?.savings.weightedRate ? snap.savings.weightedRate / 100 : undefined,
+      }),
+    [snap]
+  );
+
   const byCategory = snap?.portfolio.byCategory || {};
   const totalCurrentValue = snap?.netWorth.total || 0;
 
@@ -326,13 +201,57 @@ export default function Scenarios() {
                         {p.entry_condition}
                       </p>
                     </div>
-                    <div className="p-3 bg-slate-50 rounded-lg">
-                      <p className="text-xs font-medium text-slate-600 mb-2">Hướng dẫn chi tiết:</p>
-                      <div className="text-sm text-slate-700 whitespace-pre-line leading-relaxed">{p.guidance}</div>
-                    </div>
+                    {(() => {
+                      // Các dòng phân bổ sinh thẳng từ phase_allocations, nên
+                      // đổi tỷ lệ hoặc đổi tên danh mục là chữ đổi theo.
+                      const g = buildPhaseGuidance(
+                        { sortOrder: p.sort_order, name: p.name, goalMultiplier: p.goal_multiplier },
+                        snap?.phaseAllocations?.[p.sort_order] || [],
+                        {
+                          targetExpense: snap?.params.FI_MONTHLY_EXPENSE,
+                          goldUnitPrice: snap?.prices?.goldUnit,
+                        }
+                      );
+                      if (!g) return null;
+                      return (
+                        <div className="p-3 bg-slate-50 rounded-lg space-y-3">
+                          <p className="text-sm text-slate-600">{g.about}</p>
+
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-1.5">Tiền nhàn rỗi mỗi tháng chia thế nào</p>
+                            <div className="space-y-1">
+                              {g.allocation.map(a => (
+                                <div key={a.name} className="flex items-baseline gap-2 text-sm">
+                                  <span className="w-10 shrink-0 text-right font-semibold text-slate-700 tabular-nums">
+                                    {Math.round(a.ratio * 100)}%
+                                  </span>
+                                  <span className="font-medium text-slate-700">{a.name}</span>
+                                  <span className="text-slate-500">— {a.action}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div>
+                            <p className="text-xs font-medium text-slate-500 mb-1.5">Việc cần làm</p>
+                            <ol className="space-y-1 list-decimal list-inside text-sm text-slate-600">
+                              {g.actions.map((x, i) => <li key={i}>{x}</li>)}
+                            </ol>
+                          </div>
+
+                          <p className="text-sm font-medium text-slate-700">{g.exit}</p>
+
+                          {g.principles.length > 0 && (
+                            <ul className="space-y-0.5 text-sm text-slate-500">
+                              {g.principles.map((x, i) => <li key={i}>• {x}</li>)}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {checklist.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-slate-600 mb-2">Bảng kiểm tra (tự động):</p>
+                        <p className="text-xs font-medium text-slate-600 mb-2">App tự kiểm, không cần bạn tick:</p>
                         <div className="space-y-1.5">
                           {checklist.map(item => {
                             // Chỉ tick khi dữ liệu thật sự xác nhận. Trước đây
@@ -342,11 +261,14 @@ export default function Scenarios() {
                             const itemChecked = !!(checklistStatus[p.sort_order]?.[item.id]);
                             return (
                               <div key={item.id}
-                                className={`flex items-center gap-2 text-sm w-full text-left py-0.5 ${itemChecked ? '' : 'opacity-80'}`}>
+                                className={`flex items-baseline gap-2 text-sm w-full text-left py-0.5 ${itemChecked ? '' : 'opacity-80'}`}>
                                 <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${itemChecked ? 'border-emerald-400 bg-emerald-50' : 'border-slate-300'}`}>
                                   {itemChecked && <span className="text-emerald-500 text-[10px]">✓</span>}
                                 </div>
                                 <span className={itemChecked ? 'text-emerald-700 line-through opacity-60' : 'text-slate-700'}>{item.label}</span>
+                                {!itemChecked && item.check && (
+                                  <span className="text-xs text-slate-400">— {item.check}</span>
+                                )}
                               </div>
                             );
                           })}
@@ -456,7 +378,7 @@ export default function Scenarios() {
         <h3 className="text-sm font-semibold text-slate-700 mb-4">Kiến thức tài chính</h3>
         <p className="text-xs text-slate-400 mb-4">Nắm vững các nguyên tắc cốt lõi để đạt mục tiêu dài hạn</p>
         <div className="space-y-2">
-          {KNOWLEDGE_SECTIONS.map(section => {
+          {knowledge.map(section => {
             const isOpen = expandedKnowledge === section.id;
             return (
               <div key={section.id} className="border border-slate-200 rounded-xl overflow-hidden">

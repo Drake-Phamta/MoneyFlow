@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { formatVND, formatPercent } from '../utils/formatters';
 import { apiClient, isElectron } from '../utils/apiClient';
 import FormattedInput from './FormattedInput';
+import { buildPhaseGuidance, guidanceText } from '../content/phases.js';
 import AppIcon, { Spinner, DownloadSimple, UploadSimple, CheckCircle, XCircle, Trash, Eye, EyeSlash, PencilSimple } from '../utils/iconMap';
 
 export default function Settings() {
@@ -31,16 +32,19 @@ export default function Settings() {
   const [stats, setStats] = useState(null);
   const [confirmClear, setConfirmClear] = useState(null); // 'transactions' | 'monthly' | 'all'
   const [avgExpense, setAvgExpense] = useState(4000000);
+  const [snap, setSnap] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
-    const [ph, c, a, p] = await Promise.all([
+    const [ph, c, a, p, sn] = await Promise.all([
       apiClient.phases.get(),
       apiClient.categories.get(),
       apiClient.assets.get(),
       apiClient.params.get(),
+      apiClient.snapshot.get().catch(() => null),
     ]);
+    setSnap(sn);
     setPhases(ph);
     setCategories(c);
     setAssetTypes(a);
@@ -462,7 +466,15 @@ export default function Settings() {
                 <p className="text-xs text-slate-400">Điều kiện vào: {p.entry_condition}</p>
                 <details className="mt-2">
                   <summary className="text-xs text-primary-600 cursor-pointer hover:underline">Xem hướng dẫn</summary>
-                  <div className="mt-2 text-xs text-slate-600 whitespace-pre-line bg-white rounded-lg p-3 border border-slate-100">{p.guidance}</div>
+                  <div className="mt-2 text-xs text-slate-600 whitespace-pre-line bg-white rounded-lg p-3 border border-slate-100">
+                    {guidanceText(
+                      buildPhaseGuidance(
+                        { sortOrder: p.sort_order, name: p.name, goalMultiplier: p.goal_multiplier },
+                        snap?.phaseAllocations?.[p.sort_order] || [],
+                        { targetExpense: snap?.params.FI_MONTHLY_EXPENSE, goldUnitPrice: snap?.prices?.goldUnit }
+                      )
+                    )}
+                  </div>
                 </details>
               </div>
             );

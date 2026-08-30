@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatVND, formatDate, todayLocal } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
+import { SNIPER_TIERS } from '../content/phases.js';
 import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
 
 export default function SniperPlaybook({ embedded }) {
@@ -537,13 +538,29 @@ export default function SniperPlaybook({ embedded }) {
         )}
       </div>
 
-      {/* Phase guidance */}
-      {phase?.guidance && (
-        <div className="card">
-          <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Hướng dẫn từ {phase.name}</h3>
-          <div className="text-sm text-slate-600 whitespace-pre-line leading-relaxed">{phase.guidance}</div>
+      {/* Bậc triển khai — cùng bộ số mà nút bấm thật sự dùng */}
+      <div className="card">
+        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          Bắn bao nhiêu khi thị trường sập
+        </h3>
+        <div className="space-y-1.5">
+          {SNIPER_TIERS.map(t => (
+            <div key={t.level} className="flex items-baseline gap-3 text-sm">
+              <span className="w-24 shrink-0 font-medium text-slate-700">
+                {t.to
+                  ? `Giảm ${Math.round(t.from * 100)}–${Math.round(t.to * 100)}%`
+                  : `Giảm trên ${Math.round(t.from * 100)}%`}
+              </span>
+              <span className="text-slate-500">
+                bắn {Math.round(t.deploy * 100)}% số đạn — {formatVND(Math.round(available * t.deploy))}
+              </span>
+            </div>
+          ))}
         </div>
-      )}
+        <p className="text-xs text-slate-400 mt-3">
+          Giữ nguyên khi giảm dưới {Math.round(SNIPER_TIERS[0].from * 100)}%. Đợt giảm nông là chuyện thường của thị trường.
+        </p>
+      </div>
 
       {/* Toast notification */}
       {toast && (

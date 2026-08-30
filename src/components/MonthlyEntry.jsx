@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { actionFor, linkFor } from '../utils/categoryMeta.js';
 import { formatVND } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Check, CheckCircle, Warning, ArrowClockwise } from '../utils/iconMap';
@@ -19,26 +20,6 @@ const ADJUST_REASONS = [
 
 // ── Per-category metadata ──────────────────────────────────────────────────
 // Returns short action hint shown in Step 2
-function getCategoryHint(name = '') {
-  if (name.includes('Dự Phòng'))       return 'Gửi vào sổ không kỳ hạn — rút được bất cứ lúc';
-  if (name.includes('Tiết kiệm'))     return 'Gửi vào sổ kỳ hạn 3–6 tháng — lãi cao hơn';
-  if (name.includes('Vàng'))            return 'Tích lũy. Khi đủ 1 chỉ SJC → ghi nhận mua vào Danh mục';
-  if (name.includes('Chứng Khoán') || name.includes('Chứng khoán'))
-                                        return 'Mua ETF / cổ phiếu đều đặn trong tháng';
-  if (name.includes('Bắn Tỉa') || name.includes('Bắn Tiêd'))
-                                        return 'Giữ tiền mặt. Chỉ triển khai khi thị trường sụt >15%';
-  return 'Thực hiện theo kế hoạch';
-}
-
-// Returns navigation link for action in Step 3
-function getCategoryLink(name = '') {
-  if (name.includes('Dự Phòng') || name.includes('Tiết kiệm'))
-    return '/investments?tab=savings';
-  if (name.includes('Vàng'))
-    return '/investments?tab=savings'; // Gold tracker is in savings
-  return '/investments?tab=portfolio'; // Chứng Khoán, Bắn Tẩa
-}
-
 const STEPS = [
   { id: 1, label: 'Dòng tiền', desc: 'Thu nhập & chi tiêu' },
   { id: 2, label: 'Phân bổ', desc: 'Chia tiền vào danh mục' },
@@ -53,6 +34,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
   // Data
   const [nextMonth, setNextMonth] = useState(null);
   const [phase, setPhase] = useState(null);
+  const [snap, setSnap] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [filled, setFilled] = useState([]);
@@ -84,22 +66,17 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
 
   async function loadAll() {
     try {
-      const [n, p, params, f] = await Promise.all([
+      const [sn, n, f] = await Promise.all([
+        apiClient.snapshot.get(),
         apiClient.monthly.next(),
-        apiClient.phases.active(),
-        apiClient.params.get(),
         apiClient.monthly.filled(),
       ]);
+      setSnap(sn);
       setNextMonth(n);
-      setPhase(p);
+      setPhase(sn.phase);
       setFilled(f);
-      const paramMap = {};
-      for (const param of params) paramMap[param.key] = param.value;
-      setTotalMonths(paramMap.TOTAL_MONTHS || 120);
-      if (p) {
-        const pa = await apiClient.phases.allocations(p.id);
-        setPhaseAllocs(pa || []);
-      }
+      setTotalMonths(sn.params.TOTAL_MONTHS || 120);
+      setPhaseAllocs(sn.phaseAllocations?.[sn.phase?.sortOrder] || []);
     } catch (err) {
       console.error('Load error:', err);
     }
@@ -540,7 +517,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                       </div>
                       {/* Hover hint tooltip */}
                       <div className="hidden group-hover:block absolute left-10 -bottom-1 translate-y-full z-10 px-3 py-1.5 bg-slate-800 text-white text-[11px] rounded-lg shadow-lg whitespace-nowrap max-w-[280px] truncate pointer-events-none">
-                        {getCategoryHint(a.category_name)}
+                        {actionFor(a.category_name, { goldUnitPrice: snap?.prices?.goldUnit })}
                       </div>
                     </div>
                   );
@@ -653,11 +630,11 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                           <p className="text-sm font-semibold text-slate-800">
                             {a.category_name} <span className="font-bold" style={{ color: a.color }}>{formatVND(a.planned_amount)}</span>
                           </p>
-                          <p className="text-[11px] text-slate-400">{getCategoryHint(a.category_name)}</p>
+                          <p className="text-[11px] text-slate-400">{actionFor(a.category_name, { goldUnitPrice: snap?.prices?.goldUnit })}</p>
                         </div>
                       </div>
                       <button
-                        onClick={() => navigate(getCategoryLink(a.category_name))}
+                        onClick={() => navigate(linkFor(a.category_name))}
                         className="text-xs text-slate-400 hover:text-slate-700 shrink-0 ml-2 group-hover:text-primary-600 transition-colors"
                       >
                         Thực hiện →
