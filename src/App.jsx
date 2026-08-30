@@ -1,11 +1,20 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './components/Dashboard';
-import CashFlowPage from './components/CashFlowPage';
-import InvestmentsPage from './components/InvestmentsPage';
-import Scenarios from './components/Scenarios';
-import Settings from './components/Settings';
-import { ThemeProvider, ConfirmProvider, ErrorBoundary } from './components/ui/index.jsx';
+import { ThemeProvider, ConfirmProvider, ErrorBoundary, Skeleton } from './components/ui/index.jsx';
+
+/**
+ * Nạp từng trang khi người dùng thực sự mở nó.
+ *
+ * Thư viện biểu đồ nặng 434KB và thư viện đọc Excel chỉ dùng ở Cài đặt. Gộp
+ * hết vào một gói thì mở Tổng quan cũng phải tải cả hai, mà phần lớn lần mở
+ * app người dùng chỉ xem đúng một trang.
+ */
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const CashFlowPage = lazy(() => import('./components/CashFlowPage'));
+const InvestmentsPage = lazy(() => import('./components/InvestmentsPage'));
+const Scenarios = lazy(() => import('./components/Scenarios'));
+const Settings = lazy(() => import('./components/Settings'));
 
 export default function App() {
   return (
@@ -15,18 +24,34 @@ export default function App() {
           {/* Bọc theo TRANG, không bọc cả app: một trang hỏng thì bốn trang kia
               vẫn dùng được, và người dùng còn đường đi tiếp. */}
           <PageBoundary>
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/cashflow" element={<CashFlowPage />} />
-              <Route path="/investments" element={<InvestmentsPage />} />
-              <Route path="/scenarios" element={<Scenarios />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
+            <Suspense fallback={<PageSkeleton />}>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/cashflow" element={<CashFlowPage />} />
+                <Route path="/investments" element={<InvestmentsPage />} />
+                <Route path="/scenarios" element={<Scenarios />} />
+                <Route path="/settings" element={<Settings />} />
+                <Route path="*" element={<Navigate to="/" />} />
+              </Routes>
+            </Suspense>
           </PageBoundary>
         </Layout>
       </ConfirmProvider>
     </ThemeProvider>
+  );
+}
+
+/** Khung chờ giữ đúng chiều cao để trang không nhảy khi nạp xong. */
+function PageSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="card">
+        <Skeleton rows={3} />
+      </div>
+      <div className="card">
+        <Skeleton rows={4} />
+      </div>
+    </div>
   );
 }
 
