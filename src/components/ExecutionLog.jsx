@@ -3,7 +3,7 @@ import { formatVND, formatDate, todayLocal, currentMonthKey } from '../utils/for
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
 import AppIcon, { Warning, CheckCircle, MagnifyingGlass, Trash } from '../utils/iconMap';
-import FormattedInput from './FormattedInput';
+import FormattedInput, { QuantityInput } from './FormattedInput';
 import { useConfirm } from './ui/index.jsx';
 
 export default function ExecutionLog({ embedded }) {
@@ -407,10 +407,10 @@ export default function ExecutionLog({ embedded }) {
             <div className="grid grid-cols-3 gap-3">
               <div>
                 <label className="text-xs text-slate-500 mb-1 block">Số lượng</label>
-                <FormattedInput
+                <QuantityInput
                   value={form.quantity}
                   onChange={val => setForm({ ...form, quantity: val })}
-                  placeholder="VD: 100"
+                  placeholder="VD: 100 hoặc 0,5"
                   className="input"
                 />
               </div>

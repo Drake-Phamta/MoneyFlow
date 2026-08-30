@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { formatVND, formatDate, todayLocal } from '../utils/formatters';
 import { formatNumberInput, parseNumberInput } from '../utils/numberFormat';
 import { apiClient } from '../utils/apiClient';
+import { QuantityInput } from './FormattedInput';
 import { SNIPER_TIERS } from '../content/phases.js';
 import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/iconMap';
 import { useConfirm } from './ui/index.jsx';
@@ -163,7 +164,7 @@ export default function SniperPlaybook({ embedded }) {
   async function handleDeploy() {
     if (!deployForm.quantity || !deployForm.price || !deployForm.asset_type_id) return;
     const price = parseNumberInput(deployForm.price);
-    const total = parseFloat(deployForm.quantity) * price;
+    const total = Number(deployForm.quantity || 0) * price;
     if (total > available) { await notify({ message: 'Vượt quá số tiền khả dụng!' }); return; }
 
     const opp = bestOpp;
@@ -174,7 +175,7 @@ export default function SniperPlaybook({ embedded }) {
       asset_type_id: parseInt(deployForm.asset_type_id),
       asset_name: '',
       type: 'BUY',
-      quantity: parseFloat(deployForm.quantity),
+      quantity: Number(deployForm.quantity || 0),
       price,
       total_amount: total,
       note,
@@ -450,17 +451,21 @@ export default function SniperPlaybook({ embedded }) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Số lượng</label>
-                  <input type="number" value={deployForm.quantity} onChange={e => setDeployForm({ ...deployForm, quantity: e.target.value })} className="input text-sm" />
+                  <QuantityInput
+                    value={deployForm.quantity}
+                    onChange={val => setDeployForm({ ...deployForm, quantity: val })}
+                    className="input text-sm"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block">Giá (₫)</label>
                   <input type="text" inputMode="numeric" value={deployForm.price ? formatNumberInput(deployForm.price) : ''} onChange={e => setDeployForm({ ...deployForm, price: e.target.value.replace(/\D/g, '') })} className="input text-sm" />
                 </div>
               </div>
-              {parseFloat(deployForm.quantity) > 0 && parseNumberInput(deployForm.price) > 0 && (
+              {Number(deployForm.quantity || 0) > 0 && parseNumberInput(deployForm.price) > 0 && (
                 <div className="flex items-center justify-between p-3 bg-white rounded-xl">
                   <span className="text-sm text-slate-600">Thành tiền</span>
-                  <span className="text-lg font-bold text-amber-700">{formatVND(parseFloat(deployForm.quantity) * parseNumberInput(deployForm.price))}</span>
+                  <span className="text-lg font-bold text-amber-700">{formatVND(Number(deployForm.quantity || 0) * parseNumberInput(deployForm.price))}</span>
                 </div>
               )}
               <div className="flex justify-end gap-2">
