@@ -200,12 +200,9 @@ function deployed_withFee(d) {
   );
 }
 
-/** ExecutionLog.jsx:184 — KHÔNG tính phí */
+/** ExecutionLog.jsx:167 — nay đọc snapshot, cùng chính sách phí */
 function deployed_exFee(d) {
-  return d.transactions.reduce(
-    (s, t) => s + (t.type === 'BUY' ? t.total_amount : -t.total_amount),
-    0
-  );
+  return d.snapshot.portfolio.deployed;
 }
 
 module.exports = {

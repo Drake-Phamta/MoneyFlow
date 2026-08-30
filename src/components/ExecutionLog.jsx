@@ -8,6 +8,7 @@ import FormattedInput from './FormattedInput';
 export default function ExecutionLog({ embedded }) {
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState([]);
+  const [snap, setSnap] = useState(null);
   const [assetTypes, setAssetTypes] = useState([]);
   const [parentAssets, setParentAssets] = useState([]);
   const [catalogItems, setCatalogItems] = useState([]);
@@ -34,14 +35,15 @@ export default function ExecutionLog({ embedded }) {
   useEffect(() => {
     (async () => {
       try {
-        const [t, a, catalog, filled, cats, logs] = await Promise.all([
+        const [sn, t, a, catalog, logs] = await Promise.all([
+          apiClient.snapshot.get(),
           apiClient.transactions.get(),
           apiClient.assets.get(),
           apiClient.catalog.get(),
-          apiClient.monthly.filled().catch(() => []),
-          apiClient.categories.get().catch(() => []),
           apiClient.allocations.discrepancies().catch(() => []),
         ]);
+        const cats = sn.categories || [];
+        setSnap(sn);
         setTransactions(t);
         setAssetTypes(a);
         setCatalogItems(catalog);
@@ -52,28 +54,13 @@ export default function ExecutionLog({ embedded }) {
           if (defaultCat) setTargetCategoryId(defaultCat.id.toString());
         }
 
-        // Calculate total allocated to investment categories
-        if (filled.length > 0) {
-          const allAllocs = await Promise.all(
-            filled.map(m => apiClient.allocations.get(m.id).catch(() => []))
-          );
-          let invested = 0;
-          for (const monthAllocs of allAllocs) {
-            for (const alloc of monthAllocs) {
-              const name = alloc.category_name || '';
-              if (!name.includes('Dự Phòng') && !name.includes('Tiết kiệm')) {
-                invested += alloc.actual_amount || alloc.planned_amount || 0;
-              }
-            }
-          }
-          setInvestmentAllocated(invested);
+        // Tiền đã chia cho các danh mục thị trường — không gồm dự phòng và tiết kiệm.
+        setInvestmentAllocated(sn.allocations.toMarket || 0);
 
-          // Check for previously confirmed discrepancy
-          const monthKey = currentMonthKey(); // YYYY-MM
-          const saved = localStorage.getItem(`discrepancy_${monthKey}`);
-          if (saved) {
-            try { setDiscrepancyConfirmed(JSON.parse(saved)); } catch {}
-          }
+        const monthKey = currentMonthKey(); // YYYY-MM
+        const saved = localStorage.getItem(`discrepancy_${monthKey}`);
+        if (saved) {
+          try { setDiscrepancyConfirmed(JSON.parse(saved)); } catch {}
         }
 
         // Parent assets = rows with ticker IS NULL (broad categories)
@@ -181,7 +168,10 @@ export default function ExecutionLog({ embedded }) {
   // Stats
   const buyCount = transactions.filter(t => t.type === 'BUY').length;
   const sellCount = transactions.filter(t => t.type === 'SELL').length;
-  const totalInvested = transactions.reduce((s, t) => s + (t.type === 'BUY' ? t.total_amount : -t.total_amount), 0);
+  // Tiền thực sự rời túi, đã gồm phí môi giới — cùng con số mà Tổng quan dùng.
+  // Trừ phí ra thì chênh lệch với số đã phân bổ luôn dương và banner cảnh báo
+  // bật lên dù người dùng không làm gì sai.
+  const totalInvested = snap?.portfolio.deployed || 0;
   const availableToInvest = Math.max(0, investmentAllocated - totalInvested);
   const discrepancy = totalInvested - investmentAllocated; // positive = over-invested, negative = under-invested
   const hasDiscrepancy = investmentAllocated > 0 && Math.abs(discrepancy) > 1000; // ignore tiny rounding

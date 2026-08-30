@@ -7,6 +7,7 @@ import AppIcon, { Bell, X, CheckCircle, XCircle, Warning, Info } from '../utils/
 export default function SniperPlaybook({ embedded }) {
   const [loading, setLoading] = useState(true);
   const [phase, setPhase] = useState(null);
+  const [snap, setSnap] = useState(null);
   const [sniperAllocated, setSniperAllocated] = useState(0);
   const [sniperDeployed, setSniperDeployed] = useState(0);
   const [deployHistory, setDeployHistory] = useState([]);
@@ -35,37 +36,25 @@ export default function SniperPlaybook({ embedded }) {
 
   async function loadData() {
     try {
-      const [txns, p, wl, al] = await Promise.all([
+      const [sn, txns, wl, al] = await Promise.all([
+        apiClient.snapshot.get(),
         apiClient.transactions.get(),
-        apiClient.phases.active(),
         apiClient.watchlist.get(),
         apiClient.alerts.get(),
       ]);
-      setPhase(p);
+      setSnap(sn);
+      setPhase(sn.phase);
       setWatchlist(wl);
       setAlerts(al);
-
-      const filled = await apiClient.monthly.filled();
-      let totalAlloc = 0;
-      if (filled.length > 0) {
-        const allAllocs = await Promise.all(
-          filled.map(m => apiClient.allocations.get(m.id).catch(() => []))
-        );
-        for (const allocs of allAllocs) {
-          const sniper = allocs.find(a => a.category_name?.includes('Bắn Tỉa'));
-          if (sniper) totalAlloc += sniper.actual_amount || sniper.planned_amount;
-        }
-      }
-      setSniperAllocated(totalAlloc);
+      setSniperAllocated(sn.sniper.allocated);
+      setSniperDeployed(sn.sniper.deployed);
 
       const sniperTxns = txns.filter(t =>
-        t.strategy === 'Sniper' ||
+        t.strategy?.toLowerCase() === 'sniper' ||
         t.note?.toLowerCase().includes('bắn tỉa') ||
         t.note?.toLowerCase().includes('sniper') ||
         t.note?.toLowerCase().includes('[deploy]')
       );
-      const totalDeployed = sniperTxns.reduce((s, t) => s + (t.type === 'BUY' ? t.total_amount : -t.total_amount), 0);
-      setSniperDeployed(totalDeployed);
       setDeployHistory(sniperTxns);
 
       // Set default deploy asset to best tracked asset
@@ -105,7 +94,8 @@ export default function SniperPlaybook({ embedded }) {
     return 0;
   }
 
-  const available = sniperAllocated - sniperDeployed;
+  // Đã bắn quá số đạn thì còn 0, không phải số âm.
+  const available = snap?.sniper.available ?? Math.max(0, sniperAllocated - sniperDeployed);
 
   const opportunities = watchlist.map(w => {
     const dd = w.peak_price > 0 ? (w.peak_price - w.current_price) / w.peak_price : 0;

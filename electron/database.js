@@ -2478,10 +2478,22 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
       pfByCategory[cat].items.push(p);
     }
     // MỘT định nghĩa "đã giải ngân", có tính phí — tiền thực sự rời túi.
-    const deployedRow = this.queryOne(
-      "SELECT COALESCE(SUM(CASE WHEN type = 'BUY' THEN total_amount + fee ELSE -total_amount + fee END), 0) as v FROM transactions"
-    );
-    const deployed = (deployedRow && deployedRow.v) || 0;
+    // Tách theo danh mục phân bổ để mỗi trang so được với đúng phần tiền của nó.
+    const deployedRows = this.query(`
+      SELECT t.asset_type_id, a.asset_class,
+             COALESCE(SUM(CASE WHEN t.type = 'BUY' THEN t.total_amount + COALESCE(t.fee, 0)
+                                                   ELSE -t.total_amount + COALESCE(t.fee, 0) END), 0) as v
+      FROM transactions t
+      JOIN asset_types a ON a.id = t.asset_type_id
+      GROUP BY t.asset_type_id, a.asset_class
+    `);
+    const deployedByCategory = {};
+    let deployed = 0;
+    for (const r of deployedRows) {
+      const cat = this._getAssetAllocationCategory(r.asset_type_id, r.asset_class || 'other');
+      deployedByCategory[cat] = (deployedByCategory[cat] || 0) + (r.v || 0);
+      deployed += r.v || 0;
+    }
 
     // ── Tiết kiệm ──────────────────────────────────────────────────
     const accounts = this.getSavingsAccounts();
@@ -2561,7 +2573,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
         unallocated, byCategory: alByCategory, rows: allAllocs,
       },
       portfolio: {
-        invested, marketValue, deployed,
+        invested, marketValue, deployed, deployedByCategory,
         gain: marketValue - invested,
         gainPct: invested > 0 ? (marketValue - invested) / invested : 0,
         byCategory: pfByCategory,
@@ -2639,8 +2651,9 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const sniperCatObj = core.categories.find((c) => c.name.includes('Bắn Tỉa'));
     const sniperCat = sniperCatObj ? sniperCatObj.name : null;
     const sniperAllocated = sniperCat ? core.allocations.byCategory[sniperCat] || 0 : 0;
-    const sniperBucket = sniperCat ? core.portfolio.byCategory[sniperCat] : null;
-    const sniperDeployed = sniperBucket ? sniperBucket.invested : 0;
+    // Cùng chính sách phí với portfolio.deployed — nếu không, banner "đã đầu tư
+    // vượt phân bổ" sẽ bật lên chỉ vì phí môi giới.
+    const sniperDeployed = sniperCat ? core.portfolio.deployedByCategory[sniperCat] || 0 : 0;
 
     const nextSort = (phase ? phase.sortOrder : 0) + 1;
     const nextPhase = core.phases.find((p) => p.sort_order === nextSort) || null;

@@ -179,26 +179,31 @@ async function run() {
       });
 
       const d2 = await F.loadAll();
-      const withFee = F.deployed_withFee(d2); // database.js:1594 → Dashboard
-      const exFee = F.deployed_exFee(d2); // ExecutionLog.jsx:184
+      const withFee = F.deployed_withFee(d2); // tính từ chính bảng giao dịch
+      const shown = F.deployed_exFee(d2); // cơ sở mà ExecutionLog dùng
 
-      // ExecutionLog.jsx:186-187 coi chênh lệch > 1000₫ là bất thường và bật
-      // banner cảnh báo màu hổ phách.
-      const gap = Math.abs(withFee - exFee);
-      if (gap > 1000) {
-        fail(
-          `Hai định nghĩa "đã giải ngân" lệch ${fmt(gap)} chỉ vì phí: ` +
-            `Dashboard dùng ${fmt(withFee)} (có phí), ExecutionLog dùng ${fmt(exFee)} ` +
-            `(không phí). Ngưỡng cảnh báo của ExecutionLog là 1.000₫ nên banner ` +
-            `"đã đầu tư vượt phân bổ" sẽ bật lên dù người dùng không làm gì sai.`
-        );
-      }
+      // ExecutionLog coi chênh lệch > 1000₫ là bất thường và bật banner hổ phách.
+      const gap = Math.abs(withFee - shown);
+      ok(
+        gap <= 1000,
+        `Hai định nghĩa "đã giải ngân" lệch ${fmt(gap)} chỉ vì phí: ` +
+          `${fmt(withFee)} (tính có phí) so với ${fmt(shown)} mà trang đang dùng. ` +
+          `Ngưỡng cảnh báo là 1.000₫ nên banner "đã đầu tư vượt phân bổ" sẽ bật ` +
+          `lên dù người dùng không làm gì sai.`
+      );
+
+      // Quỹ Bắn Tỉa cũng phải cùng chính sách phí, nếu không thì "còn lại bao
+      // nhiêu đạn" sẽ báo dư ra đúng bằng tiền phí.
+      const sn = d2.snapshot;
+      approx(
+        sn.sniper.available,
+        Math.max(0, sn.sniper.allocated - sn.sniper.deployed),
+        1,
+        'số đạn còn lại không khớp với đã chia trừ đã bắn'
+      );
+      ok(sn.sniper.available >= 0, `số đạn còn lại âm: ${fmt(sn.sniper.available)}`);
+
       await reset();
-    },
-    {
-      knownFail:
-        'database.js:1594 cộng fee, ExecutionLog.jsx:184 và SniperPlaybook.jsx:67 ' +
-        'không cộng — ba định nghĩa cho cùng một khái niệm.',
     }
   );
 
