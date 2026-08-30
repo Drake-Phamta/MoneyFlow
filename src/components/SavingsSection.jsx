@@ -258,6 +258,13 @@ export default function SavingsSection() {
   const phase              = overview?.phase;
   const phaseAllocs        = overview?.phaseAllocs        || [];
 
+  // Sổ đã đáo hạn không còn sinh lãi và không nằm trong mọi con số tổng của
+  // backend. Để chung một bảng thì chân bảng cộng một đằng, các dòng một nẻo.
+  const activeAccounts  = savingsAccounts.filter(a => a.status === 'active');
+  const maturedAccounts = savingsAccounts.filter(a => a.status !== 'active');
+  const maturedPrincipal = maturedAccounts.reduce((s, a) => s + (a.principal || 0), 0);
+  const maturedAccrued   = maturedAccounts.reduce((s, a) => s + (a.accrued_interest || 0), 0);
+
   // ── Bucket breakdown (from backend) ──────────────────────────────────────
   const duPhongAllocated   = overview?.duPhongAllocated   || 0;
   const duPhongInSavings   = overview?.duPhongInSavings   || 0;
@@ -720,8 +727,8 @@ export default function SavingsSection() {
         )}
 
         {/* Interest projection summary */}
-        {savingsAccounts.length > 0 && (() => {
-          const totalProjected = savingsAccounts.reduce((s, a) => s + (a.projected_interest || a.accrued_interest || 0), 0);
+        {activeAccounts.length > 0 && (() => {
+          const totalProjected = activeAccounts.reduce((s, a) => s + (a.projected_interest || a.accrued_interest || 0), 0);
           return (
             <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
               <div>
@@ -734,7 +741,7 @@ export default function SavingsSection() {
         })()}
 
         {/* Accounts table */}
-        {savingsAccounts.length > 0 ? (
+        {activeAccounts.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full" style={{ minWidth: '1000px' }}>
               <thead>
@@ -753,7 +760,7 @@ export default function SavingsSection() {
                 </tr>
               </thead>
               <tbody>
-                {savingsAccounts.map(a => {
+                {activeAccounts.map(a => {
                   const days = getDaysUntilMaturity(a.maturity_date);
                   const accrued = a.accrued_interest || 0;
                   const isEditing = editingId === a.id;
@@ -957,7 +964,7 @@ export default function SavingsSection() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 border-t border-slate-200">
-                  <td colSpan={6} className="py-3 px-3 text-sm font-medium text-slate-600 text-left">Tổng ({savingsAccounts.length} sổ)</td>
+                  <td colSpan={6} className="py-3 px-3 text-sm font-medium text-slate-600 text-left">Tổng ({activeAccounts.length} sổ)</td>
                   <td className="py-3 px-3 text-right text-sm font-medium text-slate-700">{formatVND(totalInSavings)}</td>
                   <td className="py-3 px-3 text-right text-sm text-emerald-500">+{formatVND(totalAccrued)}</td>
                   <td className="py-3 px-3 text-right text-sm font-bold text-slate-800">{formatVND(totalInSavings + totalAccrued)}</td>
@@ -972,6 +979,39 @@ export default function SavingsSection() {
             <p className="text-xs mt-1">Thêm sổ để theo dõi lãi suất và đáo hạn</p>
           </div>
         ) : null}
+
+        {maturedAccounts.length > 0 && (
+          <div className="mt-6 pt-5 border-t border-slate-200">
+            <p className="text-sm font-semibold text-slate-600 mb-1">
+              Đã đáo hạn ({maturedAccounts.length} sổ)
+            </p>
+            <p className="text-xs text-slate-400 mb-3">
+              Tiền đã rút về. Không sinh lãi nữa và không tính vào các con số phía trên.
+            </p>
+            <div className="space-y-2">
+              {maturedAccounts.map(a => (
+                <div key={a.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">{a.name}</p>
+                    <p className="text-xs text-slate-400">
+                      {a.bank || '—'} · đáo hạn {a.maturity_date || '—'}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-slate-600">{formatVND(a.principal || 0)}</p>
+                    <p className="text-xs text-slate-400">lãi đã nhận +{formatVND(a.accrued_interest || 0)}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200">
+              <span className="text-sm font-medium text-slate-500">Tổng đã rút về</span>
+              <span className="text-sm font-bold text-slate-700">
+                {formatVND(maturedPrincipal + maturedAccrued)}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ===== By Bank ===== */}

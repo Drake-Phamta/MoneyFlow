@@ -177,7 +177,7 @@ async function run() {
   await t(
     'C5b',
     'Vẫn khớp sau khi một sổ chuyển sang trạng thái đã đáo hạn',
-    ['rest:GET /api/savings', 'rest:PUT /api/savings/:id'],
+    ['rest:GET /api/savings', 'rest:PUT /api/savings/:id', 'rest:GET /api/snapshot'],
     async () => {
       await reset();
       const rows = await getOk('/api/savings');
@@ -187,24 +187,37 @@ async function run() {
 
       const rowsAfter = await getOk('/api/savings');
       const sumAfter = await getOk('/api/savings/summary');
-      const rowTotal = rowsAfter.reduce((s, a) => s + (a.principal || 0), 0);
+
+      // SavingsSection.jsx:737 chỉ đưa sổ đang hoạt động vào bảng, sổ đã đáo hạn
+      // xuống khu riêng — nên chân bảng phải cộng đúng các dòng phía trên nó.
+      const shownRows = rowsAfter.filter((a) => a.status === 'active');
+      const rowTotal = shownRows.reduce((s, a) => s + (a.principal || 0), 0);
 
       approx(
         rowTotal,
         sumAfter.totalPrincipal,
         TOL,
         `Sau khi sổ "${victim.name}" (${fmt(victim.principal)}) đáo hạn: ` +
-          `bảng vẫn hiện ${rowsAfter.length} dòng cộng lại ${fmt(rowTotal)}, ` +
-          `nhưng chân bảng chỉ cộng ${sumAfter.accountCount} sổ đang hoạt động = ` +
+          `bảng hiện ${shownRows.length} dòng cộng lại ${fmt(rowTotal)}, ` +
+          `nhưng chân bảng cộng ${sumAfter.accountCount} sổ = ` +
           `${fmt(sumAfter.totalPrincipal)}`
       );
+      eq(shownRows.length, sumAfter.accountCount, 'số dòng hiển thị so với số sổ chân bảng đếm');
+
+      // Sổ đã đáo hạn vẫn phải còn trong dữ liệu để hiện ở khu riêng, và không
+      // được lọt vào bất kỳ con số tổng nào.
+      const matured = rowsAfter.filter((a) => a.status !== 'active');
+      eq(matured.length, 1, 'sổ đã đáo hạn phải còn trong danh sách để hiện ở khu riêng');
+      const sn = await getOk('/api/snapshot');
+      approx(
+        sn.savings.balance,
+        rowTotal + shownRows.reduce((s, a) => s + (a.accrued_interest || 0), 0),
+        TOL,
+        'số dư tiết kiệm trong snapshot vẫn còn cộng sổ đã đáo hạn'
+      );
+      eq(sn.savings.maturedCount, 1, 'snapshot phải đếm được sổ đã đáo hạn');
+
       await reset();
-    },
-    {
-      knownFail:
-        'getSavingsAccounts() (database.js:1937) không lọc status nên bảng hiện ' +
-        'cả sổ đã đáo hạn, còn getSavingsSummary() (database.js:2083) chỉ cộng ' +
-        "status='active'.",
     }
   );
 
