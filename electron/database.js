@@ -1299,6 +1299,151 @@ class FinancialDB {
     `);
   }
 
+  /**
+   * Tài sản ròng theo từng tháng đã ghi, tính XUÔI thời gian từ bản ghi thật.
+   *
+   * Mỗi mốc dùng đúng ba thành phần mà getFinancialSnapshot dùng — tiền mặt,
+   * giá thị trường danh mục, gốc và lãi tiết kiệm — nên điểm cuối cùng của
+   * đường này bằng đúng tổng tài sản đang hiển thị trên Tổng quan.
+   *
+   * Quá khứ đứng yên: không có con số nào của hôm nay đi vào các mốc trước.
+   */
+  getNetWorthHistory() {
+    const months = this.getFilledMonths();
+    if (!months.length) return [];
+
+    const allocs = this.getAllAllocations();
+    const amountOf = (a) => (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0);
+
+    // Giao dịch mua bán, kèm ngày, để cộng dồn tới từng mốc.
+    const txns = this.query(`
+      SELECT t.date, t.type, t.total_amount, t.fee, t.quantity, t.asset_type_id,
+             a.asset_class
+      FROM transactions t
+      JOIN asset_types a ON a.id = t.asset_type_id
+      ORDER BY t.date ASC, t.id ASC
+    `);
+
+    // Tiền vào ra sổ tiết kiệm, kèm ngày.
+    const svTxns = this.query(`
+      SELECT date, type, amount FROM savings_transactions ORDER BY date ASC, id ASC
+    `);
+
+    // Ảnh chụp danh mục theo tháng, nếu có. Tháng nào chưa chụp thì dựng lại
+    // từ giao dịch với GIÁ ĐÓNG CỬA gần nhất trước mốc đó — không dùng giá
+    // hôm nay, vì như vậy là để hôm nay quyết định quá khứ.
+    const snaps = {};
+    for (const r of this.query('SELECT month_index, SUM(market_value) as v FROM portfolio_snapshots GROUP BY month_index')) {
+      snaps[r.month_index] = r.v || 0;
+    }
+
+    const priceAt = (assetId, dateStr) => {
+      const row = this.queryOne(
+        'SELECT close FROM price_snapshots WHERE asset_type_id = ? AND date <= ? ORDER BY date DESC LIMIT 1',
+        [assetId, dateStr]
+      );
+      return row ? row.close : null;
+    };
+
+    /** Ngày cuối tháng của một dòng monthly_entries. */
+    const endOf = (label) => {
+      const m = String(label || '').match(/T(\d+)\/(\d+)/);
+      if (!m) return null;
+      const month = Number(m[1]);
+      const year = Number(m[2]);
+      const last = new Date(year, month, 0).getDate();
+      return `${year}-${String(month).padStart(2, '0')}-${String(last).padStart(2, '0')}`;
+    };
+
+    const out = [];
+    for (const me of months) {
+      const asOf = endOf(me.month_label);
+      if (!asOf) continue;
+
+      // ── Tiền mặt: tiền nhàn rỗi đã ghi trừ phần đã chia và đã tiêu ──
+      const inflow = months
+        .filter((m) => m.month_index <= me.month_index)
+        .reduce((x, m) => x + (Number(m.total_inflow) || 0), 0);
+      const deficit = months
+        .filter((m) => m.month_index <= me.month_index)
+        .reduce(
+          (x, m) =>
+            x + Math.max(0, (Number(m.expense) || 0) - (Number(m.income) || 0) - (Number(m.bonus) || 0)),
+          0
+        );
+      const ids = new Set(
+        months.filter((m) => m.month_index <= me.month_index).map((m) => m.id)
+      );
+      const mine = allocs.filter((a) => ids.has(a.monthly_entry_id));
+      const allocated = mine.reduce((x, a) => x + amountOf(a), 0);
+
+      // Cùng hai thành phần mà snapshot dùng: phần chưa chia cho danh mục nào,
+      // cộng phần đã chia cho danh mục thị trường nhưng chưa kịp mua.
+      const unallocated = Math.max(0, inflow - allocated - deficit);
+      const toMarket = mine
+        .filter((a) => {
+          const n = a.category_name || '';
+          return !n.includes('Dự Phòng') && !n.includes('Tiết kiệm');
+        })
+        .reduce((x, a) => x + amountOf(a), 0);
+      const deployedSoFar = txns
+        .filter((t) => t.date <= asOf)
+        .reduce(
+          (x, t) =>
+            x + (t.type === 'BUY'
+              ? (t.total_amount || 0) + (t.fee || 0)
+              : -(t.total_amount || 0) + (t.fee || 0)),
+          0
+        );
+      const cash = unallocated + Math.max(0, toMarket - deployedSoFar);
+
+      // ── Danh mục: ảnh chụp nếu có, không thì dựng lại theo giá đúng ngày ──
+      let market = snaps[me.month_index];
+      if (market === undefined) {
+        const held = {};
+        for (const t of txns) {
+          if (t.date > asOf) break;
+          const q = Number(t.quantity) || 0;
+          held[t.asset_type_id] = (held[t.asset_type_id] || 0) + (t.type === 'BUY' ? q : -q);
+        }
+        market = 0;
+        for (const [assetId, qty] of Object.entries(held)) {
+          if (qty <= 0) continue;
+          const px = priceAt(Number(assetId), asOf);
+          if (px) market += qty * px;
+        }
+      }
+
+      // ── Tiết kiệm: cộng dồn tiền vào ra và lãi đã ghi tới mốc đó ──
+      let savings = 0;
+      for (const acc of this.getSavingsAccounts()) {
+        const upTo = (acc.transactions || []).filter((t) => t.date <= asOf);
+        if (!upTo.length) continue;
+        const principal = upTo.reduce(
+          (x, t) =>
+            x + (t.type === 'deposit' ? t.amount : t.type === 'withdraw' ? -t.amount : 0),
+          0
+        );
+        if (principal <= 0) continue;
+        // Lãi tính TỚI MỐC ĐÓ, không phải lãi của hôm nay.
+        savings += principal + this.calculateAccruedInterest(acc, upTo, false, asOf);
+      }
+
+      out.push({
+        month_index: me.month_index,
+        month_label: me.month_label,
+        date: asOf,
+        cash,
+        portfolio: market,
+        savings,
+        total: cash + market + savings,
+        // Ảnh chụp thật hay dựng lại — để giao diện nói rõ với người dùng.
+        estimated: snaps[me.month_index] === undefined,
+      });
+    }
+    return out;
+  }
+
   // ===== ALLOCATIONS =====
   getAllocations(entryId) {
     return this.query(`
@@ -2001,7 +2146,14 @@ class FinancialDB {
     return true;
   }
 
-  calculateAccruedInterest(account, transactions, toMaturity = false) {
+  /**
+   * Lãi đã tích của một sổ.
+   *
+   * `asOf` cho phép hỏi "tới ngày này là bao nhiêu" — biểu đồ lịch sử cần nó
+   * để mốc quá khứ không mang theo lãi của hôm nay. Bỏ trống thì tính tới
+   * hôm nay như trước.
+   */
+  calculateAccruedInterest(account, transactions, toMaturity = false, asOf = null) {
     if (!account || account.status !== 'active' || account.interest_rate <= 0) return 0;
     
     const parseDate = (dStr) => {
@@ -2014,13 +2166,15 @@ class FinancialDB {
     // Sort transactions oldest first
     const txns = (transactions || account.transactions || []).slice().sort((a, b) => parseDate(a.date) - parseDate(b.date));
     
-    const today = new Date();
+    const today = asOf ? parseDate(asOf) : new Date();
     const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
     // Find latest transaction date
     let maxTxnDate = todayNormalized;
     for (const t of txns) {
       const d = parseDate(t.date);
+      // Hỏi tới một ngày trong quá khứ thì giao dịch sau ngày đó chưa xảy ra.
+      if (asOf && d > todayNormalized) continue;
       if (d > maxTxnDate) maxTxnDate = d;
     }
 

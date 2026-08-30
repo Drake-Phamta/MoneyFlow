@@ -1084,12 +1084,7 @@ export default function Dashboard() {
       )}
 
       {showNetWorthModal && (
-        <NetWorthModal 
-          filled={filled} 
-          grandTotal={grandTotal} 
-          portfolio={summary?.portfolio || []} 
-          onClose={() => setShowNetWorthModal(false)} 
-        />
+        <NetWorthModal onClose={() => setShowNetWorthModal(false)} />
       )}
     </div>
   );

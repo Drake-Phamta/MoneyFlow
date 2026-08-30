@@ -55,8 +55,11 @@ contextBridge.exposeInMainWorld('api', {
   },
   portfolio: {
     get: () => ipcRenderer.invoke('portfolio:get'),
-    history: () => ipcRenderer.invoke('portfolio:history'),
     summary: () => ipcRenderer.invoke('portfolio:summary'),
+    history: () => ipcRenderer.invoke('portfolio:history'),
+  },
+  networth: {
+    history: () => ipcRenderer.invoke('networth:history'),
   },
   activity: {
     get: (limit) => ipcRenderer.invoke('activity:get', limit),

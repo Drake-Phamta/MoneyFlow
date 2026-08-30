@@ -222,6 +222,11 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     catch (e) { res.status(500).json({ error: errText(e) }); }
   });
 
+  app.get('/api/networth/history', (req, res) => {
+    try { res.json(db.getNetWorthHistory()); }
+    catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
   app.get('/api/portfolio/history', (req, res) => {
     try { res.json(db.getPortfolioHistory()); }
     catch (e) { res.status(500).json({ error: errText(e) }); }

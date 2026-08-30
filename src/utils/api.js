@@ -79,6 +79,9 @@ export const api = {
     summary: () => get('/portfolio/summary'),
     history: () => get('/portfolio/history'),
   },
+  networth: {
+    history: () => get('/networth/history'),
+  },
   activity: {
     get: (limit) => get(`/activity?limit=${limit || 20}`),
     delete: (id) => del(`/activity/${id}`),

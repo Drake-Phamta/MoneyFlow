@@ -36,6 +36,7 @@ const SERVER_SUITES = [
   { group: 'api', file: './api/A08-watchlist-alerts' },
   { group: 'api', file: './api/A10-data-io' },
   { group: 'api', file: './api/A11-snapshot' },
+  { group: 'api', file: './api/A12-networth-history' },
   // A09 ghi price_snapshots và sửa peak_price dù trông như chỉ đọc — chạy sau
   // các nhóm khác để không làm lệch dữ liệu của chúng.
   { group: 'api', file: './api/A09-prices' },
