@@ -43,12 +43,6 @@ async function run() {
             lines.join('\n      ')
         );
       }
-    },
-    {
-      knownFail:
-        'Sáu định nghĩa: Dashboard có tiền mặt; Scenarios/AllocationGoals không; ' +
-        'máy dò giai đoạn dùng giá vốn; checklist dùng giá thị trường; ' +
-        'CashFlowPage dùng dòng tiền cộng dồn.',
     }
   );
 
@@ -71,11 +65,6 @@ async function run() {
             lines.join('\n      ')
         );
       }
-    },
-    {
-      knownFail:
-        'Dashboard.jsx:299 dùng grandTotal (có tiền mặt); Scenarios.jsx:264 và ' +
-        'AllocationGoals.jsx:318 dùng tổng không có tiền mặt.',
     }
   );
 

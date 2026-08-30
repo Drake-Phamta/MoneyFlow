@@ -1264,7 +1264,16 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
   // ===== MONTHLY ENTRIES =====
   getMonthlyEntries() { return this.query('SELECT * FROM monthly_entries ORDER BY month_index'); }
   getMonthlyEntry(monthIndex) { return this.queryOne('SELECT * FROM monthly_entries WHERE month_index = ?', [monthIndex]); }
-  getFilledMonths() { return this.query('SELECT * FROM monthly_entries WHERE total_inflow > 0 ORDER BY month_index'); }
+  /**
+   * Các tháng người dùng đã nhập và đã lưu. Lọc theo TRẠNG THÁI, không theo
+   * total_inflow: tháng chi vượt thu có total_inflow bằng 0, lọc theo số tiền
+   * thì tháng đó biến mất khỏi mọi thống kê dù người dùng đã nhập và đã lưu.
+   */
+  getFilledMonths() {
+    return this.query(
+      "SELECT * FROM monthly_entries WHERE status IN ('confirmed', 'filled') ORDER BY month_index"
+    );
+  }
   getNextUnfilledMonth() {
     // 1. Find the first month in chronological order that is not confirmed (unfilled)
     const firstUnfilled = this.queryOne("SELECT * FROM monthly_entries WHERE status IS NULL OR (status != 'confirmed' AND status != 'filled') ORDER BY month_index ASC LIMIT 1");
@@ -2357,6 +2366,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     if (!n) {
       return {
         months: 0, totalIncome: 0, totalExpense: 0, totalBonus: 0, totalInflow: 0,
+        totalDeficit: 0, totalNet: 0, deficitMonths: 0,
         incomeMean: 0, expenseMean: 0, bonusMean: 0, inflowMean: 0,
         inflowSd: 0, inflowCv: 0, salaryNet: 0, bonusFreq: 0, bestMonth: 0,
       };
@@ -2368,6 +2378,14 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     const totalBonus = sum('bonus');
     const totalInflow = sum('total_inflow');
 
+    // Tháng chi vượt thu: total_inflow bằng 0 (không có gì để phân bổ), nhưng
+    // phần thiếu hụt là tiền thật đã rút từ số dư sẵn có. Không trừ ra thì
+    // tiền mặt bị báo dư đúng bằng khoản đó.
+    const totalDeficit = months.reduce(
+      (s, m) => s + Math.max(0, (Number(m.expense) || 0) - (Number(m.income) || 0) - (Number(m.bonus) || 0)),
+      0
+    );
+
     const inflowMean = totalInflow / n;
     const variance = months.reduce((s, m) => s + Math.pow((Number(m.total_inflow) || 0) - inflowMean, 2), 0) / n;
     const inflowSd = Math.sqrt(variance);
@@ -2377,6 +2395,11 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
     return {
       months: n,
       totalIncome, totalExpense, totalBonus, totalInflow,
+      totalDeficit,
+      totalNet: totalIncome + totalBonus - totalExpense,
+      deficitMonths: months.filter(
+        (m) => (Number(m.expense) || 0) > (Number(m.income) || 0) + (Number(m.bonus) || 0)
+      ).length,
       incomeMean, expenseMean,
       bonusMean: totalBonus / n,
       inflowMean,
@@ -2586,7 +2609,7 @@ Bạn đã đạt tự do tài chính. Chúc mừng.`,
 
     // ── Dòng tiền và tiền mặt ──────────────────────────────────────
     const cashflow = this.getCashflowStats();
-    const unallocated = Math.max(0, cashflow.totalInflow - allocTotal);
+    const unallocated = Math.max(0, cashflow.totalInflow - allocTotal - cashflow.totalDeficit);
     const awaitingInvestment = Math.max(0, toMarket - deployed);
     const cash = { unallocated, awaitingInvestment, total: unallocated + awaitingInvestment };
 

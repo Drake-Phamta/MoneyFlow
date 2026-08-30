@@ -50,12 +50,6 @@ async function run() {
             `      → gọi chúng trong bản Electron sẽ ném "is not a function"`
         );
       }
-    },
-    {
-      knownFail:
-        'savings.deleteTransaction và savings.updateTransactionDate có REST ' +
-        '(api.js:114-115, routes.js:398/403) nhưng thiếu IPC; ' +
-        'SavingsSection.jsx:178,193 gọi chúng.',
     }
   );
 
@@ -113,11 +107,6 @@ async function run() {
         else if (!inIpc) broken.push(`${name} (thiếu IPC) ← ${u.files.join(', ')}`);
       }
       if (broken.length) fail(`${broken.length} lời gọi hỏng:\n      ` + broken.join('\n      '));
-    },
-    {
-      knownFail:
-        'SavingsSection.jsx:178,193 gọi savings.deleteTransaction / ' +
-        'savings.updateTransactionDate — chỉ có REST, không có IPC.',
     }
   );
 }

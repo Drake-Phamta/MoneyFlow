@@ -40,11 +40,6 @@ async function run() {
             `      khoá byCategory : ${byCatKeys.join(' | ')}`
         );
       }
-    },
-    {
-      knownFail:
-        "database.js:1547,1556 _getAssetAllocationCategory trả 'Đầu Tư' cho " +
-        "stock/etf, nhưng seed + migrateToV5 đặt tên danh mục là 'Chứng Khoán'.",
     }
   );
 
@@ -64,11 +59,6 @@ async function run() {
             `${investedElsewhere ? fmt(investedElsewhere.currentTotal) : '(không có)'}`
         );
       }
-    },
-    {
-      knownFail:
-        'Dashboard.jsx:917 lọc CATEGORY_META theo byCategory[meta.name]; ' +
-        "meta.name='Đầu Tư' còn danh mục thật tên 'Chứng Khoán'.",
     }
   );
 

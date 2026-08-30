@@ -53,12 +53,6 @@ async function run() {
         );
       }
       await reset();
-    },
-    {
-      knownFail:
-        "database.js:1174 dùng `strategy = 'sniper'` (thường) trong khi UI ghi " +
-        "'Sniper' (hoa). So sánh cùng loại ở database.js:1538 dùng LOWER() nên " +
-        'đây là lỗi chứ không phải chủ ý. priceService.js:303 cũng dính.',
     }
   );
 
@@ -84,11 +78,6 @@ async function run() {
             ` — người dùng thấy dấu tick nhưng hệ thống chưa từng xác minh.`
         );
       }
-    },
-    {
-      knownFail:
-        'database.js:1228 `track_money: true` — mục "Ghi chép mọi khoản vào ' +
-        'Money Flow" luôn hiện đã hoàn thành.',
     }
   );
 
@@ -107,12 +96,6 @@ async function run() {
             'xác minh từ dữ liệu.'
         );
       }
-    },
-    {
-      knownFail:
-        'Scenarios.jsx:362 — điều kiện duy nhất để "hoàn thành giai đoạn" là ' +
-        'ngưỡng tài sản, nên chạm mốc là toàn bộ checklist các giai đoạn trước ' +
-        'tự tick, mất hoàn toàn giá trị hồi cứu.',
     }
   );
 
@@ -150,11 +133,6 @@ async function run() {
             `Người dùng không được báo đúng lúc quan trọng nhất.`
         );
       }
-    },
-    {
-      knownFail:
-        'priceService.js:228 thiếu mốc 0.35 — đúng ngưỡng lên Cấp 3 ' +
-        '(triển khai 40% kho đạn) của SniperPlaybook.jsx:95-99.',
     }
   );
 
@@ -287,11 +265,6 @@ async function run() {
             'và biến kết quả `allocatedToDuPhong` lại không được dùng ở đâu cả.'
         );
       }
-    },
-    {
-      knownFail:
-        'Dashboard.jsx:286-289 tính allocatedToDuPhong từ một trường không tồn ' +
-        'tại, rồi bỏ đi không dùng; dòng :295 dùng biểu thức hoàn toàn khác.',
     }
   );
 
@@ -399,12 +372,6 @@ async function run() {
             `Cần một hàm todayLocal() dùng getFullYear/getMonth/getDate.`
         );
       }
-    },
-    {
-      knownFail:
-        '20 chỗ trong src/ dùng new Date().toISOString().split("T")[0]. ' +
-        'Nặng nhất là khoá localStorage discrepancy_YYYY-MM ở ExecutionLog.jsx:72 ' +
-        '— ngày 1 hàng tháng lúc 6h sáng nó trỏ vào tháng trước.',
     }
   );
 
@@ -433,12 +400,6 @@ async function run() {
             `vì dòng :97 trả về null khi không tìm thấy tham số.`
         );
       }
-    },
-    {
-      knownFail:
-        'database.js:650-657 seedDefaults chỉ seed 5 tham số, trong khi ' +
-        'Parameters.jsx liệt kê 11. Component này hiện cũng không được import ' +
-        'ở đâu (code chết) nhưng vẫn nên dọn.',
     }
   );
 

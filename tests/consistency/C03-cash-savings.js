@@ -27,6 +27,8 @@ async function run() {
       for (const m of d.filled) {
         const allocs = d.allocsByMonth[m.id] || [];
         if (!allocs.length) continue;
+        // Tháng chi vượt thu không có gì để phân bổ — không so ở đây.
+        if (m.total_inflow === 0) continue;
         const sum = allocs.reduce(
           (s, a) => s + (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0),
           0
@@ -117,12 +119,6 @@ async function run() {
         );
       }
       await reset();
-    },
-    {
-      knownFail:
-        'routes.js:136 kẹp total_inflow âm về 0; database.js:1272 getFilledMonths ' +
-        'lọc total_inflow > 0 → tháng chi vượt thu bị loại khỏi lịch sử một cách ' +
-        'im lặng, dù người dùng đã nhập và đã lưu.',
     }
   );
 

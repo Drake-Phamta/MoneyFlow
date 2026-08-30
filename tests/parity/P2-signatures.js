@@ -77,12 +77,6 @@ async function run() {
         `total_inflow đã lưu (${saved.data.total_inflow}) không khớp thu/chi/thưởng ` +
           `(${saved.data.income} + ${saved.data.bonus} - ${saved.data.expense} = ${components})`
       );
-    },
-    {
-      knownFail:
-        'routes.js:136 tin total_inflow do client gửi; một tháng có thể được lưu ' +
-        'với total_inflow=0 trong khi thu 10tr chi 4tr. Mọi phép tính phía sau ' +
-        '(phân bổ, tiền mặt, giai đoạn) đều đọc total_inflow nên sẽ sai theo.',
     }
   );
 
@@ -112,11 +106,6 @@ async function run() {
             'saveMonthlyEntry() — bản Electron gọi thẳng IPC nên lưu số chưa chuẩn hoá.'
         );
       }
-    },
-    {
-      knownFail:
-        'routes.js:132-141 tính lại total_inflow còn main.js:117 truyền thẳng; ' +
-        'phải dời logic vào database.js:saveMonthlyEntry() để dùng chung.',
     }
   );
 
