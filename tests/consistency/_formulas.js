@@ -138,9 +138,11 @@ function netWorth_Checklist(d) {
   return d.snapshot.netWorth.total;
 }
 
-/** #6 — CashFlowPage.jsx:311-317 "Đã tích lũy" = dòng tiền cộng dồn */
+/** #6 — CashFlowPage.jsx:315-320 tiến độ cột mốc, nay đo bằng tài sản */
 function netWorth_CashFlowPage(d) {
-  return dashboardCashFlow(d).totalNet;
+  return d.snapshot.phase.sortOrder === 1
+    ? d.snapshot.netWorth.total // giai đoạn 1 đo quỹ dự phòng, không so ở đây
+    : d.snapshot.phase.current;
 }
 
 const NET_WORTH_FORMULAS = [
@@ -149,7 +151,7 @@ const NET_WORTH_FORMULAS = [
   { key: 'AllocationGoals', label: 'Tab Phân bổ (mẫu số mọi %)',    src: 'AllocationGoals.jsx:56',   fn: netWorth_AllocationGoals },
   { key: 'PhaseEngine',     label: 'Máy dò giai đoạn (backend)',    src: 'database.js:2592',         fn: netWorth_PhaseEngine },
   { key: 'Checklist',       label: 'Bảng kiểm tra (backend)',       src: 'database.js:1151',         fn: netWorth_Checklist },
-  { key: 'CashFlowPage',    label: 'Dòng tiền "Đã tích lũy"',       src: 'CashFlowPage.jsx:317',     fn: netWorth_CashFlowPage },
+  { key: 'CashFlowPage',    label: 'Dòng tiền — tiến độ cột mốc',   src: 'CashFlowPage.jsx:318',     fn: netWorth_CashFlowPage },
 ];
 
 // ═══════════════ BA công thức "tiến độ giai đoạn" ═══════════════

@@ -15,29 +15,22 @@ export default function CashFlowPage() {
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [realInvested, setRealInvested] = useState(0);
+  const [snap, setSnap] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
   async function loadData() {
     try {
-      const [f, params, p, portfolioSum] = await Promise.all([
+      const [sn, f] = await Promise.all([
+        apiClient.snapshot.get(),
         apiClient.monthly.filled(),
-        apiClient.params.get(),
-        apiClient.phases.active().catch(() => null),
-        apiClient.portfolio.summary().catch(() => null),
       ]);
+      setSnap(sn);
       setFilled(f);
-      setPhase(p);
-      setRealInvested(portfolioSum?.totalInvested || 0);
-      const paramMap = {};
-      for (const param of params) paramMap[param.key] = param.value;
-      setTotalMonths(paramMap.TOTAL_MONTHS || 120);
-      if (p?.id) {
-        try {
-          const pa = await apiClient.phases.allocations(p.id);
-          setPhaseAllocs(pa || []);
-        } catch { setPhaseAllocs([]); }
-      }
+      setPhase(sn.phase);
+      setRealInvested(sn.portfolio.invested || 0);
+      setTotalMonths(sn.params.TOTAL_MONTHS || 120);
+      setPhaseAllocs(sn.phaseAllocations?.[sn.phase?.sortOrder] || []);
     } catch (err) {
       console.error('CashFlowPage load error:', err);
     }
@@ -87,9 +80,11 @@ export default function CashFlowPage() {
       .reduce((s, pa) => s + (pa.ratio || 0), 0);
     const invTarget = Math.round(iRatio * 100);
 
-    // Tỷ lệ đầu tư thực tế = Vốn đầu tư thực (từ giao dịch) / Tổng thu nhập
+    // Mục tiêu là tỷ lệ trên TIỀN NHÀN RỖI, nên tỷ lệ thực tế cũng phải chia
+    // cho tiền nhàn rỗi. Chia cho thu nhập thì hai con số không so được với nhau.
     const tInvested = realInvested;
-    const avgInv = inc > 0 ? (tInvested / inc) * 100 : 0;
+    const idle = snap?.cashflow.totalInflow || 0;
+    const avgInv = idle > 0 ? (tInvested / idle) * 100 : 0;
 
     let str = 0;
     for (let i = cashFlowData.length - 1; i >= 0; i--) {
@@ -103,7 +98,7 @@ export default function CashFlowPage() {
       totalInvested: tInvested, avgInvestRate: avgInv, investTargetPct: invTarget,
       streak: str, bestMonth: sorted[0] || null, worstMonth: sorted[sorted.length - 1] || null
     };
-  }, [filled, cashFlowData, phaseAllocs, realInvested]);
+  }, [filled, cashFlowData, phaseAllocs, realInvested, snap]);
 
   // Empty state
   if (filled.length === 0) {
@@ -314,14 +309,17 @@ export default function CashFlowPage() {
               <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Dự báo tích lũy</h3>
               <div className="space-y-3">
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-slate-500">Đã tích lũy</span>
+                  <span className="text-sm text-slate-500">Đã để dành</span>
                   <span className="text-sm font-bold text-slate-800">{formatVND(totalNet)}</span>
                 </div>
-                {phase?.goal_amount > 0 && (() => {
-                  const goal = phase.goal_amount;
-                  const reached = totalNet >= goal;
-                  const pct = Math.min((totalNet / goal) * 100, 100);
-                  const gap = Math.max(0, goal - totalNet);
+                {phase?.goalAmount > 0 && (() => {
+                  // Cột mốc giai đoạn là mốc TÀI SẢN, nên tiến độ đo bằng tài
+                  // sản. Dòng tiền chỉ dùng để ước lượng còn bao nhiêu tháng.
+                  const goal = phase.goalAmount;
+                  const have = phase.current;
+                  const reached = have >= goal;
+                  const pct = Math.min((have / goal) * 100, 100);
+                  const gap = Math.max(0, goal - have);
                   const monthsToGoal = avgMonthly > 0 ? Math.ceil(gap / avgMonthly) : null;
                   return (
                     <div className="p-3 bg-primary-50 border border-primary-100 rounded-xl">
@@ -333,11 +331,11 @@ export default function CashFlowPage() {
                         <div className="h-full bg-primary-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-primary-600">{formatVND(totalNet)} / {formatVND(goal)}</span>
+                        <span className="text-primary-600">{formatVND(have)} / {formatVND(goal)}</span>
                         {!reached && monthsToGoal && (
-                          <span className="text-primary-500">~{monthsToGoal} tháng nữa</span>
+                          <span className="text-primary-500">còn {formatVND(gap)} · ~{monthsToGoal} tháng</span>
                         )}
-                        {reached && <span className="text-emerald-600 font-medium">✓ Đã đạt</span>}
+                        {reached && <span className="text-emerald-600 font-medium">Đã đạt</span>}
                       </div>
                     </div>
                   );
