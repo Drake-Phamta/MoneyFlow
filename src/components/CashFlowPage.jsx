@@ -3,12 +3,15 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { formatVND, formatCompact } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import MonthlyEntry from './MonthlyEntry';
+import { Tabs, EmptyState } from './ui/index.jsx';
 import { TrendUp, TrendDown, Minus } from '../utils/iconMap';
 import MasterLedger from './MasterLedger';
 import CustomTooltip from '../utils/CustomTooltip';
 
 export default function CashFlowPage() {
-  const [showWizard, setShowWizard] = useState(false);
+  // Mở sẵn nếu tháng này chưa ghi. `null` nghĩa là chưa quyết — để hiệu ứng
+  // bên dưới quyết theo dữ liệu, còn khi người dùng đã bấm thì nghe người dùng.
+  const [showWizard, setShowWizard] = useState(null);
   const [filled, setFilled] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [activeSection, setActiveSection] = useState('charts'); // 'charts' | 'ledger'
@@ -16,15 +19,25 @@ export default function CashFlowPage() {
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [realInvested, setRealInvested] = useState(0);
   const [snap, setSnap] = useState(null);
+  const [nextMonth, setNextMonth] = useState(null);
 
   useEffect(() => { loadData(); }, []);
 
+  // Chưa ghi tháng nào, hoặc còn tháng chưa nhập → mở sẵn khối ghi tháng.
+  useEffect(() => {
+    if (showWizard !== null) return;
+    if (!snap) return;
+    setShowWizard(filled.length === 0 || !!nextMonth);
+  }, [snap, filled.length, nextMonth, showWizard]);
+
   async function loadData() {
     try {
-      const [sn, f] = await Promise.all([
+      const [sn, f, nm] = await Promise.all([
         apiClient.snapshot.get(),
         apiClient.monthly.filled(),
+        apiClient.monthly.next().catch(() => null),
       ]);
+      setNextMonth(nm);
       setSnap(sn);
       setFilled(f);
       setPhase(sn.phase);
@@ -109,13 +122,13 @@ export default function CashFlowPage() {
             <h1 className="page-title">Dòng tiền</h1>
             <p className="page-subtitle">Chưa có dữ liệu dòng tiền</p>
           </div>
-          <button onClick={() => setShowWizard(true)} className="btn-primary">
-            Nhập liệu tháng mới
+          <button type="button" onClick={() => setShowWizard(true)} className="btn-primary">
+            Nhập liệu tháng đầu tiên
           </button>
         </div>
 
         {showWizard && (
-          <div className="card border-primary-200 bg-primary-50/30">
+          <div className="card border-primary-200">
             <MonthlyEntry
               onSaved={loadData}
               onComplete={() => { setShowWizard(false); loadData(); }}
@@ -124,17 +137,16 @@ export default function CashFlowPage() {
         )}
 
         {!showWizard && (
-          <div className="card text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-6">
-              <TrendUp size={40} className="text-primary-600" weight="duotone" />
-            </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-2">Bắt đầu theo dõi dòng tiền</h2>
-            <p className="text-sm text-slate-500 mb-6 max-w-md mx-auto">
-              Ghi lại thu nhập và chi tiêu hàng tháng để theo dõi dòng tiền nhàn rỗi, phân bổ vào các danh mục đầu tư.
-            </p>
-            <button onClick={() => setShowWizard(true)} className="btn-primary-lg">
-              Nhập liệu tháng đầu tiên →
-            </button>
+          <div className="card">
+            <EmptyState
+              title="Bắt đầu theo dõi dòng tiền"
+              message="Ghi thu nhập và chi tiêu mỗi tháng thì app mới biết bạn để dành được bao nhiêu, và mới đặt được mốc."
+              action={
+                <button type="button" onClick={() => setShowWizard(true)} className="btn-primary">
+                  Nhập liệu tháng đầu tiên
+                </button>
+              }
+            />
           </div>
         )}
       </div>
@@ -151,32 +163,27 @@ export default function CashFlowPage() {
             {filled.length} tháng đã ghi nhận · Trung bình {formatVND(avgMonthly)}/tháng
           </p>
         </div>
-        <button onClick={() => setShowWizard(!showWizard)} className="btn-primary">
-          {showWizard ? 'Đóng' : 'Nhập liệu tháng mới'}
+        <button type="button" onClick={() => setShowWizard(!showWizard)} className="btn-primary">
+          {showWizard ? 'Thu gọn' : nextMonth ? `Ghi ${nextMonth.month_label}` : 'Ghi tháng mới'}
         </button>
       </div>
 
       {/* Monthly Entry Wizard (collapsible) */}
       {showWizard && (
-        <div className="card border-primary-200 bg-primary-50/30">
-          <MonthlyEntry
-              onSaved={loadData}
-              onComplete={() => { setShowWizard(false); loadData(); }}
-            />
+        <div className="card border-primary-200" data-testid="wizard">
+          <MonthlyEntry onSaved={loadData} onComplete={() => { setShowWizard(false); loadData(); }} />
         </div>
       )}
 
       {/* Section Toggle */}
-      <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit">
-        <button onClick={() => setActiveSection('charts')}
-          className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeSection === 'charts' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          Biểu đồ
-        </button>
-        <button onClick={() => setActiveSection('ledger')}
-          className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeSection === 'ledger' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-          Sổ cái
-        </button>
-      </div>
+      <Tabs
+        tabs={[
+          { id: 'charts', label: 'Biểu đồ' },
+          { id: 'ledger', label: 'Sổ cái' },
+        ]}
+        value={activeSection}
+        onChange={setActiveSection}
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi">

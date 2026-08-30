@@ -17,7 +17,17 @@ const ACTIONS = {
     return b.clickText('Sổ cái', { tag: 'button' });
   },
   async openWizard(b) {
-    return b.clickText('Nhập liệu tháng mới', { tag: 'button' });
+    // Khối ghi tháng nay mở sẵn khi còn tháng chưa nhập, nên chỉ cần bấm khi
+    // nó đang thu gọn. Neo vào data-testid, không vào chữ trên nút.
+    return b.rec.page.evaluate(() => {
+      if (document.querySelector('[data-testid="wizard"]')) return true;
+      const btn = [...document.querySelectorAll('button')].find((x) =>
+        /^(Ghi |Nhập liệu)/.test((x.innerText || '').trim())
+      );
+      if (!btn) return false;
+      btn.click();
+      return true;
+    }).then(async (ok) => { if (ok) await b.sleep(1200); return ok; });
   },
   async openNetWorth(b) {
     // Neo vào data-testid, không vào chữ: đổi nhãn không được làm đỏ test.

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { actionFor, linkFor } from '../utils/categoryMeta.js';
 import { formatVND } from '../utils/formatters';
@@ -58,7 +57,6 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
   const [customReason, setCustomReason] = useState('');
 
   // Delete confirm
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
   // Expand history row to show allocation breakdown
   const [expandedMonth, setExpandedMonth] = useState(null);
   const [expandedAllocs, setExpandedAllocs] = useState([]);
@@ -181,10 +179,33 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
     loadAll();
   }
 
+  /**
+   * Hỏi trước khi xoá một tháng, và nói bằng con số.
+   *
+   * Xoá một tháng cũng xoá toàn bộ dòng phân bổ của tháng đó — người dùng cần
+   * biết điều này TRƯỚC khi bấm, không phải sau.
+   */
+  async function askDelete(m) {
+    const allocs = await apiClient.allocations.get(m.id).catch(() => []);
+    const ok = await confirm({
+      title: `Xoá dữ liệu ${m.month_label}`,
+      message: 'Tháng này biến mất khỏi sổ cái, khỏi biểu đồ và khỏi mọi con số trung bình.',
+      details: [
+        { label: 'Thu nhập', value: formatVND(m.income || 0) },
+        { label: 'Chi tiêu', value: formatVND(m.expense || 0) },
+        { label: 'Tiền nhàn rỗi', value: formatVND(m.total_inflow || 0) },
+        { label: 'Dòng phân bổ cùng bị xoá', value: String(allocs.length) },
+      ],
+      warning: 'Không hoàn tác được. Giao dịch mua bán không bị ảnh hưởng.',
+      confirmLabel: 'Xoá tháng này',
+      tone: 'danger',
+    });
+    if (ok) handleDelete(m.month_index);
+  }
+
   async function handleDelete(monthIndex) {
     try {
       await apiClient.monthly.delete(monthIndex);
-      setDeleteConfirm(null);
       if (expandedMonth === monthIndex) setExpandedMonth(null);
       loadAll();
     } catch (err) {
@@ -695,7 +716,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                       </div>
                       <div className="flex gap-1">
                         <button onClick={() => startEdit(m.month_index)} className="btn-ghost text-xs px-2 py-1">Sửa</button>
-                        <button onClick={() => setDeleteConfirm(m.month_index)} className="btn-ghost text-xs px-2 py-1 text-red-600">Xóa</button>
+                        <button type="button" onClick={() => askDelete(m)} className="btn-ghost text-fs-2 px-2 py-1 text-red-600">Xoá</button>
                       </div>
                     </div>
                   </div>
@@ -740,22 +761,6 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      {deleteConfirm && createPortal(
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 animate-fade-in">
-          <div className="card max-w-sm w-full mx-4">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Xóa nhập liệu?</h3>
-            <p className="text-sm text-slate-500 mb-4">
-              Dữ liệu tháng {filled.find(m => m.month_index === deleteConfirm)?.month_label} sẽ bị xóa.
-            </p>
-            <div className="flex justify-end gap-2">
-              <button onClick={() => setDeleteConfirm(null)} className="btn-ghost">Hủy</button>
-              <button onClick={() => handleDelete(deleteConfirm)} className="btn-danger">Xóa</button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
 
       {/* Empty state */}
       {filled.length === 0 && !editMode && step === 1 && (
