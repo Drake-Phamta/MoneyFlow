@@ -199,7 +199,6 @@ export default function Dashboard() {
       luong: m.income || 0,
       thuong: m.bonus || 0,
       chi: m.expense || 0,
-      deDanh: Math.max(0, (m.income || 0) + (m.bonus || 0) - (m.expense || 0)),
     }));
   }, [filled]);
 
@@ -365,7 +364,7 @@ export default function Dashboard() {
             {nextMonth && (
               <button
                 type="button"
-                onClick={() => navigate('/cashflow')}
+                onClick={() => navigate('/cashflow?ghi=1')}
                 data-testid="chip-nhap-lieu"
                 className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-pill border border-primary-200 bg-primary-50 text-primary-700 text-fs-2 font-medium hover:bg-primary-100 transition"
               >
@@ -496,7 +495,7 @@ export default function Dashboard() {
               title="Chưa có tài sản nào"
               message="Ghi tháng đầu tiên là biểu đồ này có hình."
               action={
-                <button type="button" onClick={() => navigate('/cashflow')} className="btn-primary text-fs-3">
+                <button type="button" onClick={() => navigate('/cashflow?ghi=1')} className="btn-primary text-fs-3">
                   Nhập liệu tháng đầu tiên
                 </button>
               }
@@ -677,7 +676,7 @@ export default function Dashboard() {
               onClick={() => navigate('/cashflow')}
               className="text-fs-2 text-primary-700 hover:underline"
             >
-              Xem đầy đủ {filled.length} tháng ›
+              Xem đầy đủ ›
             </button>
           </div>
           <p className="text-fs-2 text-slate-400 mb-3">

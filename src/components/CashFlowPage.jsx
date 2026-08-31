@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line, Area, ReferenceLine } from 'recharts';
+import { useSearchParams } from 'react-router-dom';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line, Area, ReferenceLine, Legend } from 'recharts';
 import { formatVND, formatCompact } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
 import MonthlyEntry from './MonthlyEntry';
@@ -10,9 +11,15 @@ import CustomTooltip from '../utils/CustomTooltip';
 import { toneClass } from './ui/index.jsx';
 
 export default function CashFlowPage() {
-  // Mở sẵn nếu tháng này chưa ghi. `null` nghĩa là chưa quyết — để hiệu ứng
-  // bên dưới quyết theo dữ liệu, còn khi người dùng đã bấm thì nghe người dùng.
-  const [showWizard, setShowWizard] = useState(null);
+  // `?ghi=1` nghĩa là người dùng bấm vào một lối vào NHẬP LIỆU. Bấm "Xem đầy đủ"
+  // dưới biểu đồ thì không có tham số này — đến để xem thì đừng bung form ra
+  // che mất thứ họ muốn xem.
+  const [searchParams] = useSearchParams();
+  const wantsEntry = searchParams.get('ghi') === '1';
+
+  // `null` nghĩa là chưa quyết — để hiệu ứng bên dưới quyết theo dữ liệu, còn
+  // khi người dùng đã bấm thì nghe người dùng.
+  const [showWizard, setShowWizard] = useState(wantsEntry ? true : null);
   const [filled, setFilled] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
   const [activeSection, setActiveSection] = useState('charts'); // 'charts' | 'ledger'
@@ -24,12 +31,14 @@ export default function CashFlowPage() {
 
   useEffect(() => { loadData(); }, []);
 
-  // Chưa ghi tháng nào, hoặc còn tháng chưa nhập → mở sẵn khối ghi tháng.
+  // Chỉ mở sẵn khi CHƯA ghi tháng nào — lúc đó biểu đồ rỗng, chẳng có gì để xem.
+  // Trước đây điều kiện là `|| !!nextMonth`, mà tháng kế tiếp thì lúc nào cũng
+  // có, nên form bung ra ở mọi lần vào trang.
   useEffect(() => {
     if (showWizard !== null) return;
     if (!snap) return;
-    setShowWizard(filled.length === 0 || !!nextMonth);
-  }, [snap, filled.length, nextMonth, showWizard]);
+    setShowWizard(filled.length === 0);
+  }, [snap, filled.length, showWizard]);
 
   async function loadData() {
     try {
@@ -249,64 +258,73 @@ export default function CashFlowPage() {
         <div className="space-y-6">
           {/* Cash Flow Chart */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-700">Dòng tiền theo tháng</h3>
-              <div className="flex gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Thu nhập</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Chi tiêu</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Tiền nhàn rỗi</span>
-              </div>
-            </div>
+            <h3 className="text-fs-4 font-semibold text-slate-700 mb-1">Dòng tiền theo tháng</h3>
+            <p className="text-fs-2 text-slate-400 mb-3">
+              Cột trái là tiền vào, cột phải là tiền ra. Phần chênh lệch là tiền bạn giữ lại được.
+            </p>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }}>
-                <defs>
-                  <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0F5D4A" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#0F5D4A" stopOpacity={0.4}/>
-                  </linearGradient>
-                  <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#f87171" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#f87171" stopOpacity={0.4}/>
-                  </linearGradient>
-                  <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3A6B8A" stopOpacity={0.9}/>
-                    <stop offset="95%" stopColor="#3A6B8A" stopOpacity={0.4}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={formatCompact} width={60} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f1f5f9', opacity: 0.5 }} />
-                <Bar dataKey="totalIncome" fill="url(#colorIncome)" name="Thu nhập" radius={[4, 4, 0, 0]} isAnimationActive={true} />
-                <Bar dataKey="expense" fill="url(#colorExpense)" name="Chi tiêu" radius={[4, 4, 0, 0]} isAnimationActive={true} />
-                <Bar dataKey="net" fill="url(#colorNet)" name="Tiền nhàn rỗi" radius={[4, 4, 0, 0]} isAnimationActive={true} />
+              {/* Cùng cách đọc với biểu đồ ở Tổng quan: lương và thưởng chồng
+                  thành MỘT cột tiền vào, cạnh cột chi tiêu. Tháng nào thưởng lớn
+                  hơn lương thì nhìn cột là thấy. */}
+              <BarChart data={cashFlowData} margin={{ top: 5, right: 10, bottom: 5, left: 0 }} barGap={4}>
+                <CartesianGrid stroke="rgb(var(--c-slate-200))" vertical={false} />
+                <XAxis
+                  dataKey="month"
+                  tickLine={false}
+                  axisLine={{ stroke: 'rgb(var(--c-slate-200))' }}
+                  tick={{ fill: 'rgb(var(--c-slate-400))', fontSize: 11 }}
+                  tickMargin={10}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fill: 'rgb(var(--c-slate-400))', fontSize: 11 }}
+                  tickFormatter={formatCompact}
+                  width={60}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgb(var(--c-slate-100))' }} />
+                {/* Recharts tô chữ chú giải theo màu cột; ép về màu chữ thường
+                    để "Thưởng" trên nền nhạt vẫn đọc được. */}
+                <Legend
+                  iconType="square"
+                  iconSize={9}
+                  wrapperStyle={{ fontSize: 'var(--fs-2)', paddingTop: 6 }}
+                  formatter={(v) => <span style={{ color: 'rgb(var(--c-slate-500))' }}>{v}</span>}
+                />
+                <Bar dataKey="income" stackId="thu" name="Lương" fill="rgb(var(--c-emerald-600))" />
+                <Bar dataKey="bonus" stackId="thu" name="Thưởng" fill="rgb(var(--c-emerald-400))" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="expense" name="Chi tiêu" fill="rgb(var(--c-amber-600))" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
           {/* Savings Rate Chart */}
           <div className="card">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-slate-700">Tỷ lệ tiết kiệm theo tháng</h3>
-              <div className="flex gap-4 text-xs text-slate-400">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Thực tế</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" /> Mục tiêu</span>
-              </div>
-            </div>
+            <h3 className="text-fs-4 font-semibold text-slate-700 mb-1">Tỷ lệ để dành theo tháng</h3>
+            <p className="text-fs-2 text-slate-400 mb-3">
+              Mỗi tháng bạn giữ lại được bao nhiêu phần trăm số tiền kiếm được.
+              Đường đứt nét là mức {savingsTargetPct}% đang đặt làm mục tiêu.
+            </p>
             <ResponsiveContainer width="100%" height={200}>
               <ComposedChart data={cashFlowData} margin={{ top: 10, right: 10, bottom: 5, left: 0 }}>
                 <defs>
                   <linearGradient id="colorSavings" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3A6B8A" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#3A6B8A" stopOpacity={0}/>
+                    <stop offset="5%" stopColor="rgb(var(--c-emerald-600))" stopOpacity={0.18} />
+                    <stop offset="95%" stopColor="rgb(var(--c-emerald-600))" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickMargin={10} />
-                <YAxis tickLine={false} axisLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 600 }} tickFormatter={v => `${v}%`} width={40} domain={[dataMin => Math.min(0, dataMin), 100]} />
-                <Tooltip formatter={(v, name) => [`${typeof v === 'number' ? v.toFixed(1) : v}%`, name]} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                <Line type="monotone" dataKey="target" stroke="#0F5D4A" strokeWidth={2} strokeDasharray="5 5" dot={cashFlowData.length === 1 ? { r: 4, fill: '#0F5D4A', stroke: 'none' } : false} activeDot={false} name="Mục tiêu" />
-                <Area type="monotone" dataKey="savingsRate" fill="url(#colorSavings)" stroke="#3A6B8A" strokeWidth={3} dot={cashFlowData.length === 1 ? { r: 4, fill: '#3A6B8A', stroke: 'none' } : false} activeDot={{ r: 4, fill: '#3A6B8A', stroke: 'none' }} name="Thực tế" isAnimationActive={true} />
+                <CartesianGrid stroke="rgb(var(--c-slate-200))" vertical={false} />
+                <XAxis dataKey="month" tickLine={false} axisLine={{ stroke: 'rgb(var(--c-slate-200))' }} tick={{ fill: 'rgb(var(--c-slate-400))', fontSize: 11 }} tickMargin={10} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fill: 'rgb(var(--c-slate-400))', fontSize: 11 }} tickFormatter={v => `${v}%`} width={40} domain={[dataMin => Math.min(0, dataMin), 100]} />
+                <Tooltip formatter={(v, name) => [`${typeof v === 'number' ? v.toFixed(1) : v}%`, name]} contentStyle={{ borderRadius: 'var(--r-card)', border: '1px solid rgb(var(--c-slate-200))', background: 'rgb(var(--c-surface))' }} />
+                <Legend
+                  iconType="plainline"
+                  iconSize={14}
+                  wrapperStyle={{ fontSize: 'var(--fs-2)', paddingTop: 6 }}
+                  formatter={(v) => <span style={{ color: 'rgb(var(--c-slate-500))' }}>{v}</span>}
+                />
+                <Line type="monotone" dataKey="target" stroke="rgb(var(--c-slate-400))" strokeWidth={2} strokeDasharray="5 5" dot={cashFlowData.length === 1 ? { r: 4, fill: 'rgb(var(--c-slate-400))', stroke: 'none' } : false} activeDot={false} name="Mục tiêu" />
+                <Area type="monotone" dataKey="savingsRate" fill="url(#colorSavings)" stroke="rgb(var(--c-emerald-600))" strokeWidth={2.5} dot={cashFlowData.length === 1 ? { r: 4, fill: 'rgb(var(--c-emerald-600))', stroke: 'none' } : false} activeDot={{ r: 4, fill: 'rgb(var(--c-emerald-600))', stroke: 'none' }} name="Thực tế" isAnimationActive={true} />
               </ComposedChart>
             </ResponsiveContainer>
           </div>
