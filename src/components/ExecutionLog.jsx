@@ -131,6 +131,26 @@ export default function ExecutionLog({ embedded }) {
   }
 
   async function handleDelete(id) {
+    // Xoa mot giao dich doi ca gia von, gia tri danh muc va tien mat. Moi cho
+    // xoa khac trong app deu hoi lai va noi ro mat gi; cho nay truoc day xoa
+    // thang, khong mot cau nao.
+    const t = transactions.find((x) => x.id === id);
+    const ok = await confirm({
+      title: 'Xoá giao dịch này',
+      message: 'Giá vốn, giá trị danh mục và tiền mặt đều tính lại theo.',
+      details: t
+        ? [
+            { label: 'Ngày', value: formatDate(t.date) },
+            { label: 'Tài sản', value: t.display_name || t.asset_type_name || '' },
+            { label: t.type === 'BUY' ? 'Đã mua' : 'Đã bán', value: `${t.quantity} ${t.unit || ''}`.trim() },
+            { label: 'Thành tiền', value: formatVND(t.total_amount) },
+          ]
+        : undefined,
+      confirmLabel: 'Xoá',
+      tone: 'danger',
+    });
+    if (!ok) return;
+
     try {
       await apiClient.transactions.delete(id);
       setTransactions(await apiClient.transactions.get());
@@ -513,7 +533,7 @@ export default function ExecutionLog({ embedded }) {
                     <td className="text-right text-sm text-slate-600 font-mono">{formatVND(t.price)}</td>
                     <td className="text-right text-sm font-semibold text-slate-800">{formatVND(t.total_amount)}</td>
                     <td className="text-center">
-                      <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition" title="Xóa">
+                      <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-600 p-1 rounded-lg hover:bg-red-50 transition" title="Xoá">
                         <Trash size={16} />
                       </button>
                     </td>
@@ -525,7 +545,6 @@ export default function ExecutionLog({ embedded }) {
         )}
       </div>
       {/* Discrepancy Logs */}
-      {true && (
         <div className="card mt-8">
           <div className="flex items-center gap-2 mb-4">
             <Warning size={18} className="text-slate-500" />
@@ -562,7 +581,6 @@ export default function ExecutionLog({ embedded }) {
             </div>
           )}
         </div>
-      )}
 
     </div>
   );

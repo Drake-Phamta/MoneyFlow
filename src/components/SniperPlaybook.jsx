@@ -155,6 +155,18 @@ export default function SniperPlaybook({ embedded }) {
   }
 
   async function toggleTrack(item) {
+    // Bo theo doi lam mat gia dinh da ghi cua ma do — do la con so dung de tinh
+    // muc giam tu dinh. Them lai thi phai cho gia dinh dung lai tu dau.
+    if (item.is_tracked) {
+      const ok = await confirm({
+        title: 'Ngừng theo dõi mã này',
+        message: 'Giá đỉnh đã ghi sẽ mất. Theo dõi lại thì phải chờ đỉnh dựng lại từ đầu.',
+        details: [{ label: 'Mã', value: item.ticker || item.name || '' }],
+        confirmLabel: 'Ngừng theo dõi',
+        tone: 'danger',
+      });
+      if (!ok) return;
+    }
     try {
       if (item.is_tracked) {
         await apiClient.assets.setTracked(item.id, false);

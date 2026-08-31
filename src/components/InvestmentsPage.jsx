@@ -5,20 +5,21 @@ import ExecutionLog from './ExecutionLog';
 import SniperPlaybook from './SniperPlaybook';
 import SavingsSection from './SavingsSection';
 import AllocationGoals from './dashboard/AllocationGoals';
-import { ChartLineUp, Bank, CrosshairSimple, ListChecks } from '../utils/iconMap';
-
+// Bốn tab này từng khai thêm trường `Icon`, nhưng `Tabs` chưa bao giờ vẽ nó —
+// và hai bộ tab kia (Dòng tiền, Lộ trình) cũng không có icon. Bỏ trường chết
+// đi thay vì vẽ icon cho riêng một chỗ.
 const TABS = [
-  { id: 'portfolio', label: 'Giao dịch', Icon: ChartLineUp },
-  { id: 'savings', label: 'Tiết kiệm', Icon: Bank },
-  { id: 'sniper', label: 'Bắn Tỉa', Icon: CrosshairSimple },
-  { id: 'allocation', label: 'Phân bổ', Icon: ListChecks },
+  { id: 'portfolio', label: 'Giao dịch' },
+  { id: 'savings', label: 'Tiết kiệm' },
+  { id: 'sniper', label: 'Bắn Tỉa' },
+  { id: 'allocation', label: 'Phân bổ' },
 ];
 
 const TAB_DESCRIPTIONS = {
-  portfolio: 'Cổ phiếu, ETF, Vàng, Crypto — tài sản có giá thị trường',
+  portfolio: 'Cổ phiếu, chứng chỉ quỹ, vàng — tài sản có giá thị trường',
   savings: 'Sổ tiết kiệm ngân hàng, trái phiếu — theo dõi lãi suất & đáo hạn',
-  sniper: 'Chiến lược bắn tỉa — chờ dip mua, quản lý watchlist & alert',
-  allocation: 'So sánh phân bổ thực tế vs mục tiêu theo giai đoạn',
+  sniper: 'Chờ mã giảm sâu mới mua — danh sách theo dõi và cảnh báo giá',
+  allocation: 'Phân bổ thực tế so với tỷ lệ mục tiêu của giai đoạn',
 };
 
 export default function InvestmentsPage() {

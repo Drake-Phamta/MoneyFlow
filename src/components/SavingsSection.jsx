@@ -859,7 +859,7 @@ export default function SavingsSection() {
                                           {t.type === 'deposit' ? '+' : t.type === 'withdraw' ? '-' : ''}{formatVND(t.amount)}
                                         </span>
                                         {a.transactions.length > 1 && (
-                                          <button onClick={() => handleDeleteTransaction(a.id, t.id)} className="text-rose-500 hover:text-rose-700 font-medium ml-2">Xóa</button>
+                                          <button onClick={() => handleDeleteTransaction(a.id, t.id)} className="text-rose-500 hover:text-rose-700 font-medium ml-2">Xoá</button>
                                         )}
                                       </div>
                                     </div>
@@ -995,7 +995,7 @@ export default function SavingsSection() {
                           <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
                           <button onClick={() => { setDepositingId(a.id); setMoveMode('deposit'); setEditingId(null); }} className="text-fs-2 px-2 py-1 rounded text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
                           <button onClick={() => { setDepositingId(a.id); setMoveMode('withdraw'); setEditingId(null); }} className="text-fs-2 px-2 py-1 rounded text-amber-700 hover:text-amber-800 hover:bg-amber-50 transition font-medium">Rút tiền</button>
-                          <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition">Xóa</button>
+                          <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition">Xoá</button>
                         </div>
                       </td>
                     </tr>

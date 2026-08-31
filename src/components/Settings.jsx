@@ -297,7 +297,7 @@ export default function Settings() {
 
   async function handleDeleteSelected() {
     if (selectedAssets.size === 0) return;
-    if (!await confirm({ message: `Xóa ${selectedAssets.size} tài sản đã chọn?`, tone: 'danger', confirmLabel: 'Xoá' })) return;
+    if (!await confirm({ message: `Xoá ${selectedAssets.size} tài sản đã chọn?`, tone: 'danger', confirmLabel: 'Xoá' })) return;
     try {
       await Promise.all([...selectedAssets].map(id => apiClient.assets.delete(id)));
       setSelectedAssets(new Set());
@@ -580,7 +580,7 @@ export default function Settings() {
           <div className="flex gap-2">
             {selectedAssets.size > 0 && (
               <button onClick={handleDeleteSelected} className="btn-danger text-xs">
-                <Trash size={14} className="inline mr-1" /> Xóa {selectedAssets.size} mục
+                <Trash size={14} className="inline mr-1" /> Xoá {selectedAssets.size} mục
               </button>
             )}
             <button onClick={() => { setShowAddAsset(!showAddAsset); setEditingAsset(null); }} className="btn-primary text-xs">+ Thêm tài sản</button>
@@ -672,7 +672,7 @@ export default function Settings() {
                     </td>
                     <td className="px-3 py-2 text-right">
                       <button onClick={() => startEditAsset(a)} className="text-slate-400 hover:text-primary-600 p-1" title="Sửa"><PencilSimple size={14} /></button>
-                      <button onClick={() => handleDeleteAsset(a.id)} className="text-slate-400 hover:text-red-600 p-1" title="Xóa"><Trash size={14} /></button>
+                      <button onClick={() => handleDeleteAsset(a.id)} className="text-slate-400 hover:text-red-600 p-1" title="Xoá"><Trash size={14} /></button>
                     </td>
                   </tr>
                 ))
@@ -689,7 +689,7 @@ export default function Settings() {
       {/* Data Management */}
       <div className="card border border-red-200">
         <h3 className="text-sm font-semibold text-slate-700 mb-1">Quản lý dữ liệu</h3>
-        <p className="text-xs text-slate-500 mb-4">Xóa dữ liệu đã nhập. Không thể hoàn tác.</p>
+        <p className="text-xs text-slate-500 mb-4">Xoá dữ liệu đã nhập. Không thể hoàn tác.</p>
 
         {stats && (
           <div className="grid grid-cols-5 gap-3 mb-4">
@@ -719,32 +719,32 @@ export default function Settings() {
         <div className="space-y-2">
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
-              <p className="text-sm font-medium text-slate-700">Xóa giao dịch</p>
-              <p className="text-xs text-slate-400">Xóa tất cả lệnh mua/bán. Giữ nguyên nhập liệu tháng.</p>
+              <p className="text-sm font-medium text-slate-700">Xoá giao dịch</p>
+              <p className="text-xs text-slate-400">Xoá tất cả lệnh mua/bán. Giữ nguyên nhập liệu tháng.</p>
             </div>
-            <button onClick={() => askClear('transactions')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.txns}>Xóa giao dịch</button>
+            <button onClick={() => askClear('transactions')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.txns}>Xoá giao dịch</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
-              <p className="text-sm font-medium text-slate-700">Xóa dữ liệu nhập liệu</p>
-              <p className="text-xs text-slate-400">Xóa tất cả nhập liệu tháng + giao dịch + phân bổ.</p>
+              <p className="text-sm font-medium text-slate-700">Xoá dữ liệu nhập liệu</p>
+              <p className="text-xs text-slate-400">Xoá tất cả nhập liệu tháng + giao dịch + phân bổ.</p>
             </div>
-            <button onClick={() => askClear('monthly')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.monthly}>Xóa nhập liệu</button>
+            <button onClick={() => askClear('monthly')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.monthly}>Xoá nhập liệu</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-slate-50 rounded-xl">
             <div>
-              <p className="text-sm font-medium text-slate-700">Xóa sổ tiết kiệm</p>
-              <p className="text-xs text-slate-400">Xóa tất cả sổ tiết kiệm. Dữ liệu khác giữ nguyên.</p>
+              <p className="text-sm font-medium text-slate-700">Xoá sổ tiết kiệm</p>
+              <p className="text-xs text-slate-400">Xoá tất cả sổ tiết kiệm. Dữ liệu khác giữ nguyên.</p>
             </div>
-            <button onClick={() => askClear('savings')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.savings}>Xóa sổ tiết kiệm</button>
+            <button onClick={() => askClear('savings')} className="btn-danger text-sm w-44 shrink-0" disabled={!stats?.savings}>Xoá sổ tiết kiệm</button>
           </div>
 
           <div className="flex items-center justify-between p-4 min-h-[72px] bg-red-50 rounded-xl">
             <div>
-              <p className="text-sm font-medium text-red-700">Xóa tất cả & Reset</p>
-              <p className="text-xs text-red-400">Xóa toàn bộ dữ liệu, reset về trạng thái ban đầu.</p>
+              <p className="text-sm font-medium text-red-700">Xoá tất cả & Reset</p>
+              <p className="text-xs text-red-400">Xoá toàn bộ dữ liệu, reset về trạng thái ban đầu.</p>
             </div>
             <button onClick={() => askClear('all')} className="btn-danger text-sm font-bold w-44 shrink-0">Reset toàn bộ</button>
           </div>
