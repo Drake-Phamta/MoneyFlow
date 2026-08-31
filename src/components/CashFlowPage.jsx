@@ -7,6 +7,7 @@ import MonthlyEntry from './MonthlyEntry';
 import { Tabs, EmptyState } from './ui/index.jsx';
 import { TrendUp, TrendDown, Minus } from '../utils/iconMap';
 import MasterLedger from './MasterLedger';
+import CashLedger from './CashLedger';
 import CustomTooltip from '../utils/CustomTooltip';
 import { toneClass } from './ui/index.jsx';
 
@@ -14,7 +15,7 @@ export default function CashFlowPage() {
   // `?ghi=1` nghĩa là người dùng bấm vào một lối vào NHẬP LIỆU. Bấm "Xem đầy đủ"
   // dưới biểu đồ thì không có tham số này — đến để xem thì đừng bung form ra
   // che mất thứ họ muốn xem.
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const wantsEntry = searchParams.get('ghi') === '1';
 
   // `null` nghĩa là chưa quyết — để hiệu ứng bên dưới quyết theo dữ liệu, còn
@@ -22,7 +23,10 @@ export default function CashFlowPage() {
   const [showWizard, setShowWizard] = useState(wantsEntry ? true : null);
   const [filled, setFilled] = useState([]);
   const [totalMonths, setTotalMonths] = useState(120);
-  const [activeSection, setActiveSection] = useState('charts'); // 'charts' | 'ledger'
+  const tabFromUrl = searchParams.get('tab');
+  const [activeSection, setActiveSection] = useState(
+    ['charts', 'ledger', 'cash'].includes(tabFromUrl) ? tabFromUrl : 'charts'
+  );
   const [phase, setPhase] = useState(null);
   const [phaseAllocs, setPhaseAllocs] = useState([]);
   const [realInvested, setRealInvested] = useState(0);
@@ -190,11 +194,16 @@ export default function CashFlowPage() {
         tabs={[
           { id: 'charts', label: 'Biểu đồ' },
           { id: 'ledger', label: 'Sổ cái' },
+          { id: 'cash', label: 'Tiền mặt' },
         ]}
         value={activeSection}
-        onChange={setActiveSection}
+        onChange={(id) => {
+          setActiveSection(id);
+          setSearchParams(id === 'charts' ? {} : { tab: id }, { replace: true });
+        }}
       />
 
+      {activeSection !== 'cash' && (
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="kpi">
           <span className="kpi-label">Tổng thu nhập</span>
@@ -252,6 +261,7 @@ export default function CashFlowPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Charts Section */}
       {activeSection === 'charts' && (
@@ -429,6 +439,10 @@ export default function CashFlowPage() {
       {/* Ledger Section */}
       {activeSection === 'ledger' && (
         <MasterLedger />
+      )}
+
+      {activeSection === 'cash' && (
+        <CashLedger snap={snap} onChanged={loadData} />
       )}
     </div>
   );

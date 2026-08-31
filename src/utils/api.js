@@ -64,6 +64,7 @@ export const api = {
   cash: {
     ledger: () => get('/cash/ledger'),
     spend: (amount, date, note) => post('/cash/spend', { amount, date, note }),
+    updateMovement: (id, patch) => put(`/cash/ledger/${id}`, patch),
     deleteMovement: (id) => del(`/cash/ledger/${id}`),
   },
   allocations: {

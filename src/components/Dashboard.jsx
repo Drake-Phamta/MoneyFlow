@@ -8,7 +8,6 @@ import { apiClient } from '../utils/apiClient';
 import AllocationPie from './charts/AllocationPie';
 import AssetDetailModal from './charts/AssetDetailModal';
 import NetWorthModal from './charts/NetWorthModal';
-import CashLedgerModal from './charts/CashLedgerModal';
 import CustomTooltip from '../utils/CustomTooltip';
 import { ArrowClockwise, Trash, CheckCircle, XCircle, Bell } from '../utils/iconMap';
 import { useConfirm, EmptyState, Skeleton, GainLoss, toneClass } from './ui/index.jsx';
@@ -60,7 +59,6 @@ export default function Dashboard() {
   const [priceValue, setPriceValue] = useState('');
   const [selectedAssetForModal, setSelectedAssetForModal] = useState(null);
   const [showNetWorthModal, setShowNetWorthModal] = useState(false);
-  const [showCashLedger, setShowCashLedger] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -473,29 +471,26 @@ export default function Dashboard() {
             <span className="text-fs-2 text-slate-400 mt-1.5 block">Bấm để xem đã đi thế nào</span>
           </button>
 
-          {/* Tiền mặt bấm được: mở sổ quỹ ra là thấy tiền vào từ đâu, đi đâu.
-              Hai ngăn kia đã có trang riêng của chúng. */}
+          {/* Ba ngăn, ba nhà. Con số TỔNG ở trên mở hộp thoại giải thích; còn
+              cái ngăn nào có bản ghi thì dẫn thẳng tới chỗ quản lý nó. */}
           <dl className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-slate-200">
-            <div>
-              <dt className="text-fs-2 text-slate-400">Tiền mặt</dt>
-              <dd className="mt-0.5">
-                <button
-                  type="button"
-                  onClick={() => setShowCashLedger(true)}
-                  data-testid="cash-pot"
-                  className="text-fs-4 font-semibold text-slate-800 tabular hover:text-primary-700 underline decoration-slate-300 underline-offset-4 transition"
-                >
-                  {formatVND(totalCashOnHand)}
-                </button>
-              </dd>
-            </div>
             {[
-              ['Đầu tư', totalCurrentValue],
-              ['Tiết kiệm', totalSavingsBalance],
-            ].map(([label, value]) => (
+              ['Tiền mặt', totalCashOnHand, '/cashflow?tab=cash', 'pot-cash'],
+              ['Đầu tư', totalCurrentValue, '/investments?tab=portfolio', 'pot-invest'],
+              ['Tiết kiệm', totalSavingsBalance, '/investments?tab=savings', 'pot-savings'],
+            ].map(([label, value, to, testId]) => (
               <div key={label}>
                 <dt className="text-fs-2 text-slate-400">{label}</dt>
-                <dd className="text-fs-4 font-semibold text-slate-800 tabular mt-0.5">{formatVND(value)}</dd>
+                <dd className="mt-0.5">
+                  <button
+                    type="button"
+                    onClick={() => navigate(to)}
+                    data-testid={testId}
+                    className="text-fs-4 font-semibold text-slate-800 tabular hover:text-primary-700 underline decoration-slate-300 underline-offset-4 transition"
+                  >
+                    {formatVND(value)}
+                  </button>
+                </dd>
               </div>
             ))}
           </dl>
@@ -799,13 +794,6 @@ export default function Dashboard() {
         <AssetDetailModal asset={selectedAssetForModal} onClose={() => setSelectedAssetForModal(null)} />
       )}
       {showNetWorthModal && <NetWorthModal onClose={() => setShowNetWorthModal(false)} />}
-
-      <CashLedgerModal
-        open={showCashLedger}
-        onClose={() => setShowCashLedger(false)}
-        snap={snap}
-        onChanged={loadData}
-      />
     </div>
   );
 }

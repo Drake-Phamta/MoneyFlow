@@ -257,9 +257,9 @@ async function run() {
     await t(
       'E-08',
       'Sổ quỹ tiền mặt đi được qua IPC, không chỉ qua REST',
-      ['ipc:cash:ledger', 'ipc:cash:spend', 'ipc:cash:deleteMovement',
-       'bridge:cash.ledger', 'bridge:cash.spend', 'bridge:cash.deleteMovement',
-       'client:cash.ledger', 'client:cash.spend', 'client:cash.deleteMovement'],
+      ['ipc:cash:ledger', 'ipc:cash:spend', 'ipc:cash:deleteMovement', 'ipc:cash:updateMovement',
+       'bridge:cash.ledger', 'bridge:cash.spend', 'bridge:cash.deleteMovement', 'bridge:cash.updateMovement',
+       'client:cash.ledger', 'client:cash.spend', 'client:cash.deleteMovement', 'client:cash.updateMovement'],
       async () => {
         const before = await api('snapshot.get');
         const amount = 250000;
@@ -279,6 +279,16 @@ async function run() {
           amount,
           TOL,
           'khoản đã tiêu phải trừ thẳng vào tổng tài sản'
+        );
+
+        // Sửa được qua IPC, và tổng tài sản đi theo đúng số mới.
+        await api('cash.updateMovement', r.id, { amount: 100000, note: 'Đã sửa qua IPC' });
+        const edited = await api('snapshot.get');
+        approx(
+          before.netWorth.total - edited.netWorth.total,
+          100000,
+          TOL,
+          'sửa khoản đã tiêu mà tổng tài sản không đi theo'
         );
 
         await api('cash.deleteMovement', r.id);

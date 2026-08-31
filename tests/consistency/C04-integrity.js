@@ -8,7 +8,7 @@ const fs = require('fs');
 const path = require('path');
 const { group, t, fail, ok, fmt, approx, eq } = require('../rig/assert');
 const { reset } = require('../rig/reset');
-const { getOk, post, del } = require('../rig/http');
+const { getOk, post, put, del } = require('../rig/http');
 const { REPO_ROOT } = require('../rig/env');
 const F = require('./_formulas');
 
@@ -844,6 +844,57 @@ async function run() {
         amount: 300000, date: new Date().toISOString().slice(0, 10), note: 'C35 tiêu',
       });
       await check('sau khi ghi khoản đã tiêu');
+      await reset();
+    }
+  );
+
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C36',
+    'Sửa một khoản đã tiêu, và chỉ sửa được đúng loại dòng sửa được',
+    ['rest:PUT /api/cash/ledger/:id', 'rest:POST /api/cash/spend'],
+    async () => {
+      await reset();
+      const before = await getOk('/api/snapshot');
+
+      const r = await post('/api/cash/spend', {
+        amount: 1000000, date: new Date().toISOString().slice(0, 10), note: 'C36 gõ nhầm',
+      });
+      const id = r.data.id;
+
+      const afterAdd = await getOk('/api/snapshot');
+      approx(before.netWorth.total - afterAdd.netWorth.total, 1000000, TOL,
+        'ghi khoản đã tiêu phải trừ vào tổng tài sản');
+
+      // Sửa số tiền: tổng tài sản phải đổi đúng bằng chênh lệch, không phải
+      // cộng thêm một khoản mới.
+      await put(`/api/cash/ledger/${id}`, { amount: 400000, note: 'C36 đã sửa' });
+      const afterEdit = await getOk('/api/snapshot');
+      approx(before.netWorth.total - afterEdit.netWorth.total, 400000, TOL,
+        `sửa 1tr xuống 400k mà tổng tài sản lệch ${fmt(before.netWorth.total - afterEdit.netWorth.total)}`);
+
+      const ledger = await getOk('/api/cash/ledger');
+      const row = ledger.find((x) => x.id === id);
+      ok(row && row.note === 'C36 đã sửa', 'ghi chú không được lưu');
+
+      // Dòng sinh từ một bản ghi khác là BÓNG của bản ghi đó. Sửa ở sổ quỹ thì
+      // hai bên lệch nhau mà không gì báo — phải bị từ chối.
+      const accounts = await getOk('/api/savings');
+      const acc = accounts.find((a) => (a.principal || 0) > 1000000);
+      if (acc) {
+        await post(`/api/savings/${acc.id}/transactions`, {
+          type: 'withdraw', amount: 1000000,
+          date: new Date().toISOString().slice(0, 10), note: 'C36',
+        });
+        const l2 = await getOk('/api/cash/ledger');
+        const shadow = l2.find((x) => x.source === 'savings_withdraw');
+        ok(shadow, 'không tìm thấy dòng rút sổ trong sổ quỹ');
+
+        const res = await put(`/api/cash/ledger/${shadow.id}`, { amount: 99 });
+        ok(res.status >= 400,
+          `sửa dòng rút sổ ngay trong sổ quỹ phải bị từ chối, nhận ${res.status}`);
+      }
       await reset();
     }
   );

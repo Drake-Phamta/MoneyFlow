@@ -43,6 +43,7 @@ contextBridge.exposeInMainWorld('api', {
   cash: {
     ledger: () => ipcRenderer.invoke('cash:ledger'),
     spend: (amount, date, note) => ipcRenderer.invoke('cash:spend', amount, date, note),
+    updateMovement: (id, patch) => ipcRenderer.invoke('cash:updateMovement', id, patch),
     deleteMovement: (id) => ipcRenderer.invoke('cash:deleteMovement', id),
   },
   allocations: {

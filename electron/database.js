@@ -1587,6 +1587,35 @@ class FinancialDB {
     return { id, amount: value };
   }
 
+  /**
+   * Sửa một khoản đã tiêu.
+   *
+   * CHỈ dòng `spend` mới sửa được. Dòng sinh từ rút sổ, đáo hạn hay bán tài sản
+   * là bóng của một bản ghi khác — sửa ở đây thì sổ quỹ và bản ghi gốc lệch
+   * nhau mà không gì báo. Muốn đổi thì sửa ở sổ tiết kiệm hoặc ở giao dịch.
+   */
+  updateCashMovement(id, { amount, date, note }) {
+    const row = this.queryOne('SELECT * FROM cash_ledger WHERE id = ?', [id]);
+    if (!row) throw new Error('khong tim thay dong nay trong so quy');
+    if (row.source !== 'spend') {
+      throw new Error(
+        'dong nay sinh tu mot ban ghi khac, sua o do chu khong sua o so quy'
+      );
+    }
+
+    const next = {
+      amount: amount === undefined ? row.amount : Math.abs(Number(amount) || 0),
+      date: date === undefined ? row.date : date,
+      note: note === undefined ? row.note : note,
+    };
+    if (next.amount <= 0) throw new Error('so tien phai lon hon 0');
+
+    this.run('UPDATE cash_ledger SET amount = ?, date = ?, note = ? WHERE id = ?',
+      [next.amount, next.date, next.note, id]);
+    this.save();
+    return { id, ...next };
+  }
+
   deleteCashMovement(id) {
     this.run('DELETE FROM cash_ledger WHERE id = ?', [id]);
     this.save();

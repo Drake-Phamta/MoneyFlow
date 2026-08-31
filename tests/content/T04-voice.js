@@ -205,6 +205,32 @@ async function run() {
       );
     }
   );
+
+  await t(
+    'CT-37',
+    'Hộp thoại chỉ để đọc — không hộp thoại nào ghi hay xoá dữ liệu',
+    [],
+    () => {
+      // Quy ước của app: hộp thoại GIẢI THÍCH một con số, trang thì GHI bản ghi.
+      // NetWorthModal và AssetDetailModal đều thuần đọc. Có lần một hộp thoại
+      // vừa xem vừa ghi vừa xoá lọt vào, và nó kéo theo cả một loại bản ghi
+      // không có trang nào làm nhà. Chặn ở đây để khỏi lặp lại.
+      const write = /apiClient\.[a-zA-Z]+\.(add|save|update|delete|spend|adjust|revert|regenerate|set[A-Z])/;
+      const hits = [];
+      for (const b of bodies) {
+        if (!b.file.startsWith('src/components/charts/')) continue;
+        const rows = b.code.split('\n');
+        for (let i = 0; i < rows.length; i++) {
+          if (write.test(rows[i])) hits.push(b.file + ':' + (i + 1) + ' ' + rows[i].trim().slice(0, 60));
+        }
+      }
+      ok(
+        hits.length === 0,
+        hits.length + ' lệnh ghi/xoá trong hộp thoại — chuyển sang một trang: ' +
+          hits.slice(0, 4).join(' | ')
+      );
+    }
+  );
 }
 
 module.exports = { run };

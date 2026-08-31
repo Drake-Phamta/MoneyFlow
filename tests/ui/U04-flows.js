@@ -238,32 +238,103 @@ async function run() {
 
     await t(
       'UI-F-09',
-      'Mở sổ quỹ tiền mặt, ghi một khoản đã tiêu rồi bỏ nó ra',
-      ['ui:cash.ledger', 'ui:cash.spend', 'ui:cash.deleteMovement', 'ui:snapshot.get'],
+      'Ba ngăn trên Tổng quan dẫn về đúng ba nhà của chúng',
+      ['ui:snapshot.get'],
       async () => {
-        await b.goto('/');
-        await new Promise((r) => setTimeout(r, 600));
+        // Quy tắc phải đọc được thành lời: con số TỔNG mở hộp thoại giải thích,
+        // còn cái ngăn có bản ghi thì dẫn tới chỗ quản lý nó.
+        const pots = [
+          ['pot-cash', '/cashflow', 'tab=cash'],
+          ['pot-invest', '/investments', 'tab=portfolio'],
+          ['pot-savings', '/investments', 'tab=savings'],
+        ];
 
-        // Ngăn Tiền mặt phải bấm được — đó là cả thiết kế: người dùng tìm chỗ
-        // ghi khoản đã tiêu ở đúng nơi tiền đang nằm.
-        const opened = await b.rec.page.evaluate(() => {
-          const el = document.querySelector('[data-testid="cash-pot"]');
-          if (!el) return false;
-          el.click();
+        for (const [testId, path, query] of pots) {
+          await b.goto('/');
+          await new Promise((r) => setTimeout(r, 600));
+
+          const clicked = await b.rec.page.evaluate((id) => {
+            const el = document.querySelector(`[data-testid="${id}"]`);
+            if (!el) return false;
+            el.click();
+            return true;
+          }, testId);
+          ok(clicked, `ngăn ${testId} trên Tổng quan không bấm được`);
+          await new Promise((r) => setTimeout(r, 700));
+
+          const url = await b.rec.page.evaluate(() => location.hash);
+          ok(url.includes(path), `bấm ${testId} phải sang ${path}, thực tế ${url}`);
+          ok(url.includes(query), `bấm ${testId} phải mở ${query}, thực tế ${url}`);
+        }
+
+        if (b.errors.length) fail(`lỗi JS: ${b.errors.slice(0, 2).join(' | ')}`);
+      }
+    );
+
+    await t(
+      'UI-F-10',
+      'Tab Tiền mặt: sổ quỹ có mũi tên, ghi được một khoản, và nó vào bảng',
+      ['ui:cash.ledger', 'ui:cash.spend', 'ui:cash.deleteMovement', 'ui:cash.updateMovement'],
+      async () => {
+        await b.goto('/cashflow?tab=cash');
+        await new Promise((r) => setTimeout(r, 1000));
+
+        let txt = await b.mainText();
+        // Mũi tên là toàn bộ phần "giải thích" của sổ quỹ — mất nó là mất thiết kế.
+        ok(/[←→]/.test(txt), 'sổ quỹ không có mũi tên chỉ chiều tiền đi');
+        ok(/Còn lại/.test(txt), 'sổ quỹ không có dòng tổng "Còn lại"');
+        ok(/Ghi khoản đã tiêu/.test(txt), 'tab Tiền mặt không có lối ghi khoản đã tiêu');
+
+        // Ghi một khoản qua đúng đường người dùng đi.
+        await b.clickText('Ghi khoản đã tiêu', { tag: 'button' });
+        await new Promise((r) => setTimeout(r, 400));
+        await b.rec.page.evaluate(() => {
+          const inp = document.querySelector('main input[inputmode="numeric"]');
+          const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value').set;
+          setter.call(inp, '250000');
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        await new Promise((r) => setTimeout(r, 300));
+        await b.clickText('Ghi vào sổ', { tag: 'button' });
+        await new Promise((r) => setTimeout(r, 900));
+
+        // Danh sách bản ghi phải dùng bảng chung như mọi mặt lịch sử khác.
+        const hasTable = await b.rec.page.evaluate(
+          () => !!document.querySelector('main table.table')
+        );
+        ok(hasTable, 'ghi xong mà không có bảng .table như các mặt lịch sử khác');
+
+        txt = await b.mainText();
+        ok(/250\.000/.test(txt), 'khoản vừa ghi không hiện trong bảng');
+
+        // Sửa tại ô, đúng cách Sổ cái làm: bấm vào số, gõ, rời ô là lưu.
+        const edited = await b.rec.page.evaluate(() => {
+          const cells = [...document.querySelectorAll('main table.table tbody td')];
+          const cell = cells.find((c) => /250\.000/.test(c.innerText || ''));
+          if (!cell) return false;
+          const span = cell.querySelector('span') || cell;
+          span.click();
           return true;
         });
-        ok(opened, 'không tìm thấy ngăn Tiền mặt bấm được trên Tổng quan');
-        await new Promise((r) => setTimeout(r, 600));
+        ok(edited, 'không bấm được vào ô số tiền để sửa');
+        await new Promise((r) => setTimeout(r, 350));
 
-        // Modal dựng qua portal nên nằm NGOÀI <main> — đọc ở cấp tài liệu.
-        const txt = await b.rec.page.evaluate(() => document.body.innerText || '');
-        ok(/Ghi khoản đã tiêu/.test(txt), 'sổ quỹ mở ra mà không có lối ghi khoản đã tiêu');
+        await b.rec.page.evaluate(() => {
+          const inp = document.querySelector('main table.table input');
+          const setter = Object.getOwnPropertyDescriptor(
+            window.HTMLInputElement.prototype, 'value').set;
+          setter.call(inp, '90000');
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          inp.blur();
+        });
+        await new Promise((r) => setTimeout(r, 900));
 
-        // Sổ quỹ phải nói được tiền vào từ đâu bằng mũi tên, không bằng đoạn văn.
-        ok(/[←→]/.test(txt), 'sổ quỹ không có mũi tên chỉ chiều tiền đi');
+        txt = await b.mainText();
+        ok(/90\.000/.test(txt), 'sửa tại ô xong mà bảng vẫn giữ số cũ');
 
         const bad = await b.badTokens();
-        ok(bad.length === 0, `lộ ${bad.join(', ')} trong sổ quỹ tiền mặt`);
+        ok(bad.length === 0, `lộ ${bad.join(', ')} ở tab Tiền mặt`);
         if (b.errors.length) fail(`lỗi JS: ${b.errors.slice(0, 2).join(' | ')}`);
       }
     );

@@ -174,6 +174,11 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
     } catch (e) { res.status(500).json({ error: errText(e) }); }
   });
 
+  app.put('/api/cash/ledger/:id', (req, res) => {
+    try { res.json(db.updateCashMovement(parseInt(req.params.id), req.body)); }
+    catch (e) { res.status(400).json({ error: errText(e) }); }
+  });
+
   app.delete('/api/cash/ledger/:id', (req, res) => {
     try { res.json(db.deleteCashMovement(parseInt(req.params.id))); }
     catch (e) { res.status(500).json({ error: errText(e) }); }
