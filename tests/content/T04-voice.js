@@ -69,11 +69,20 @@ async function run() {
     () => {
       // Chỉ soi chữ nằm giữa hai thẻ JSX — đó chắc chắn là chữ hiển thị.
       const jsxText = /> *([^<>{}\n]{12,}?) *</g;
-      const leak = /\b(total_inflow|actual_amount|planned_amount|goal_amount|sort_order|monthly_entries|phase_allocations|asset_types|discrepancy_logs|savings_accounts|getFinancialSnapshot|snapshot\.)\b/;
+      const leak = /\b(total_inflow|actual_amount|planned_amount|goal_amount|sort_order|monthly_entries|phase_allocations|asset_types|asset_class|discrepancy_logs|savings_accounts|getFinancialSnapshot|snapshot\.)\b/;
       const hits = [];
       for (const b of bodies) {
-        if (!b.file.endsWith('.jsx')) continue;
-        for (const m of b.code.matchAll(jsxText)) {
+        if (b.file.endsWith('.jsx')) {
+          for (const m of b.code.matchAll(jsxText)) {
+            if (leak.test(m[1])) hits.push(`${b.file}: "${m[1].trim().slice(0, 70)}"`);
+          }
+          continue;
+        }
+        // src/content/* cũng là chữ hiển thị, nhưng nằm trong chuỗi chứ không
+        // giữa hai thẻ JSX — nên vòng trên không bao giờ soi tới. Đó là lý do
+        // bốn dòng `check` trong checklists.js lọt lưới với nguyên tên cột.
+        if (!b.file.startsWith('src/content/')) continue;
+        for (const m of b.code.matchAll(/'([^'\n]{12,})'/g)) {
           if (leak.test(m[1])) hits.push(`${b.file}: "${m[1].trim().slice(0, 70)}"`);
         }
       }

@@ -513,25 +513,30 @@ export default function Dashboard() {
 
       {/* ── 2. Bốn con số cần liếc mỗi ngày ───────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile label="Tiền nhàn rỗi" value={formatVND(totalNet)} note={`Thu trừ chi, cộng dồn ${filled.length} tháng`} />
+        {/* Chú thích phải khớp công thức trong src/content/glossary.js. */}
+        <StatTile
+          label="Tiền đã để dành"
+          value={formatVND(totalNet)}
+          note={`Lương và thưởng trừ chi tiêu, cộng của ${filled.length} tháng`}
+        />
         <StatTile
           label="Thanh khoản"
           value={formatVND(liquidity)}
           note={
             snap?.savings.termPrincipal > 0
-              ? `Rút ngay được — ${money(snap.savings.termPrincipal)} còn khoá kỳ hạn`
-              : 'Rút ngay được, không mất lãi'
+              ? `Rút được ngay mà không mất lãi. Còn ${money(snap.savings.termPrincipal)} đang khoá kỳ hạn.`
+              : 'Rút được ngay mà không mất lãi'
           }
         />
         <StatTile
-          label="Tỷ lệ tiết kiệm"
+          label="Tỷ lệ để dành"
           value={savingsRate !== null ? `${num(savingsRate)}%` : '—'}
-          note={savingsRate !== null ? `Kiếm 100đ thì giữ lại được ${Math.round(savingsRate)}đ` : 'Chưa đủ dữ liệu'}
+          note={savingsRate !== null ? `Kiếm 100đ thì giữ lại được ${num(savingsRate)}đ` : 'Chưa đủ dữ liệu'}
         />
         <StatTile
           label="Mốc tự do tài chính"
           value={snap ? money(snap.fi.fiNumber) : '—'}
-          note={snap ? `Đủ số này thì sống bằng lợi nhuận — đã đi ${num(snap.fi.ratio, 2)}%` : ''}
+          note={snap ? `Đủ số này thì lợi nhuận nuôi được chi tiêu. Tài sản hiện bằng ${num(snap.fi.ratio)}% mốc đó.` : ''}
         />
       </div>
 

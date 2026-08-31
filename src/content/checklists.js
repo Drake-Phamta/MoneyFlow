@@ -8,7 +8,7 @@
  *
  *   label  chữ người dùng đọc
  *   check  app đang kiểm chính xác điều gì — hiện khi người dùng hỏi "vì sao
- *          mục này chưa tick"
+ *          mục này chưa xong"
  *
  * `check` phải mô tả đúng vị từ trong getChecklistStatus (electron/database.js).
  */
@@ -45,12 +45,12 @@ export const PHASE_CHECKLISTS = {
     {
       id: 'emergency_done',
       label: 'Quỹ dự phòng đã đạt mục tiêu',
-      check: 'Cùng ngưỡng với mục ở giai đoạn 1',
+      check: 'Gốc và lãi các sổ gắn danh mục Dự Phòng ≥ 3 lần chi tiêu mục tiêu',
     },
     {
       id: 'diversify_stocks',
       label: 'Sở hữu ≥ 3 mã cổ phiếu hoặc ETF',
-      check: 'Đếm các mã có asset_class là stock hoặc etf',
+      check: 'Đếm số mã cổ phiếu và chứng chỉ quỹ ETF bạn đang nắm giữ',
     },
     {
       id: 'gold_fund',
@@ -72,12 +72,12 @@ export const PHASE_CHECKLISTS = {
     {
       id: 'gold_1chi',
       label: 'Sở hữu ≥ 1 chỉ vàng SJC',
-      check: 'Tổng số lượng tài sản asset_class gold ≥ 1',
+      check: 'Cộng số lượng vàng đang nắm giữ, tính theo chỉ',
     },
     {
       id: 'dividend_stocks',
       label: 'Sở hữu ≥ 3 mã cổ phiếu riêng lẻ',
-      check: 'Đếm các mã có asset_class là stock — ETF và crypto không tính',
+      check: 'Đếm số mã cổ phiếu riêng lẻ — chứng chỉ quỹ ETF và tiền mã hoá không tính',
     },
     {
       id: 'tktp_1so',
@@ -92,7 +92,7 @@ export const PHASE_CHECKLISTS = {
     {
       id: 'gov_bonds',
       label: 'Sở hữu trái phiếu',
-      check: 'Có giao dịch asset_class bond, hoặc sổ tiết kiệm loại trái phiếu',
+      check: 'Có giao dịch trái phiếu, hoặc một sổ tiết kiệm loại trái phiếu',
     },
   ],
   4: [
@@ -113,7 +113,7 @@ export const PHASE_CHECKLISTS = {
     },
     {
       id: 'rebalance_quarterly',
-      label: 'Cân lại danh mục trong 90 ngày',
+      label: 'Có mua thêm hoặc bán ra trong 90 ngày',
       check: 'Trong 90 ngày có tiền vào từ 2 nhóm tài sản trở lên, hoặc có lệnh bán',
     },
   ],

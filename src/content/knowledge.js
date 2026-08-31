@@ -89,7 +89,7 @@ Lợi suất thực = lợi suất danh nghĩa − lạm phát.
 • Sổ tiết kiệm ${pct(savings)} − lạm phát ${pct(infl)} = ${pct(savings - infl)} thực
 • Cổ phiếu ${pct(stock)} − lạm phát ${pct(infl)} = ${pct(realStock)} thực
 
-Tiền để yên không mất về mặt con số, nhưng mỗi năm mua được ít đi ${pct(infl)}. Sổ tiết kiệm giữ được giá trị, cổ phiếu mới làm nó lớn lên.`,
+Tiền để yên không mất về mặt con số, nhưng mỗi năm mua được ít đi ${pct(infl)}. Sổ tiết kiệm kỳ hạn theo kịp lạm phát là cùng; muốn tài sản lớn lên thì phải có phần cổ phiếu.`,
     },
     {
       id: 'four_pct',
@@ -102,7 +102,7 @@ Chi tiêu mục tiêu ${money(expense)}/tháng → ${money(expense * 12)}/năm �
 
 Vì sao là 25 lần: rút 4% tức là rút 1/25. Phần còn lại vẫn sinh lời, và nếu lợi suất THỰC cao hơn 4% thì tài sản còn tiếp tục lớn trong lúc bạn đang rút.
 
-Điều kiện đó không hiển nhiên. Với lạm phát ${pct(infl)}, danh mục phải đạt lợi suất danh nghĩa trên ${pct(0.04 + infl)}/năm thì quy tắc 4% mới đứng vững.
+Với lạm phát ${pct(infl)}, danh mục phải đạt lợi suất danh nghĩa trên ${pct(0.04 + infl)}/năm thì tài sản mới không vơi đi. Thấp hơn mức đó quy tắc vẫn chạy được — nó chấp nhận vốn bào mòn dần trong 30 năm.
 
 Hai điều cần biết trước khi tin con số này:
 • 4% là mức an toàn cho 30 năm, không phải mức tối ưu, và không phải mức vĩnh viễn
@@ -143,7 +143,7 @@ Ví dụ với ${money(expense * 3)} — đúng bằng quỹ dự phòng 3 thán
 Lãi suất tham khảo:
 ${rateTable(RATE_GUIDE)}
 
-Sổ không kỳ hạn gần như không có lãi. Nó nằm đó để bạn không phải phá sổ kỳ hạn — phá sổ là mất toàn bộ lãi đã tích.
+Sổ không kỳ hạn gần như không có lãi. Nó nằm đó để bạn không phải phá sổ kỳ hạn — phá sổ thì lãi đã tích thường bị tính lại theo lãi suất không kỳ hạn.
 
 Gửi trực tuyến thường nhỉnh hơn tại quầy khoảng 0,5 điểm phần trăm.`,
     },

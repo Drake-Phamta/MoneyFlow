@@ -197,7 +197,7 @@ function Timeline({ snap, result, bands, phases, input }) {
     <div className="card">
       <h3 className="text-sm font-semibold text-slate-700 mb-1">Bao giờ tới</h3>
       <p className="text-fs-2 text-slate-400 mb-4">
-        Tính theo tiền để dành hiện tại và tỷ lệ phân bổ của từng giai đoạn.
+        Tính theo mức để dành mỗi tháng và tỷ lệ phân bổ của từng giai đoạn.
       </p>
 
       {rows.length === 0 ? (
@@ -223,10 +223,10 @@ function Timeline({ snap, result, bands, phases, input }) {
 
       {bands?.base?.reached && (
         <p className="text-fs-2 text-slate-400 mb-4">
-          Khoảng hai phần ba khả năng rơi vào{' '}
-          <strong className="text-slate-600">{num(bands.high.yearsToFI)}</strong>–
-          <strong className="text-slate-600">{num(bands.low.yearsToFI)}</strong> năm. Ghi
-          thêm một tháng thì dải này hẹp lại.
+          Nếu mọi thứ thuận hơn thì khoảng{' '}
+          <strong className="text-slate-600">{num(bands.high.yearsToFI)}</strong> năm, chật vật hơn thì{' '}
+          <strong className="text-slate-600">{num(bands.low.yearsToFI)}</strong> năm. Càng
+          nhiều tháng đã ghi thì dải này càng đáng tin.
         </p>
       )}
 
@@ -352,12 +352,12 @@ function Controls(props) {
         <div>
           <h3 className="text-sm font-semibold text-slate-700">Thử đổi một thứ</h3>
           <p className="text-fs-2 text-slate-400 mt-0.5">
-            Kéo để xem thử. Không có gì được lưu lại.
+            Kéo thanh trượt để xem thử. Không có gì được lưu lại.
           </p>
         </div>
         {dirty && (
           <button type="button" onClick={onReset} className="btn-ghost text-fs-2" data-testid="reset-sliders">
-            Về số thật
+            Trả về số thật
           </button>
         )}
       </div>
@@ -377,7 +377,7 @@ function Controls(props) {
               { at: actualExpense, label: `thực tế ${money(actualExpense)}` },
               { at: targetExpense, label: `mục tiêu ${money(targetExpense)}` },
             ]}
-            note="Chỉ kéo đích lại gần — tiền để dành mỗi tháng vẫn là con số đo từ sổ của bạn. Đây là đòn bẩy duy nhất không đòi bạn kiếm thêm đồng nào."
+            note="Chỉ kéo đích lại gần — tiền để dành mỗi tháng vẫn là con số đo từ sổ của bạn. Sống gọn hơn thì đích thấp xuống, nhưng đây là cắt mức sống chứ không miễn phí."
           />
 
           <div>
@@ -425,7 +425,7 @@ function Controls(props) {
                   ]
                 : []
             }
-            note="Mười lăm tháng quá ngắn để suy ra hai mươi năm — mức thật đã đạt chỉ là một điểm tham chiếu."
+            note="Mười lăm tháng thì quá ngắn để suy ra hai mươi năm — mức thật đã đạt chỉ là một điểm tham chiếu."
           />
 
         </div>
@@ -441,7 +441,7 @@ function Controls(props) {
           <p className="text-fs-2 text-slate-500 mt-0.5">
             {result.reached
               ? result.milestones.find((m) => m.kind === 'fi')?.label
-              : 'không tới trong 100 năm'}
+              : 'chưa tới trong 100 năm'}
           </p>
 
           <dl className="mt-4 space-y-2 text-fs-2">
@@ -467,15 +467,16 @@ function Controls(props) {
           data-testid="expense-note"
         >
           Ngưỡng giai đoạn vẫn tính theo chi tiêu mục tiêu {money(targetExpense)}/tháng. Sống ở mức{' '}
-          {money(actualExpense)} như hiện nay thì mốc tự do tài chính đến sớm hơn{' '}
-          <strong>{num(savedYears)} năm</strong>.
+          {money(actualExpense)} như hiện nay thì mốc tự do tài chính{' '}
+          {savedYears > 0 ? 'đến sớm hơn ' : 'lùi lại '}
+          <strong>{num(Math.abs(savedYears))} năm</strong>.
         </p>
       )}
 
       {levers?.levers?.length > 0 && (
         <div className="mt-5">
           <p className="text-fs-1 uppercase tracking-widest text-slate-400 font-semibold mb-2">
-            Đổi 10% thì rút ngắn bao nhiêu
+            Tăng hoặc giảm mỗi thứ 10% thì rút ngắn được bao nhiêu
           </p>
           <div className="space-y-1" data-testid="levers">
             {levers.levers.map((l) => {
@@ -631,7 +632,7 @@ function TodoList({ snap }) {
       <div className="card">
         <h3 className="text-sm font-semibold text-slate-700 mb-1">Việc cần làm</h3>
         <p className="text-fs-3 text-emerald-600">
-          Xong hết việc của giai đoạn này. Tiếp tục ghi chép đều là đủ.
+          Xong hết việc của giai đoạn này. Còn lại là chờ tài sản đủ ngưỡng.
         </p>
       </div>
     );
@@ -641,7 +642,7 @@ function TodoList({ snap }) {
     <div className="card">
       <h3 className="text-sm font-semibold text-slate-700 mb-1">Việc cần làm</h3>
       <p className="text-fs-2 text-slate-400 mb-3">
-        App tự kiểm từ dữ liệu, bạn không cần tick.
+        Những mục này tự kiểm từ dữ liệu bạn đã ghi.
       </p>
       <div className="space-y-2" data-testid="todo">
         {items.map((x) => (

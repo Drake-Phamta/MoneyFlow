@@ -59,7 +59,7 @@ export default function CashFlowPage() {
     }
   }
 
-  // Savings rate target (% of income) — default 30%
+  // Mức để dành đặt làm mục tiêu, tính trên toàn bộ tiền kiếm được (gồm thưởng).
   const savingsTargetPct = 30;
 
   // Cash flow data per month
@@ -150,7 +150,7 @@ export default function CashFlowPage() {
           <div className="card">
             <EmptyState
               title="Bắt đầu theo dõi dòng tiền"
-              message="Ghi thu nhập và chi tiêu mỗi tháng thì app mới biết bạn để dành được bao nhiêu, và mới đặt được mốc."
+              message="Ghi thu nhập và chi tiêu mỗi tháng để biết bạn để dành được bao nhiêu, và bao giờ chạm mốc."
               action={
                 <button type="button" onClick={() => setShowWizard(true)} className="btn-primary">
                   Nhập liệu tháng đầu tiên
@@ -170,7 +170,7 @@ export default function CashFlowPage() {
         <div>
           <h1 className="page-title">Dòng tiền</h1>
           <p className="page-subtitle">
-            {filled.length} tháng đã ghi nhận · Trung bình {formatVND(avgMonthly)}/tháng
+            {filled.length} tháng đã ghi nhận · Để dành trung bình {formatVND(avgMonthly)}/tháng
           </p>
         </div>
         <button type="button" onClick={() => setShowWizard(!showWizard)} className="btn-primary">
@@ -214,7 +214,7 @@ export default function CashFlowPage() {
           )}
         </div>
         <div className="kpi">
-          <span className="kpi-label">Tỷ lệ tiết kiệm</span>
+          <span className="kpi-label">Tỷ lệ để dành</span>
           <p className={`kpi-value ${avgSavingsRate >= 30 ? 'text-emerald-600' : avgSavingsRate >= 20 ? 'text-amber-600' : 'text-red-600'}`}>
             {avgSavingsRate.toFixed(1)}%
           </p>
@@ -224,11 +224,11 @@ export default function CashFlowPage() {
             </span>
             {streak >= 3 ? (
               <span className="text-fs-3 px-1.5 py-0.5 rounded-full font-medium bg-amber-100 text-amber-700">
-                {streak} tháng liên tục 🔥
+                {streak} tháng liền dư tiền
               </span>
             ) : streak > 0 ? (
               <span className="text-fs-3 px-1.5 py-0.5 rounded-full font-medium bg-emerald-50 text-emerald-600">
-                {streak} tháng liên tục
+                {streak} tháng liền dư tiền
               </span>
             ) : null}
           </div>
@@ -243,7 +243,7 @@ export default function CashFlowPage() {
               <span className={`text-fs-3 px-1.5 py-0.5 rounded-full font-medium ${
                 avgInvestRate >= investTargetPct * 0.9 ? 'bg-blue-50 text-blue-600' : 'bg-amber-50 text-amber-600'
               }`}>
-                Mục tiêu {investTargetPct}% theo phase
+                Mục tiêu {investTargetPct}% của giai đoạn này
               </span>
             )}
             {totalInvested > 0 && (
@@ -402,22 +402,22 @@ export default function CashFlowPage() {
               </div>
             </div>
             <div className="card">
-              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Kỷ lục</h3>
+              <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">Cao nhất</h3>
               <div className="space-y-3">
                 {bestMonth && (
                   <div className="p-3 bg-emerald-50 rounded-xl">
-                    <p className="text-xs text-emerald-600 mb-1">Tháng tiền nhàn rỗi cao nhất</p>
+                    <p className="text-xs text-emerald-600 mb-1">Tháng để dành được nhiều nhất</p>
                     <p className="text-sm font-bold text-emerald-700">{bestMonth.month}: {formatVND(bestMonth.net)}</p>
                   </div>
                 )}
                 {worstMonth && (
                   <div className="p-3 bg-red-50 rounded-xl">
-                    <p className="text-xs text-red-600 mb-1">Tháng tiền nhàn rỗi thấp nhất</p>
+                    <p className="text-xs text-red-600 mb-1">Tháng để dành được ít nhất</p>
                     <p className="text-sm font-bold text-red-700">{worstMonth.month}: {formatVND(worstMonth.net)}</p>
                   </div>
                 )}
                 <div className="p-3 bg-blue-50 rounded-xl">
-                  <p className="text-xs text-blue-600 mb-1">Chuỗi tháng dương liên tục</p>
+                  <p className="text-xs text-blue-600 mb-1">Số tháng liền nhau còn dư tiền</p>
                   <p className="text-sm font-bold text-blue-700">{streak} tháng</p>
                 </div>
               </div>

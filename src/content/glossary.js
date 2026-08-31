@@ -23,12 +23,12 @@ export const TERMS = {
   },
   cashTotal: {
     label: 'Tiền mặt',
-    hint: 'Tiền đã kiếm được nhưng chưa nằm trong tài sản nào.',
-    formula: 'Chưa chia cho danh mục nào + đã chia nhưng chưa mua',
+    hint: 'Tiền đang nằm im, chưa mua tài sản nào.',
+    formula: 'Chưa chia cho danh mục nào + đã chia nhưng lệnh mua chưa vào',
   },
   cashUnallocated: {
     label: 'Chưa chia cho danh mục nào',
-    formula: 'Tiền nhàn rỗi đã ghi nhận − tổng đã phân bổ − phần bù cho tháng chi vượt thu',
+    formula: 'Tiền để dành đã ghi nhận − đã phân bổ − phần đắp cho những tháng chi vượt thu',
   },
   cashAwaiting: {
     label: 'Đã chia, chờ lệnh mua',
@@ -40,9 +40,14 @@ export const TERMS = {
     hint: 'Phần còn lại sau khi trừ chi tiêu — đây là tiền để phân bổ.',
     formula: 'Thu nhập + thưởng − chi tiêu, tính theo từng tháng',
   },
+  savedTotal: {
+    label: 'Tiền đã để dành',
+    hint: 'Cộng tiền nhàn rỗi của mọi tháng đã ghi — phần lớn đang nằm trong tài sản.',
+    formula: 'Tổng tiền nhàn rỗi của tất cả các tháng',
+  },
   deployed: {
     label: 'Đã giải ngân',
-    hint: 'Tiền thật đã rời túi, đã gồm phí môi giới.',
+    hint: 'Tiền thật đã chi ra, đã gồm phí môi giới.',
     formula: 'Σ (tiền mua + phí) − Σ (tiền bán − phí)',
   },
   marketValue: {
@@ -71,7 +76,7 @@ export const TERMS = {
   },
   fiNumber: {
     label: 'Mốc tự do tài chính',
-    hint: 'Đủ số này thì lợi nhuận nuôi được chi tiêu, không cần đi làm.',
+    hint: 'Đủ số này thì rút 4% mỗi năm là đủ sống, theo nghiên cứu cho quãng 30 năm.',
     formula: 'Chi tiêu mục tiêu × 12 ÷ 4%',
   },
   fiRatio: {
