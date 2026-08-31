@@ -9,6 +9,7 @@
  * đổi chỉ được dựng vào thư mục test, còn dist/ của dự án đứng yên từ sáng.
  */
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { group, t, ok } = require('../rig/assert');
 const { REPO_ROOT } = require('../rig/env');
@@ -182,12 +183,41 @@ async function run() {
         refs.push(['electron/main.js',
           path.join(...mm[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean))]);
       }
+      // Lối tắt trên Desktop và menu Start lấy icon từ đây. Đợt đổi logo sinh
+      // icon mới vào build/ và public/ nhưng script này vẫn trỏ vào tệp cũ ở
+      // thư mục gốc, nên bấm menu Start ra vẫn là icon cũ.
+      const vbs = fs.readFileSync(path.join(REPO_ROOT, 'scripts/ensure_shortcuts.vbs'), 'utf8');
+      const vm = vbs.match(/strIconPath = strProjectRoot & "([^"]+)"/);
+      ok(vm, 'không tìm thấy đường dẫn icon trong ensure_shortcuts.vbs');
+      const BS = String.fromCharCode(92);
+      refs.push([
+        'ensure_shortcuts.vbs',
+        vm[1].split(BS).filter(Boolean).join(path.sep),
+      ]);
 
-      ok(refs.length >= 4, 'chỉ tìm thấy ' + refs.length + ' tham chiếu logo, chờ ít nhất 4');
+      ok(refs.length >= 5, 'chỉ tìm thấy ' + refs.length + ' tham chiếu logo, chờ ít nhất 5');
       const missing = refs
         .filter(([, f]) => !fs.existsSync(path.join(REPO_ROOT, f)))
         .map(([who, f]) => who + ' -> ' + f);
       ok(missing.length === 0, 'trỏ vào tệp không tồn tại: ' + missing.join(', '));
+
+      // "Tệp có thật" là chưa đủ: icon cũ vẫn nằm đó nên mọi đường dẫn sai vẫn
+      // qua được phép kiểm trên. Bất biến thật là mọi chỗ phải trỏ vào CÙNG MỘT
+      // hình — đó mới là thứ đã hỏng khi menu Start giữ icon cũ.
+      const sha = (f) =>
+        crypto.createHash('sha256').update(fs.readFileSync(path.join(REPO_ROOT, f))).digest('hex');
+      const icos = refs.filter(([, f]) => f.toLowerCase().endsWith('.ico'));
+      const seen = new Map();
+      for (const [who, f] of icos) {
+        const h = sha(f);
+        if (!seen.has(h)) seen.set(h, []);
+        seen.get(h).push(who + ' -> ' + f);
+      }
+      ok(
+        seen.size <= 1,
+        'các nơi đang dùng ' + seen.size + ' icon KHÁC NHAU: ' +
+          [...seen.values()].map((g) => g.join(' & ')).join('  ||  ')
+      );
     }
   );
 
@@ -204,6 +234,27 @@ async function run() {
       const files = (pkg.build && pkg.build.files) || [];
       const leak = files.filter((f) => /(^|\/)data\//.test(f));
       ok(leak.length === 0, 'build.files còn đóng gói: ' + leak.join(', '));
+    }
+  );
+
+  await t(
+    'UI-S-07',
+    'Icon đóng gói phải nằm trong git, không bị .gitignore nuốt mất',
+    [],
+    () => {
+      // `build/` trong .gitignore vốn để chặn build output, nhưng package.json
+      // và electron/main.js đều trỏ vào build/icon.ico. Clone mới về mà thiếu
+      // tệp này là không đóng gói được và bản Electron mất icon cửa sổ.
+      const pkg = JSON.parse(
+        fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+      const icon = pkg.build?.win?.icon;
+      ok(icon, 'package.json không khai icon cho bộ cài');
+
+      const tracked = require('child_process')
+        .execSync('git ls-files ' + JSON.stringify(icon), { cwd: REPO_ROOT })
+        .toString()
+        .trim();
+      ok(tracked.length > 0, icon + ' không được git theo dõi — .gitignore đang nuốt nó');
     }
   );
 }

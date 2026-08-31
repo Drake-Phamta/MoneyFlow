@@ -5,6 +5,10 @@ node_modules/
 dist/
 build/
 release/
+# ...trừ icon đóng gói: electron-builder đọc build/ theo mặc định, và
+# package.json trỏ thẳng vào tệp này.
+!build/
+!build/icon.ico
 
 # Database files
 data/

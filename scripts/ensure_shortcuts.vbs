@@ -12,7 +12,7 @@ strScriptDir = objFSO.GetParentFolderName(WScript.ScriptFullName)
 strProjectRoot = objFSO.GetParentFolderName(strScriptDir)
 
 ' Paths
-strIconPath = strProjectRoot & "\icon.ico"
+strIconPath = strProjectRoot & "\build\icon.ico"
 strWebVBS = strProjectRoot & "\MoneyFlow_Web.vbs"
 strDesktopVBS = strProjectRoot & "\MoneyFlow_Desktop.vbs"
 
@@ -42,6 +42,12 @@ Sub EnsureLink(linkPath, vbsPath, description)
     Else
         Set oLink = WshShell.CreateShortcut(linkPath)
         If Not objFSO.FileExists(Replace(oLink.Arguments, Chr(34), "")) Then
+            bCreate = True
+        ' Loi tat da co van giu duong dan icon cu. Truoc day chi ghi lai khi loi
+        ' tat THIEU hoac HONG, nen doi icon xong thi menu Start van hien icon cu
+        ' mai mai. Gio icon sai cung la mot ly do de ghi lai.
+        ElseIf objFSO.FileExists(strIconPath) And _
+               LCase(oLink.IconLocation) <> LCase(strIconPath & ",0") Then
             bCreate = True
         End If
     End If
