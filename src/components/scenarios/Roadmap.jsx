@@ -12,9 +12,8 @@ import {
 } from '../../lib/projection.mjs';
 import { buildPhaseGuidance, PHASE_META } from '../../content/phases.js';
 import { PHASE_CHECKLISTS } from '../../content/checklists.js';
-import { money, num, date } from '../../content/render.js';
+import { money, num, date, vnd } from '../../content/render.js';
 import { EmptyState } from '../ui/index.jsx';
-import { toneClass } from '../ui/index.jsx';
 
 /**
  * Lộ trình — trả lời theo đúng thứ tự người dùng cần biết:
@@ -566,25 +565,39 @@ function PlanVsActual({ snap }) {
 
   return (
     <div className="card">
-      <h3 className="text-sm font-semibold text-slate-700 mb-1">Kế hoạch so với thực tế</h3>
-      <p className="text-fs-2 text-slate-400 mb-4">
-        Bạn đã bám kế hoạch tới đâu, và lệch thì vì lý do gì.
+      <h3 className="text-fs-4 font-semibold text-slate-700 mb-1">Kế hoạch so với thực tế</h3>
+      <p className="text-fs-2 text-slate-400 mb-3">
+        Mỗi tháng app chia tiền nhàn rỗi vào các danh mục theo tỷ lệ của giai đoạn —
+        đó là cột Kế hoạch. Bỏ thêm tiền vào danh mục nào thì phần đó cộng vào cột Thực tế.
       </p>
 
-      <div className="space-y-1">
-        {rows.map((m) => (
-          <div key={m.month_index} className="flex items-baseline gap-3 py-1">
-            <span className="w-20 shrink-0 text-fs-3 text-slate-600 tabular">{m.month_label}</span>
-            <span className="flex-1 text-fs-3 text-slate-500 tabular">
-              {money(m.actual)} / {money(m.planned)}
-            </span>
-            <span
-              className={`text-fs-3 tabular shrink-0 ${toneClass(m.diff, 1000)}`}
-            >
-              {Math.abs(m.diff) < 1000 ? 'đúng kế hoạch' : `${m.diff > 0 ? '+' : ''}${money(m.diff)}`}
-            </span>
-          </div>
-        ))}
+      {/* Số đầy đủ chứ không nén về "4tr / 3,5tr": đây là chỗ người đọc phải
+          trừ nhẩm hai số, mà làm tròn một chữ số thập phân thì 4tr − 3,5tr ra
+          0,5tr trong khi chênh thật là 523.500đ. */}
+      <div className="overflow-x-auto">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Tháng</th>
+              <th className="text-right">Kế hoạch</th>
+              <th className="text-right">Thực tế</th>
+              <th className="text-right">Chênh</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((m) => (
+              <tr key={m.month_index}>
+                <td className="tabular">{m.month_label}</td>
+                <td className="text-right tabular text-slate-500">{vnd(m.planned)}</td>
+                <td className="text-right tabular">{vnd(m.actual)}</td>
+                {/* Không tô xanh/đỏ: đây là lệch kế hoạch, không phải lãi lỗ. */}
+                <td className="text-right tabular text-slate-500">
+                  {m.diff === 0 ? 'đúng kế hoạch' : `${m.diff > 0 ? '+' : '−'}${vnd(Math.abs(m.diff))}`}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {logs.length > 0 && (

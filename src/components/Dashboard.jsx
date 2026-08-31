@@ -186,7 +186,6 @@ export default function Dashboard() {
   const totalInvested = summary?.totalInvested || 0;
   const totalCurrentValue = summary?.totalCurrentValue || 0;
   const totalGain = summary?.totalGain || 0;
-  const totalGainPct = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
   const byCategory = summary?.byCategory || {};
 
   // Cash flow data for mini chart (last 6 months)
@@ -224,6 +223,12 @@ export default function Dashboard() {
 
   // Lãi/lỗ chưa bán của danh mục cộng lãi tiết kiệm đã tính tới hôm nay.
   const totalOverallGain = totalGain + totalSavingsAccrued;
+  // Phần trăm phải chia cho ĐÚNG số vốn đã sinh ra khoản lãi ở trên. Trước đây
+  // tử số gộp cả lãi tiết kiệm còn mẫu số chỉ có vốn danh mục, nên chip hiện
+  // 1,16% (lãi danh mục) đứng cạnh 199.579đ (lãi danh mục + lãi tiết kiệm) —
+  // hai đại lượng khác nhau bày ra như một cặp.
+  const overallBase = totalInvested + (snap?.savings.principal || 0);
+  const overallGainPct = overallBase > 0 ? (totalOverallGain / overallBase) * 100 : 0;
   // Ba trạng thái, không phải hai: hoà vốn không phải là lãi.
   const gainChip =
     totalOverallGain > 0
@@ -478,12 +483,12 @@ export default function Dashboard() {
           <div className="flex flex-wrap items-center gap-2.5 mt-4">
             <span className={`inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-pill border text-fs-3 font-semibold tabular ${gainChip}`}>
               <span aria-hidden="true">{gainArrow}</span>
-              {totalInvested > 0 ? `${num(Math.abs(totalGainPct), 2)}%` : formatVND(Math.abs(totalOverallGain))}
+              {overallBase > 0 ? `${num(Math.abs(overallGainPct), 2)}%` : formatVND(Math.abs(totalOverallGain))}
             </span>
             <span className="text-fs-2 text-slate-500">
               {totalOverallGain === 0
                 ? 'Chưa lãi chưa lỗ'
-                : `${totalOverallGain > 0 ? 'Lãi' : 'Lỗ'} ${formatVND(Math.abs(totalOverallGain))} tính từ lúc bắt đầu`}
+                : `${totalOverallGain > 0 ? 'Lãi' : 'Lỗ'} ${formatVND(Math.abs(totalOverallGain))}`}
             </span>
           </div>
         </div>

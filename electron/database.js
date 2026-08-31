@@ -1463,10 +1463,33 @@ class FinancialDB {
     `);
   }
   saveAllocations(entryId, allocations) {
+    // Giữ lại phần LỆCH của từng danh mục trước khi xoá đi ghi lại.
+    //
+    // `adjustInvestmentAllocation` ghi khoản điều chỉnh vào `actual_amount`,
+    // còn màn hình nhập liệu thì luôn gửi lên `actual_amount = planned_amount`.
+    // Nên trước đây hễ sửa lại một tháng đã có điều chỉnh là phần lệch biến
+    // mất, và bảng "Kế hoạch so với thực tế" báo "đúng kế hoạch" cho một tháng
+    // thật ra có lệch. Tiền không mất — nó bị nuốt vào chính kế hoạch — nhưng
+    // dấu vết thì mất.
+    const keptDelta = {};
+    for (const r of this.query(
+      'SELECT category_id, planned_amount, actual_amount FROM allocations WHERE monthly_entry_id = ?',
+      [entryId]
+    )) {
+      const delta = (r.actual_amount || 0) - (r.planned_amount || 0);
+      if (delta !== 0) keptDelta[r.category_id] = delta;
+    }
+
     this.run('DELETE FROM allocations WHERE monthly_entry_id = ?', [entryId]);
     for (const a of allocations) {
+      const planned = a.planned_amount;
+      const incoming = a.actual_amount || 0;
+      const delta = keptDelta[a.category_id] || 0;
+      // Người dùng gửi lên một con số thực tế khác kế hoạch thì nghe họ; còn
+      // khi họ chỉ gửi lại đúng kế hoạch, cộng lại phần lệch đã ghi trước đó.
+      const actual = incoming > 0 && incoming !== planned ? incoming : incoming + delta;
       this.run('INSERT INTO allocations (monthly_entry_id, category_id, planned_amount, actual_amount) VALUES (?, ?, ?, ?)',
-        [entryId, a.category_id, a.planned_amount, a.actual_amount || 0]);
+        [entryId, a.category_id, planned, actual]);
     }
     this.save();
   }
@@ -2501,24 +2524,50 @@ class FinancialDB {
     };
   }
 
-  /** Kế hoạch so với thực tế theo từng tháng, kèm lý do người dùng đã ghi. */
+  /**
+   * Kế hoạch so với thực tế theo từng tháng, kèm lý do người dùng đã ghi.
+   *
+   * Chênh lệch KHÔNG đọc từ `planned_amount` được nữa. Lý do: `saveAllocations`
+   * xoá rồi ghi lại cả tháng, còn `MonthlyEntry` gửi lên `actual = planned`.
+   * Nên hễ sửa lại một tháng đã có điều chỉnh là phần điều chỉnh bị nuốt vào
+   * chính `planned_amount` — tiền vẫn còn, nhưng dấu vết "tháng này lệch kế
+   * hoạch" biến mất. Trên dữ liệu thật: T5/2026 có log 23.560đ mà bảng vẫn
+   * báo "đúng kế hoạch", vì kế hoạch đã bị viết đè thành 8.723.560đ.
+   *
+   * `discrepancy_logs` mới là sổ ghi các lần lệch, và nó không bị viết đè. Nên:
+   *   thực tế  = tổng đang nằm ở các danh mục
+   *   chênh    = tổng các lần điều chỉnh của tháng đó
+   *   kế hoạch = thực tế − chênh
+   * Cách này đúng cho cả tháng đã bị viết đè lẫn tháng chưa, và làm bảng khớp
+   * với chính danh sách điều chỉnh in ngay bên dưới nó.
+   */
   getPlanVsActual() {
     const rows = this.query(
       'SELECT me.month_index, me.month_label, me.total_inflow, ' +
-      'SUM(a.planned_amount) as planned, ' +
       'SUM(CASE WHEN a.actual_amount > 0 THEN a.actual_amount ELSE a.planned_amount END) as actual ' +
       'FROM monthly_entries me JOIN allocations a ON a.monthly_entry_id = me.id ' +
-      'WHERE me.total_inflow > 0 GROUP BY me.id ORDER BY me.month_index'
+      'GROUP BY me.id ORDER BY me.month_index'
     );
-    const byMonth = rows.map((r) => ({
-      month_index: r.month_index,
-      month_label: r.month_label,
-      total_inflow: r.total_inflow,
-      planned: r.planned || 0,
-      actual: r.actual || 0,
-      diff: (r.actual || 0) - (r.planned || 0),
-      diffPct: r.planned > 0 ? ((r.actual || 0) - r.planned) / r.planned : 0,
-    }));
+    const adjusted = {};
+    for (const r of this.query(
+      'SELECT month_index, COALESCE(SUM(amount), 0) as total FROM discrepancy_logs GROUP BY month_index'
+    )) {
+      adjusted[r.month_index] = r.total || 0;
+    }
+    const byMonth = rows.map((r) => {
+      const actual = r.actual || 0;
+      const diff = adjusted[r.month_index] || 0;
+      const planned = actual - diff;
+      return {
+        month_index: r.month_index,
+        month_label: r.month_label,
+        total_inflow: r.total_inflow,
+        planned,
+        actual,
+        diff,
+        diffPct: planned > 0 ? diff / planned : 0,
+      };
+    });
     return { byMonth, discrepancies: this.getDiscrepancyLogs() };
   }
 

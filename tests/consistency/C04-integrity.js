@@ -116,13 +116,34 @@ async function run() {
         .map((x) => parseFloat(x.trim()))
         .filter((x) => !isNaN(x));
 
-      // Các ngưỡng cấp trong playbook — lấy từ thân hàm getLevel()
-      const lvlStart = playbookSrc.indexOf('function getLevel(');
-      ok(lvlStart > 0, 'không tìm thấy getLevel() trong SniperPlaybook.jsx');
-      const lvlBody = playbookSrc.slice(lvlStart, playbookSrc.indexOf('}', lvlStart));
-      const tiers = [...lvlBody.matchAll(/>=\s*(0?\.\d+)/g)].map((x) => parseFloat(x[1]));
-      const tierSet = [...new Set(tiers)].sort((a, b) => a - b);
-      ok(tierSet.length >= 3, `getLevel() chỉ có ${tierSet.length} ngưỡng`);
+      // Ngưỡng cấp lấy từ SNIPER_TIERS — nguồn duy nhất. Trước đây test này
+      // cào số trực tiếp trong thân getLevel(), nên nó vô tình hợp thức hoá
+      // việc viết cứng ngưỡng ở màn hình. Giờ đọc từ nguồn, và kiểm luôn rằng
+      // màn hình không tự bịa một bộ ngưỡng thứ hai.
+      const tierSrc = read('src/content/phases.js');
+      const tm = tierSrc.match(/SNIPER_TIERS\s*=\s*\[([\s\S]*?)\];/);
+      ok(tm, 'không tìm thấy SNIPER_TIERS trong src/content/phases.js');
+      const tierSet = [...new Set([...tm[1].matchAll(/from:\s*(0?\.\d+)/g)].map((x) => parseFloat(x[1])))]
+        .sort((a, b) => a - b);
+      ok(tierSet.length >= 3, `SNIPER_TIERS chỉ có ${tierSet.length} ngưỡng`);
+
+      // Màn hình phải đọc từ SNIPER_TIERS, không được có số thập phân ngưỡng
+      // nào viết thẳng trong mã.
+      ok(
+        playbookSrc.includes('SNIPER_TIERS'),
+        'SniperPlaybook.jsx không đọc SNIPER_TIERS — ngưỡng đang viết cứng ở đâu đó'
+      );
+      // Bỏ chú thích trước khi quét — chú thích được phép nhắc tới con số.
+      const playbookCode = playbookSrc
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/^\s*\/\/.*$/gm, '');
+      const hardcoded = [...playbookCode.matchAll(/[><]=?\s*(0\.\d+)/g)]
+        .map((x) => parseFloat(x[1]))
+        .filter((v) => tierSet.includes(v));
+      ok(
+        hardcoded.length === 0,
+        `SniperPlaybook.jsx còn viết cứng ngưỡng ${hardcoded.join(', ')} — phải lấy từ SNIPER_TIERS`
+      );
 
       const missing = tierSet.filter((tt) => !alertLevels.includes(tt));
       if (missing.length) {
@@ -512,6 +533,106 @@ async function run() {
     }
   );
 
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C23',
+    'Mỗi lần điều chỉnh phải hiện thành chênh lệch ở đúng tháng của nó',
+    ['rest:POST /api/allocations/adjust', 'rest:GET /api/snapshot'],
+    async () => {
+      await reset();
+      const cats = await getOk('/api/categories');
+      const target = cats.find((c) => c.name.includes('Chứng Khoán'));
+      ok(target, 'không có danh mục Chứng Khoán');
+
+      await post('/api/allocations/adjust', {
+        discrepancyAmount: 777000,
+        categoryId: target.id,
+        reason: 'C23',
+        date: new Date().toISOString().slice(0, 10),
+      });
+
+      const snap = await getOk('/api/snapshot');
+      const logs = snap.plan.discrepancies || [];
+      const rows = snap.plan.byMonth || [];
+      ok(logs.length, 'không ghi được dòng điều chỉnh nào');
+
+      // Thẻ "Kế hoạch so với thực tế" in tổng các lần điều chỉnh ngay dưới
+      // bảng. Hai con số đó phải là một, nếu không thẻ tự mâu thuẫn — đúng cái
+      // người dùng nhìn thấy: dưới ghi "3 lần điều chỉnh" mà bảng chỉ hiện 2.
+      const sumLogs = logs.reduce((s, l) => s + (l.amount || 0), 0);
+      const sumDiff = rows.reduce((s, r) => s + (r.diff || 0), 0);
+      approx(sumDiff, sumLogs, TOL,
+        'tổng chênh lệch trong bảng phải bằng tổng các lần điều chỉnh liệt kê bên dưới');
+
+      // Và từng tháng phải khớp, không chỉ tổng.
+      const perMonth = {};
+      for (const l of logs) perMonth[l.month_index] = (perMonth[l.month_index] || 0) + (l.amount || 0);
+      for (const [mi, amount] of Object.entries(perMonth)) {
+        const row = rows.find((r) => String(r.month_index) === String(mi));
+        ok(row, `có điều chỉnh ở tháng ${mi} nhưng tháng đó không có trong bảng`);
+        approx(row.diff, amount, TOL,
+          `tháng ${row.month_label}: bảng báo chênh ${fmt(row.diff)} nhưng sổ ghi ${fmt(amount)}`);
+      }
+    }
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C24',
+    'Sửa lại một tháng đã có điều chỉnh thì phần lệch không được biến mất',
+    ['rest:POST /api/allocations/:entryId', 'rest:POST /api/allocations/adjust'],
+    async () => {
+      await reset();
+      const cats = await getOk('/api/categories');
+      const target = cats.find((c) => c.name.includes('Chứng Khoán'));
+
+      await post('/api/allocations/adjust', {
+        discrepancyAmount: 456000,
+        categoryId: target.id,
+        reason: 'C24',
+        date: new Date().toISOString().slice(0, 10),
+      });
+
+      const snapBefore = await getOk('/api/snapshot');
+      const logs = snapBefore.plan.discrepancies || [];
+      const mi = logs[0] && logs[0].month_index;
+      ok(mi !== undefined, 'không ghi được dòng điều chỉnh nào');
+
+      const filled = await getOk('/api/monthly/filled');
+      const month = filled.find((m) => m.month_index === mi);
+      ok(month, `không tìm thấy tháng ${mi} trong danh sách đã ghi`);
+
+      const rowBefore = snapBefore.plan.byMonth.find((r) => r.month_index === mi);
+      const diffBefore = rowBefore ? rowBefore.diff : 0;
+      ok(diffBefore > 0, 'điều chỉnh chưa hiện thành chênh lệch, test sau vô nghĩa');
+
+      // Đúng thứ MonthlyEntry gửi lên khi bấm "Sửa" rồi lưu mà không đổi gì:
+      // actual_amount = planned_amount. Trước đây đúng câu lệnh này nuốt mất
+      // phần điều chỉnh vào chính kế hoạch.
+      const allocs = await getOk(`/api/allocations/${month.id}`);
+      await post(`/api/allocations/${month.id}`, {
+        allocations: allocs.map((a) => ({
+          category_id: a.category_id,
+          planned_amount: a.planned_amount,
+          actual_amount: a.planned_amount,
+        })),
+      });
+
+      const snapAfter = await getOk('/api/snapshot');
+      const rowAfter = snapAfter.plan.byMonth.find((r) => r.month_index === mi);
+      ok(rowAfter, 'tháng biến mất khỏi bảng sau khi lưu lại');
+      approx(rowAfter.diff, diffBefore, TOL,
+        `sửa lại tháng làm chênh lệch tụt từ ${fmt(diffBefore)} xuống ${fmt(rowAfter.diff)}`);
+
+      const sumRow = await getOk(`/api/allocations/${month.id}`);
+      const totalAfter = sumRow.reduce(
+        (s, a) => s + (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0), 0);
+      const totalBefore = allocs.reduce(
+        (s, a) => s + (a.actual_amount > 0 ? a.actual_amount : a.planned_amount || 0), 0);
+      approx(totalAfter, totalBefore, TOL, 'tổng tiền đã phân bổ của tháng không được đổi');
+    }
+  );
 }
 
 module.exports = { run };
