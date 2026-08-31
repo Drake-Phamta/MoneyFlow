@@ -31,7 +31,10 @@ export const RISK_SPECTRUM = [
   { name: 'Tiết kiệm & Trái phiếu', low: 0.04, high: 0.07, why: 'khoá kỳ hạn để đổi lấy lãi cao hơn' },
   { name: 'Vàng', low: 0.05, high: 0.1, why: 'giữ giá trị khi tiền mất giá, nhưng không trả cổ tức' },
   { name: 'Chứng Khoán', low: 0.08, high: 0.15, why: 'tăng trưởng dài hạn, đổi lại là biến động' },
-  { name: 'Bắn Tỉa', low: 0.15, high: 0.3, why: 'chỉ mua khi thị trường sập, nên phần lớn thời gian nằm im' },
+  // Bắn Tỉa mua chính những cổ phiếu ở dòng trên, chỉ khác thời điểm — nên
+  // dải lợi suất của nó là dải của cổ phiếu, không phải một mức riêng cao hơn.
+  // Ghi 15–30% ở đây biến một cách chọn thời điểm thành lời hứa lợi nhuận.
+  { name: 'Bắn Tỉa', low: 0.08, high: 0.15, why: 'vẫn là cổ phiếu, chỉ khác ở chỗ chờ giá giảm sâu mới mua' },
 ];
 
 function rateTable(rows) {
@@ -122,8 +125,8 @@ ${riskTable(RISK_SPECTRUM)}
 Năm nhóm này bù nhau ở những lúc khác nhau:
 • Dự Phòng và Tiết kiệm giữ cho bạn không phải bán tài sản lúc thị trường xấu
 • Chứng Khoán làm tài sản lớn lên
-• Vàng thường tăng đúng lúc niềm tin vào tiền giấy giảm
-• Bắn Tỉa biến một đợt sập thành cơ hội thay vì tai nạn
+• Vàng ít đi cùng nhịp với chứng khoán, nên đỡ được phần nào lúc thị trường xấu
+• Bắn Tỉa để dành sẵn tiền cho lúc giá giảm sâu, thay vì phải bán thứ khác đi mà mua
 
 Cân lại mỗi quý: nhóm nào lệch quá 5 điểm phần trăm so với tỷ lệ mục tiêu thì hướng tiền mới vào nhóm đang thiếu, thay vì bán nhóm đang thừa.`,
     },
@@ -145,7 +148,7 @@ ${rateTable(RATE_GUIDE)}
 
 Sổ không kỳ hạn gần như không có lãi. Nó nằm đó để bạn không phải phá sổ kỳ hạn — phá sổ thì lãi đã tích thường bị tính lại theo lãi suất không kỳ hạn.
 
-Gửi trực tuyến thường nhỉnh hơn tại quầy khoảng 0,5 điểm phần trăm.`,
+Gửi trực tuyến thường được lãi cao hơn tại quầy. Mức chênh tuỳ ngân hàng và tuỳ thời điểm — xem bảng lãi suất trước khi gửi.`,
     },
   ];
 }

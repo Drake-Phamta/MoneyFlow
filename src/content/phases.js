@@ -49,8 +49,8 @@ const ACTIONS = {
   1: (ctx) => [
     'Mở tài khoản tiết kiệm online',
     'Mở tài khoản chứng khoán',
-    `Tháng đầu chỉ gửi tiết kiệm, chưa mua gì`,
-    `Từ tháng thứ hai mua ETF hoặc cổ phiếu, mỗi lệnh ${money(500000)}–${money(1000000)}`,
+    'Dồn cho quỹ dự phòng trước — đủ ngưỡng rồi hãy nghĩ tới chứng khoán',
+    'Gộp đủ vài triệu hãy đặt một lệnh — phí tối thiểu ăn hết những lệnh quá nhỏ',
     'Ghi lại mọi tháng — không có số liệu thì không có gì để tính',
   ],
   2: (ctx) => [
@@ -62,9 +62,9 @@ const ACTIONS = {
     'Cân lại danh mục mỗi quý',
   ],
   3: (ctx) => [
-    'Chuyển dần sang cổ phiếu trả cổ tức đều',
+    'Mỗi lần mua thêm, ưu tiên mã có trả cổ tức đều vài năm liền',
     'Mua 1–2 chỉ SJC mỗi năm',
-    'Cân nhắc trái phiếu chính phủ hoặc doanh nghiệp có xếp hạng',
+    'Cân nhắc trái phiếu chính phủ hoặc chứng chỉ tiền gửi — thứ tra được lãi suất và kỳ hạn trước khi mua',
     sniperLadder(),
     'Cân lại danh mục mỗi quý',
   ],
@@ -76,14 +76,24 @@ const ACTIONS = {
   ],
 };
 
+// Nguyên tắc phải LÀM THEO ĐƯỢC. Bốn dòng ở đây từng là châm ngôn — "Giữ được
+// tài sản khó hơn kiếm được nó" đọc xuôi tai nhưng không bảo được ai làm gì.
 const PRINCIPLES = {
   1: [
-    'Không rút dự phòng để đầu tư',
-    'Số nhỏ không sao — quan trọng là bắt đầu',
+    'Không rút dự phòng để đầu tư, kể cả khi thị trường đang giảm sâu',
+    'Ghi đủ mọi tháng — thiếu một tháng là mọi con số trung bình đều lệch',
   ],
-  2: ['Mua đều đặn quan trọng hơn mua đúng đáy'],
-  3: ['Đa dạng để chịu được cú sốc, không phải để nhiều mã cho vui'],
-  4: ['Giữ được tài sản khó hơn kiếm được nó'],
+  2: [
+    'Vẫn mua đều mỗi tháng bằng phần đã chia; quỹ Bắn Tỉa là khoản riêng, ' +
+      'chờ giá giảm sâu mới dùng tới',
+  ],
+  3: [
+    'Không để một mã chiếm quá một phần tư phần chứng khoán',
+  ],
+  4: [
+    'Chỉ tiêu phần lợi nhuận nhận được bằng tiền mặt — cổ tức, lãi sổ — ' +
+      'không bán bớt tài sản để tiêu',
+  ],
 };
 
 /** "Sập 15–25% bắn 30% · 25–35% bắn 30% · trên 35% bắn 40%" */
