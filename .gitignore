@@ -5,10 +5,17 @@ node_modules/
 dist/
 build/
 release/
-# ...trừ icon đóng gói: electron-builder đọc build/ theo mặc định, và
-# package.json trỏ thẳng vào tệp này.
+# ...trừ đúng một tệp: icon đóng gói. electron-builder đọc build/ theo mặc
+# định và package.json trỏ thẳng vào đây. Mở cả thư mục thì thứ gì rơi vào
+# build/ cũng theo dõi được, nên chỉ mở đúng tệp cần.
 !build/
+build/*
 !build/icon.ico
+
+# Tệp tạm và bản dự phòng mà database.js sinh ra khi lưu. Đây là dữ liệu thật.
+*.sqlite
+*.sqlite.bak
+*.sqlite.tmp
 
 # Database files
 data/

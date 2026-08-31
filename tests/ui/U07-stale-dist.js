@@ -257,6 +257,44 @@ async function run() {
       ok(tracked.length > 0, icon + ' không được git theo dõi — .gitignore đang nuốt nó');
     }
   );
+
+  await t(
+    'UI-S-08',
+    'Không tệp dữ liệu nào được git theo dõi, và có chốt chặn để không lọt lại',
+    [],
+    () => {
+      // Sổ tiền thật đã từng nằm trong lịch sử của kho công khai này. Lịch sử
+      // đã rửa; test này giữ cho nó không quay lại.
+      const { execSync } = require('child_process');
+      const tracked = execSync('git ls-files', { cwd: REPO_ROOT })
+        .toString()
+        .split('\n')
+        .filter((f) => /(^|\/)data\//.test(f) || /\.(sqlite|db)$/i.test(f));
+      ok(
+        tracked.length === 0,
+        'git đang theo dõi tệp dữ liệu: ' + tracked.slice(0, 3).join(', ')
+      );
+
+      const gi = fs.readFileSync(path.join(REPO_ROOT, '.gitignore'), 'utf8');
+      ok(/^data\/$/m.test(gi), '.gitignore không còn chặn thư mục data/');
+
+      // Chốt chặn phải tồn tại VÀ được git trỏ tới, nếu không nó chỉ là tệp chết.
+      for (const h of ['pre-commit', 'pre-push']) {
+        ok(
+          fs.existsSync(path.join(REPO_ROOT, '.githooks', h)),
+          `thiếu chốt chặn .githooks/${h}`
+        );
+      }
+      const hooksPath = execSync('git config core.hooksPath', { cwd: REPO_ROOT })
+        .toString()
+        .trim();
+      ok(
+        hooksPath === '.githooks',
+        `core.hooksPath đang là "${hooksPath}" — chốt chặn không chạy. ` +
+          'Chạy: git config core.hooksPath .githooks'
+      );
+    }
+  );
 }
 
 module.exports = { run };

@@ -1,0 +1,23 @@
+#!/bin/sh
+# Chặn mọi tệp dữ liệu lọt vào commit.
+#
+# Sổ tiền thật đã từng nằm trong lịch sử của kho công khai này. Lịch sử đã được
+# rửa, `data/` đã vào .gitignore — nhưng một lệnh `git add -f` là đủ để nó quay
+# lại, và đẩy lên rồi thì không gỡ được nữa.
+#
+# Bỏ qua khi thật sự cần:  git commit --no-verify
+
+bad=$(git diff --cached --name-only --diff-filter=ACM |
+      grep -iE '(^|/)data/|\.sqlite($|\.)|\.db$' || true)
+
+if [ -n "$bad" ]; then
+  echo ""
+  echo "  DỪNG: commit này có tệp dữ liệu."
+  echo ""
+  echo "$bad" | sed 's/^/    /'
+  echo ""
+  echo "  Đây là sổ tiền thật. Kho này công khai — đẩy lên là không gỡ được."
+  echo "  Gỡ khỏi vùng chờ:  git restore --staged <tệp>"
+  echo ""
+  exit 1
+fi

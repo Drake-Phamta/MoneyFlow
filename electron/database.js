@@ -26,11 +26,34 @@ class FinancialDB {
 
   async init() {
     const SQL = await initSqlJs();
-    const dbExists = fs.existsSync(this.dbPath);
-    if (dbExists) {
-      const buffer = fs.readFileSync(this.dbPath);
-      this.db = new SQL.Database(buffer);
-      // Check existing data count
+
+    // Thứ tự thử: tệp chính, rồi bản .bak mà save() giữ lại. Tệp rỗng cũng coi
+    // như hỏng — đó đúng là hình dạng để lại khi mất điện giữa lúc ghi.
+    const candidates = [
+      { path: this.dbPath, label: 'tệp chính' },
+      { path: this.dbPath + '.bak', label: 'bản dự phòng .bak' },
+    ];
+
+    let loaded = false;
+    for (const c of candidates) {
+      let st;
+      try { st = fs.statSync(c.path); } catch (e) { continue; }
+      if (!st.size) continue;
+      try {
+        this.db = new SQL.Database(fs.readFileSync(c.path));
+        this.query('SELECT COUNT(*) as cnt FROM sqlite_master');
+        if (c.path !== this.dbPath) {
+          console.warn(`[DB] Tệp chính hỏng hoặc rỗng — đã mở ${c.label} và ghi đè lại.`);
+          fs.copyFileSync(c.path, this.dbPath);
+        }
+        loaded = true;
+        break;
+      } catch (e) {
+        console.warn(`[DB] Không đọc được ${c.label}: ${e.message || e}`);
+      }
+    }
+
+    if (loaded) {
       try {
         const cnt = this.query('SELECT COUNT(*) as cnt FROM allocations');
         console.log('[DB] Loaded existing database, allocations:', cnt[0]?.cnt || 0);
@@ -50,6 +73,9 @@ class FinancialDB {
     this.migrateToV9();
     this.migrateToV10();
     this.seedDefaults();
+
+    // Chụp một ảnh của ngày hôm nay, sau khi migration đã chạy xong.
+    this._dailySnapshot();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
     try {
@@ -82,8 +108,8 @@ class FinancialDB {
       console.error('[DB] Migration of activity dates failed:', e.message);
     }
 
-    // Only save if database didn't exist before (new DB)
-    if (!dbExists) {
+    // Cơ sở dữ liệu mới thì ghi ngay một lần để tệp có mặt trên đĩa.
+    if (!loaded) {
       this.save();
     }
   }
@@ -92,8 +118,66 @@ class FinancialDB {
     // Mọi thay đổi đều đi qua đây, nên đây là chỗ đúng để bỏ bộ nhớ đệm của
     // snapshot. Thiếu bước này thì trang sẽ đọc lại số cũ sau khi ghi.
     this._coreCache = null;
-    const data = this.db.export();
-    fs.writeFileSync(this.dbPath, Buffer.from(data));
+    const buf = Buffer.from(this.db.export());
+
+    // Ghi ra tệp tạm, ép xuống đĩa, rồi mới đổi tên đè lên tệp thật.
+    //
+    // Trước đây đây là `fs.writeFileSync(this.dbPath, buf)` — ghi thẳng vào
+    // tệp đích. sql.js xuất lại TOÀN BỘ cơ sở dữ liệu mỗi lần lưu, nên mỗi lần
+    // ghi một tháng hay đồng bộ giá là cả tệp bị viết lại. Mất điện, treo máy
+    // hay hết đĩa giữa chừng thì tệp cụt, và mất sạch sổ. Đổi tên trong cùng
+    // một ổ là thao tác nguyên tử: hoặc thấy bản cũ, hoặc thấy bản mới, không
+    // bao giờ thấy nửa vời.
+    const tmp = this.dbPath + '.tmp';
+    const bak = this.dbPath + '.bak';
+
+    const fd = fs.openSync(tmp, 'w');
+    try {
+      fs.writeSync(fd, buf);
+      fs.fsyncSync(fd);
+    } finally {
+      fs.closeSync(fd);
+    }
+
+    // Giữ bản ngay trước đó. Nếu bản mới hỏng vì lý do ngoài tầm (đĩa lỗi,
+    // phần mềm diệt virus cắt ngang), init() sẽ tự quay về bản này.
+    try {
+      const st = fs.existsSync(this.dbPath) && fs.statSync(this.dbPath);
+      if (st && st.size > 0) fs.copyFileSync(this.dbPath, bak);
+    } catch (e) { /* không giữ được bản cũ thì vẫn phải lưu bản mới */ }
+
+    fs.renameSync(tmp, this.dbPath);
+  }
+
+  /**
+   * Ảnh chụp mỗi ngày một lần, giữ 10 bản gần nhất.
+   *
+   * `.bak` chỉ cứu được lỗi ghi hỏng. Nó không cứu được lỗi ghi ĐÚNG mà nội
+   * dung sai — xoá nhầm một tháng, nhập nhầm một con số rồi lưu. Ảnh chụp theo
+   * ngày mới là cái quay về được.
+   */
+  _dailySnapshot() {
+    try {
+      const dir = path.join(path.dirname(this.dbPath), 'backups');
+      fs.mkdirSync(dir, { recursive: true });
+
+      const today = this._todayLocal();
+      const name = `financial-${today}.sqlite`;
+      const target = path.join(dir, name);
+      if (fs.existsSync(target)) return;
+      if (!fs.existsSync(this.dbPath)) return;
+      fs.copyFileSync(this.dbPath, target);
+
+      const olds = fs
+        .readdirSync(dir)
+        .filter((f) => /^financial-.*\.sqlite$/.test(f))
+        .sort();
+      for (const f of olds.slice(0, Math.max(0, olds.length - 10))) {
+        fs.unlinkSync(path.join(dir, f));
+      }
+    } catch (e) {
+      console.warn('[DB] Không tạo được ảnh chụp hôm nay:', e.message);
+    }
   }
 
   createTables() {

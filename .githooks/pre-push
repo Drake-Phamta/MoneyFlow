@@ -1,0 +1,28 @@
+#!/bin/sh
+# Chốt cuối: không đẩy nếu nhánh sắp đẩy còn commit nào chứa tệp dữ liệu.
+#
+# pre-commit chặn tệp mới; hook này chặn cả lịch sử cũ lỡ mang theo.
+
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  [ "$local_sha" = "0000000000000000000000000000000000000000" ] && continue
+
+  if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]; then
+    range="$local_sha"
+  else
+    range="$remote_sha..$local_sha"
+  fi
+
+  bad=$(git log --name-only --pretty=format: "$range" 2>/dev/null |
+        grep -iE '(^|/)data/.*\.(sqlite|db)$' | sort -u || true)
+
+  if [ -n "$bad" ]; then
+    echo ""
+    echo "  DỪNG: lịch sử sắp đẩy còn tệp dữ liệu."
+    echo ""
+    echo "$bad" | sed 's/^/    /'
+    echo ""
+    echo "  Kho này công khai. Đẩy lên rồi thì xoá ở commit sau cũng không gỡ được."
+    echo ""
+    exit 1
+  fi
+done

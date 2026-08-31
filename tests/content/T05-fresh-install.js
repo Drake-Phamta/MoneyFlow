@@ -126,6 +126,52 @@ async function run() {
       eq(s.phase.sortOrder, 1, 'người dùng mới phải bắt đầu ở giai đoạn 1');
     }
   );
+
+  await t(
+    'CT-44',
+    'Tệp dữ liệu bị cắt cụt giữa chừng thì mở lại vẫn còn sổ',
+    [],
+    () => {
+      // sql.js xuất lại TOÀN BỘ cơ sở dữ liệu mỗi lần lưu, nên mỗi lần ghi một
+      // tháng là cả tệp bị viết lại. Trước đây save() ghi thẳng vào tệp đích:
+      // mất điện giữa chừng là tệp cụt và mất sạch sổ. Đây là phép thử đúng
+      // tình huống đó.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mf-crash-'));
+      const dbPath = path.join(dir, 'c.sqlite');
+      const script = `
+        const M = require(${JSON.stringify(path.join(REPO_ROOT, 'electron/database.js'))});
+        const Cls = M.Database || M.default || M;
+        const fs = require('fs');
+        (async () => {
+          let db = new Cls(${JSON.stringify(dbPath)});
+          await db.init();
+          db.run("INSERT INTO parameters (key, value, description) VALUES ('CRASH_TEST', 42, 't')");
+          db.save();
+          db.run("UPDATE parameters SET value = 43 WHERE key = 'CRASH_TEST'");
+          db.save();
+
+          const leftover = fs.existsSync(${JSON.stringify(dbPath)} + '.tmp');
+
+          // Đúng hình dạng tệp để lại khi mất điện giữa lúc ghi.
+          fs.writeFileSync(${JSON.stringify(dbPath)}, Buffer.alloc(0));
+
+          db = new Cls(${JSON.stringify(dbPath)});
+          await db.init();
+          const row = db.queryOne("SELECT value FROM parameters WHERE key = 'CRASH_TEST'");
+          process.stdout.write(JSON.stringify({ leftover, recovered: row ? row.value : null }));
+        })();
+      `;
+      const out = execFileSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+      const res = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+
+      ok(!res.leftover, 'còn sót tệp .tmp sau khi lưu — ghi chưa nguyên tử');
+      ok(
+        res.recovered !== null,
+        'tệp dữ liệu bị cắt cụt và không khôi phục được — mất toàn bộ sổ'
+      );
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  );
 }
 
 module.exports = { run };

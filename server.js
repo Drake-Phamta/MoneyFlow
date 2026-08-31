@@ -49,8 +49,28 @@ async function start() {
     console.error('Initial price fetch error:', err.message);
   }
 
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`Money Flow server running on http://localhost:${PORT}`);
+  });
+
+  // Cổng bận là chuyện thường: một bản Money Flow khác đang mở. Trước đây
+  // Express ném 'error' không ai bắt, ra một trang stack trace không nói được
+  // phải làm gì.
+  server.on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.error(
+        `
+Cổng ${PORT} đang có thứ khác dùng.
+` +
+        `Có thể một bản Money Flow đang chạy sẵn — thử mở http://localhost:${PORT}
+` +
+        `Nếu không phải, đóng chương trình đang giữ cổng đó rồi chạy lại.
+`
+      );
+      process.exit(1);
+    }
+    console.error('Máy chủ dừng vì lỗi:', err.message);
+    process.exit(1);
   });
 }
 
