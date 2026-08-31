@@ -13,8 +13,8 @@ strProjectRoot = objFSO.GetParentFolderName(strScriptDir)
 
 ' Paths
 strIconPath = strProjectRoot & "\build\icon.ico"
-strWebVBS = strProjectRoot & "\MoneyFlow_Web.vbs"
-strDesktopVBS = strProjectRoot & "\MoneyFlow_Desktop.vbs"
+strWebVBS = strProjectRoot & "\launchers\money-flow-web.vbs"
+strDesktopVBS = strProjectRoot & "\launchers\money-flow-desktop.vbs"
 
 ' Start Menu folder
 strStartMenu = WshShell.SpecialFolders("Programs") & "\Money Flow"

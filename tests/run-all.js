@@ -87,8 +87,8 @@ function lintPorts() {
   const bad = [];
   const walk = (dir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      // legacy/ đã có _guard.js chặn riêng; reports/ là kết quả sinh ra.
-      if (e.name === 'legacy' || e.name === 'reports' || e.name === 'node_modules') continue;
+      // reports/ là kết quả sinh ra, không phải bộ test.
+      if (e.name === 'reports' || e.name === 'node_modules') continue;
       const p = path.join(dir, e.name);
       if (e.isDirectory()) walk(p);
       else if (e.name.endsWith('.js')) {

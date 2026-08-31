@@ -186,12 +186,12 @@ async function run() {
       // Lối tắt trên Desktop và menu Start lấy icon từ đây. Đợt đổi logo sinh
       // icon mới vào build/ và public/ nhưng script này vẫn trỏ vào tệp cũ ở
       // thư mục gốc, nên bấm menu Start ra vẫn là icon cũ.
-      const vbs = fs.readFileSync(path.join(REPO_ROOT, 'scripts/ensure_shortcuts.vbs'), 'utf8');
+      const vbs = fs.readFileSync(path.join(REPO_ROOT, 'scripts/make-shortcuts.vbs'), 'utf8');
       const vm = vbs.match(/strIconPath = strProjectRoot & "([^"]+)"/);
-      ok(vm, 'không tìm thấy đường dẫn icon trong ensure_shortcuts.vbs');
+      ok(vm, 'không tìm thấy đường dẫn icon trong make-shortcuts.vbs');
       const BS = String.fromCharCode(92);
       refs.push([
-        'ensure_shortcuts.vbs',
+        'make-shortcuts.vbs',
         vm[1].split(BS).filter(Boolean).join(path.sep),
       ]);
 

@@ -7,7 +7,7 @@ const cron = require('node-cron');
 const Database = require('./database');
 const PriceService = require('./priceService');
 const setupRoutes = require('./routes');
-const { ensureShortcuts } = require('../scripts/ensure-shortcuts');
+const { ensureShortcuts } = require('../scripts/make-shortcuts');
 
 let mainWindow;
 let db;
