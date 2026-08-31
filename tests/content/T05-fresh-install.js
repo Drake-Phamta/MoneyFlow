@@ -172,6 +172,55 @@ async function run() {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   );
+
+  await t(
+    'CT-45',
+    'Dọn ảnh chụp cũ phải giữ lại bản MỚI nhất, không phải bản tên đứng đầu',
+    [],
+    () => {
+      // Thư mục backups có hai lối đặt tên lẫn nhau: "financial-2026-08-31" và
+      // "financial-20260830-151127". Xếp theo tên thì dấu gạch đứng trước chữ
+      // số, nên bản mới nhất nằm đầu danh sách — và bị xoá trước tiên. Đó là
+      // mất dữ liệu chứ không phải dọn dẹp.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mf-rot-'));
+      const dbPath = path.join(dir, 'r.sqlite');
+      const backups = path.join(dir, 'backups');
+      fs.mkdirSync(backups);
+
+      // 12 bản: 6 tên kiểu cũ (già), 6 tên kiểu mới (mới hơn).
+      const newest = [];
+      for (let i = 0; i < 6; i++) {
+        const f = path.join(backups, `financial-2026083${i}-120000.sqlite`);
+        fs.writeFileSync(f, 'x');
+        fs.utimesSync(f, new Date(2026, 0, 1 + i), new Date(2026, 0, 1 + i));
+      }
+      for (let i = 0; i < 6; i++) {
+        const name = `financial-2026-09-0${i}.sqlite`;
+        const f = path.join(backups, name);
+        fs.writeFileSync(f, 'x');
+        fs.utimesSync(f, new Date(2026, 0, 7 + i), new Date(2026, 0, 7 + i));
+        newest.push(name);
+      }
+
+      const script = `
+        const M = require(${JSON.stringify(path.join(REPO_ROOT, 'electron/database.js'))});
+        const Cls = M.Database || M.default || M;
+        (async () => {
+          const db = new Cls(${JSON.stringify(dbPath)});
+          await db.init();
+        })();
+      `;
+      execFileSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+
+      const left = fs.readdirSync(backups);
+      const missing = newest.filter((n) => !left.includes(n));
+      ok(
+        missing.length === 0,
+        'dọn ảnh chụp đã xoá mất bản mới: ' + missing.join(', ')
+      );
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  );
 }
 
 module.exports = { run };

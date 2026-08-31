@@ -168,12 +168,20 @@ class FinancialDB {
       if (!fs.existsSync(this.dbPath)) return;
       fs.copyFileSync(this.dbPath, target);
 
+      // Dọn theo THỜI GIAN SỬA, không theo tên. Trong thư mục này có hai lối
+      // đặt tên cũ mới lẫn nhau ("financial-2026-08-31" và
+      // "financial-20260830-151127"); xếp theo tên thì dấu gạch đứng trước chữ
+      // số, nên bản mới nhất lại nằm đầu danh sách và bị xoá trước tiên.
       const olds = fs
         .readdirSync(dir)
-        .filter((f) => /^financial-.*\.sqlite$/.test(f))
-        .sort();
-      for (const f of olds.slice(0, Math.max(0, olds.length - 10))) {
-        fs.unlinkSync(path.join(dir, f));
+        .filter((f) => /^financial[-.].*\.sqlite$/.test(f))
+        .map((f) => {
+          const full = path.join(dir, f);
+          return { full, at: fs.statSync(full).mtimeMs };
+        })
+        .sort((a, b) => b.at - a.at);
+      for (const o of olds.slice(10)) {
+        fs.unlinkSync(o.full);
       }
     } catch (e) {
       console.warn('[DB] Không tạo được ảnh chụp hôm nay:', e.message);
