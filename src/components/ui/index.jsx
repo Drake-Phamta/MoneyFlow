@@ -144,6 +144,66 @@ export function Money({ value, className = '', sign = false, testId }) {
   );
 }
 
+/* ── Lãi và lỗ ───────────────────────────────────────────────────────────── */
+
+/**
+ * Ba trạng thái, không phải hai: lãi xanh, lỗ đỏ, **hoà vốn vàng**.
+ *
+ * Chia đôi bằng `>= 0` thì hoà vốn bị tô xanh như đang lãi. Con số 0 nói một
+ * điều khác hẳn con số dương, và người dùng cần thấy sự khác đó ngay.
+ *
+ * Ngưỡng là một đồng: dưới mức đó chỉ là làm tròn, không phải lãi hay lỗ.
+ */
+export function toneOf(value, threshold = 1) {
+  const n = Number(value) || 0;
+  if (Math.abs(n) < threshold) return 'flat';
+  return n > 0 ? 'gain' : 'loss';
+}
+
+const TONE_TEXT = {
+  gain: 'text-emerald-600',
+  loss: 'text-red-600',
+  flat: 'text-amber-700',
+};
+
+/** Chỉ lấy màu, cho chỗ tự dựng thẻ. */
+export function toneClass(value, threshold = 1) {
+  return TONE_TEXT[toneOf(value, threshold)];
+}
+
+/**
+ * Một khoản lãi hoặc lỗ. Số tiền ở trên, phần trăm ở dưới nếu có.
+ * Dấu và màu đi cùng nhau, nên không màn hình nào tô một kiểu.
+ */
+export function GainLoss({ value, pct, className = '', align = 'right', size = 'fs-3' }) {
+  const n = Number(value) || 0;
+  const tone = toneOf(n);
+  const sign = tone === 'gain' ? '+' : tone === 'loss' ? '−' : '';
+  const fmt = new Intl.NumberFormat('vi-VN', {
+    style: 'currency',
+    currency: 'VND',
+    maximumFractionDigits: 0,
+  });
+
+  return (
+    <span
+      className={`tabular ${TONE_TEXT[tone]} ${align === 'right' ? 'text-right' : ''} ${className}`}
+      data-value={n}
+      data-tone={tone}
+    >
+      <span className={`block text-${size} font-medium`}>
+        {tone === 'flat' ? 'Hoà vốn' : `${sign}${fmt.format(Math.abs(n))}`}
+      </span>
+      {pct !== undefined && pct !== null && tone !== 'flat' && (
+        <span className="block text-fs-2 opacity-85">
+          {sign}
+          {String(Number(Math.abs(Number(pct) || 0).toFixed(2))).replace('.', ',')}%
+        </span>
+      )}
+    </span>
+  );
+}
+
 /* ── Thẻ tab ─────────────────────────────────────────────────────────────── */
 
 /** Tab đi được bằng phím mũi tên, đúng cách một bộ tab phải hoạt động. */

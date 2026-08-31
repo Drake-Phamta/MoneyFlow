@@ -162,6 +162,40 @@ async function run() {
     }
   );
 
+  await t(
+    'CT-36',
+    'Lãi xanh, lỗ đỏ, hoà vốn vàng — không màn hình nào tự chia đôi',
+    [],
+    () => {
+      // Chia đôi bằng `>= 0` thì hoà vốn bị tô xanh như đang lãi. Con số 0 nói
+      // một điều khác hẳn con số dương, và người dùng cần thấy sự khác đó.
+      const hits = [];
+      for (const b of bodies) {
+        if (!b.file.endsWith('.jsx')) continue;
+        if (b.file.includes('components/ui/')) continue; // chính nơi định nghĩa
+        const rows = b.code.split('\n');
+        for (let i = 0; i < rows.length; i++) {
+          const line = rows[i];
+          if (line.includes('toneClass') || line.includes('GainLoss')) continue;
+          const hasGreen = /text-emerald-\d00/.test(line);
+          const hasRed = /text-red-\d00/.test(line);
+          const isTernary = line.includes('?') && line.includes(':');
+          // Xanh/đỏ còn dùng cho xếp hạng ngưỡng (tỷ lệ tiết kiệm đạt hay
+          // chưa) và cho nhãn loại giao dịch (mua/bán). Đó là nghĩa khác, ép
+          // chúng qua toneClass mới là sai. Chỉ soi biến thực sự là lãi/lỗ.
+          const aboutGain = /\b(gain|profit|lai|lãi|diff|pnl|change)\w*\s*[<>=?]/i.test(line);
+          if (hasGreen && hasRed && isTernary && aboutGain) {
+            hits.push(b.file + ':' + (i + 1) + ' ' + line.trim().slice(0, 70));
+          }
+        }
+      }
+      ok(
+        hits.length === 0,
+        hits.length + ' chỗ còn tự chia đôi lãi/lỗ thay vì dùng toneClass: ' +
+          hits.slice(0, 5).join(' | ')
+      );
+    }
+  );
 }
 
 module.exports = { run };

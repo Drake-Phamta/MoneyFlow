@@ -182,6 +182,41 @@ async function run() {
       );
     }
   );
+  await t(
+    'C18',
+    'Tỷ lệ tiết kiệm phải chia cho TOÀN BỘ tiền kiếm được, gồm cả thưởng',
+    ['rest:GET /api/snapshot'],
+    () => {
+      // Tổng quan từng chia cho riêng lương, Dòng tiền chia cho lương cộng
+      // thưởng. Cùng một nhãn, hai con số: 88,4% và 59,7%.
+      const c = d.snapshot.cashflow;
+      const earned = c.totalIncome + c.totalBonus;
+      ok(earned > 0, 'fixture cần có thu nhập để kiểm');
+
+      const dung = (c.totalInflow / earned) * 100;
+      const sai = (c.totalInflow / c.totalIncome) * 100;
+
+      // Nếu có thưởng thì hai cách cho hai kết quả khác nhau — đó là lúc lỗi
+      // lộ ra. Không có thưởng thì hai cách trùng nhau và test này vô hại.
+      if (c.totalBonus > 0) {
+        ok(
+          Math.abs(dung - sai) > 0.5,
+          'fixture không phân biệt được hai cách tính'
+        );
+      }
+
+      approx(
+        dung,
+        (c.totalInflow / (c.totalIncome + c.totalBonus)) * 100,
+        0.01,
+        'công thức tỷ lệ tiết kiệm'
+      );
+      ok(
+        dung <= 100.01,
+        `tỷ lệ tiết kiệm ${dung.toFixed(1)}% vượt 100% — mẫu số đang thiếu một nguồn thu`
+      );
+    }
+  );
 }
 
 module.exports = { run };

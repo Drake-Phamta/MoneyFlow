@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatVND, formatCompact } from '../utils/formatters';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { formatVND } from '../utils/formatters';
 import { formatNumberInput, formatQuantity } from '../utils/numberFormat';
 import { money, num } from '../content/render.js';
 import { apiClient } from '../utils/apiClient';
@@ -10,7 +10,7 @@ import AssetDetailModal from './charts/AssetDetailModal';
 import NetWorthModal from './charts/NetWorthModal';
 import CustomTooltip from '../utils/CustomTooltip';
 import { ArrowClockwise, Trash, CheckCircle, XCircle, Bell } from '../utils/iconMap';
-import { useConfirm, EmptyState, Skeleton } from './ui/index.jsx';
+import { useConfirm, EmptyState, Skeleton, GainLoss, toneClass } from './ui/index.jsx';
 
 // Relative time formatter for activity feed
 function formatRelativeTime(dateStr) {
@@ -190,12 +190,16 @@ export default function Dashboard() {
   const byCategory = summary?.byCategory || {};
 
   // Cash flow data for mini chart (last 6 months)
+  // Ba tháng gần nhất là đủ để thấy xu hướng mà cột không bị bóp nhỏ.
+  // Muốn xem đủ thì sang trang Dòng tiền.
+  const MINI_MONTHS = 3;
   const miniChartData = useMemo(() => {
-    return filled.slice(-6).map(m => ({
+    return filled.slice(-MINI_MONTHS).map(m => ({
       month: m.month_label,
-      income: m.income || 0,
-      expense: m.expense || 0,
-      net: (m.income || 0) + (m.bonus || 0) - (m.expense || 0),
+      luong: m.income || 0,
+      thuong: m.bonus || 0,
+      chi: m.expense || 0,
+      deDanh: Math.max(0, (m.income || 0) + (m.bonus || 0) - (m.expense || 0)),
     }));
   }, [filled]);
 
@@ -205,8 +209,11 @@ export default function Dashboard() {
   const totalIncome = snap?.cashflow.totalIncome || 0;
   const totalNet = snap?.cashflow.totalInflow || 0;
   const hasExpenseData = (snap?.cashflow.totalExpense || 0) > 0;
+  // Mẫu số là TOÀN BỘ tiền kiếm được, gồm cả thưởng. Chia cho riêng lương thì
+  // Tổng quan hiện 88,4% còn Dòng tiền hiện 59,7% cho cùng một nhãn.
+  const totalEarned = totalIncome + (snap?.cashflow.totalBonus || 0);
   const savingsRate =
-    totalIncome > 0 && hasExpenseData ? (totalNet / totalIncome) * 100 : null;
+    totalEarned > 0 && hasExpenseData ? (totalNet / totalEarned) * 100 : null;
 
   const totalSavingsPrincipal = snap?.savings.principal || 0;
   const totalSavingsAccrued = snap?.savings.accrued || 0;
@@ -218,6 +225,14 @@ export default function Dashboard() {
 
   // Lãi/lỗ chưa bán của danh mục cộng lãi tiết kiệm đã tính tới hôm nay.
   const totalOverallGain = totalGain + totalSavingsAccrued;
+  // Ba trạng thái, không phải hai: hoà vốn không phải là lãi.
+  const gainChip =
+    totalOverallGain > 0
+      ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+      : totalOverallGain < 0
+        ? 'border-red-200 bg-red-50 text-red-700'
+        : 'border-amber-200 bg-amber-50 text-amber-700';
+  const gainArrow = totalOverallGain > 0 ? '▲' : totalOverallGain < 0 ? '▼' : '=';
   const grandTotal = snap?.netWorth.total || 0;
   const liquidity = snap?.liquidity.total || 0;
 
@@ -461,15 +476,17 @@ export default function Dashboard() {
             ))}
           </dl>
 
-          <p className="text-fs-2 text-slate-500 mt-4">
-            Lãi lũy kế{' '}
-            <span className={totalOverallGain >= 0 ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
-              {totalOverallGain >= 0 ? '+' : ''}{formatVND(totalOverallGain)}
+          <div className="flex flex-wrap items-center gap-2.5 mt-4">
+            <span className={`inline-flex items-baseline gap-1.5 px-2.5 py-1 rounded-pill border text-fs-3 font-semibold tabular ${gainChip}`}>
+              <span aria-hidden="true">{gainArrow}</span>
+              {totalInvested > 0 ? `${num(Math.abs(totalGainPct), 2)}%` : formatVND(Math.abs(totalOverallGain))}
             </span>
-            {totalInvested > 0 && (
-              <span className="text-slate-400"> · {totalGainPct >= 0 ? '+' : ''}{num(totalGainPct, 2)}% trên vốn đã bỏ ra</span>
-            )}
-          </p>
+            <span className="text-fs-2 text-slate-500">
+              {totalOverallGain === 0
+                ? 'Chưa lãi chưa lỗ'
+                : `${totalOverallGain > 0 ? 'Lãi' : 'Lỗ'} ${formatVND(Math.abs(totalOverallGain))} tính từ lúc bắt đầu`}
+            </span>
+          </div>
         </div>
 
         <div className="card">
@@ -485,32 +502,32 @@ export default function Dashboard() {
               }
             />
           ) : (
-            <AllocationPie data={allocPieData.filter(d => d.value > 0)} layout="vertical" />
+            <AllocationPie data={allocPieData.filter(d => d.value > 0)} layout="horizontal" />
           )}
         </div>
       </div>
 
       {/* ── 2. Bốn con số cần liếc mỗi ngày ───────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatTile label="Tiền nhàn rỗi" value={formatVND(totalNet)} note={`Cộng dồn ${filled.length} tháng`} />
+        <StatTile label="Tiền nhàn rỗi" value={formatVND(totalNet)} note={`Thu trừ chi, cộng dồn ${filled.length} tháng`} />
         <StatTile
           label="Thanh khoản"
           value={formatVND(liquidity)}
           note={
             snap?.savings.termPrincipal > 0
-              ? `Đang khoá kỳ hạn ${money(snap.savings.termPrincipal)}`
-              : 'Rút được ngay'
+              ? `Rút ngay được — ${money(snap.savings.termPrincipal)} còn khoá kỳ hạn`
+              : 'Rút ngay được, không mất lãi'
           }
         />
         <StatTile
           label="Tỷ lệ tiết kiệm"
           value={savingsRate !== null ? `${num(savingsRate)}%` : '—'}
-          note="Giữ lại được so với tổng thu"
+          note={savingsRate !== null ? `Kiếm 100đ thì giữ lại được ${Math.round(savingsRate)}đ` : 'Chưa đủ dữ liệu'}
         />
         <StatTile
           label="Mốc tự do tài chính"
           value={snap ? money(snap.fi.fiNumber) : '—'}
-          note={snap ? `Đã đi được ${num(snap.fi.ratio, 2)}%` : ''}
+          note={snap ? `Đủ số này thì sống bằng lợi nhuận — đã đi ${num(snap.fi.ratio, 2)}%` : ''}
         />
       </div>
 
@@ -627,11 +644,8 @@ export default function Dashboard() {
                         )}
                       </td>
                       <td className="text-right tabular font-semibold text-slate-800">{formatVND(p.current_value)}</td>
-                      <td className={`text-right tabular ${gain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {gain >= 0 ? '+' : ''}{formatVND(gain)}
-                        <span className="block text-fs-2 opacity-80">
-                          {gain >= 0 ? '+' : ''}{num(gainPct, 2)}%
-                        </span>
+                      <td className="text-right">
+                        <GainLoss value={gain} pct={gainPct} />
                       </td>
                     </tr>
                   );
@@ -641,8 +655,8 @@ export default function Dashboard() {
                 <tr>
                   <td colSpan={4} className="font-medium text-slate-600">Tổng</td>
                   <td className="text-right tabular font-semibold text-slate-800">{formatVND(totalCurrentValue)}</td>
-                  <td className={`text-right tabular font-semibold ${totalGain >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                    {totalGain >= 0 ? '+' : ''}{formatVND(totalGain)}
+                  <td className="text-right">
+                    <GainLoss value={totalGain} className="font-semibold" />
                   </td>
                 </tr>
               </tfoot>
@@ -654,23 +668,54 @@ export default function Dashboard() {
       {/* ── 5. Thu chi gần đây ────────────────────────────────────────── */}
       {miniChartData.length > 0 && (
         <div className="card">
-          <div className="flex items-baseline justify-between mb-3">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
             <h3 className="text-fs-4 font-semibold text-slate-700">
               Thu chi {miniChartData.length} tháng gần nhất
             </h3>
-            <button type="button" onClick={() => navigate('/cashflow')} className="text-fs-2 text-primary-700 hover:underline">
-              Xem tất cả
+            <button
+              type="button"
+              onClick={() => navigate('/cashflow')}
+              className="text-fs-2 text-primary-700 hover:underline"
+            >
+              Xem đầy đủ {filled.length} tháng ›
             </button>
           </div>
-          <div className="h-48">
+          <p className="text-fs-2 text-slate-400 mb-3">
+            Cột trái là tiền vào, cột phải là tiền ra. Phần chênh lệch là tiền bạn giữ lại được.
+          </p>
+          <div className="h-52">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={miniChartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+              <BarChart data={miniChartData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }} barGap={4}>
                 <CartesianGrid stroke="rgb(var(--c-slate-200))" vertical={false} />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'rgb(var(--c-slate-400))' }} axisLine={{ stroke: 'rgb(var(--c-slate-200))' }} tickLine={false} />
-                <YAxis tickFormatter={v => formatCompact(v)} tick={{ fontSize: 11, fill: 'rgb(var(--c-slate-400))' }} axisLine={false} tickLine={false} width={56} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="income" name="Thu nhập" fill="rgb(var(--c-emerald-600))" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="expense" name="Chi tiêu" fill="rgb(var(--c-amber-600))" radius={[3, 3, 0, 0]} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fontSize: 11, fill: 'rgb(var(--c-slate-400))' }}
+                  axisLine={{ stroke: 'rgb(var(--c-slate-200))' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tickFormatter={v => money(v)}
+                  tick={{ fontSize: 11, fill: 'rgb(var(--c-slate-400))' }}
+                  axisLine={false}
+                  tickLine={false}
+                  width={56}
+                />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgb(var(--c-slate-100))' }} />
+                <Legend
+                  iconType="square"
+                  iconSize={9}
+                  wrapperStyle={{ fontSize: 'var(--fs-2)', paddingTop: 6 }}
+                  // Recharts tô chữ chú giải theo màu cột. Cột "Thưởng" sáng
+                  // nên chữ chìm vào nền — ép về màu chữ thường.
+                  formatter={(value) => (
+                    <span style={{ color: 'rgb(var(--c-slate-500))' }}>{value}</span>
+                  )}
+                />
+                {/* Lương và thưởng xếp chồng thành MỘT cột "tiền vào": tháng nào
+                    thưởng lớn hơn lương thì nhìn cột là thấy ngay. */}
+                <Bar dataKey="luong" stackId="thu" name="Lương" fill="rgb(var(--c-emerald-600))" />
+                <Bar dataKey="thuong" stackId="thu" name="Thưởng" fill="rgb(var(--c-emerald-400))" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="chi" name="Chi tiêu" fill="rgb(var(--c-amber-600))" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

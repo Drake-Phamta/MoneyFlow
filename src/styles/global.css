@@ -192,14 +192,23 @@ select.input {
 }
 
 .table th {
-  @apply bg-white text-slate-400 font-medium px-4 py-2.5 text-left text-fs-1 uppercase tracking-widest
+  @apply bg-white text-slate-400 font-medium px-4 py-2.5 text-fs-1 uppercase tracking-widest
          sticky top-0 z-10 border-b border-slate-300 whitespace-nowrap;
+  text-align: left;
 }
 
 .table td {
   @apply px-4 py-2.5 border-b border-slate-200 text-slate-700;
 }
 
+/* Lớp .table nằm sau @tailwind utilities nên nó thắng mọi lớp tiện ích đặt
+   trên <th>. Hậu quả: viết text-right lên tiêu đề cột mà tiêu đề vẫn căn
+   trái, còn giá trị bên dưới căn phải — cả bảng lệch nhau.
+   Ba dòng dưới đây có độ ưu tiên cao hơn nên tiện ích thắng lại. */
+.table th.text-right,
+.table td.text-right { text-align: right; }
+.table th.text-center,
+.table td.text-center { text-align: center; }
 .table tr:last-child td {
   @apply border-b-0;
 }

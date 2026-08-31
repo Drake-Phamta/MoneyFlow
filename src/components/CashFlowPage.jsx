@@ -7,6 +7,7 @@ import { Tabs, EmptyState } from './ui/index.jsx';
 import { TrendUp, TrendDown, Minus } from '../utils/iconMap';
 import MasterLedger from './MasterLedger';
 import CustomTooltip from '../utils/CustomTooltip';
+import { toneClass } from './ui/index.jsx';
 
 export default function CashFlowPage() {
   // Mở sẵn nếu tháng này chưa ghi. `null` nghĩa là chưa quyết — để hiệu ứng
@@ -366,11 +367,11 @@ export default function CashFlowPage() {
                       const TrendIcon = diff > 0 ? TrendUp : diff < 0 ? TrendDown : Minus;
                       return (
                         <div className="flex items-center gap-2">
-                          <TrendIcon size={16} className={diff > 0 ? 'text-emerald-600' : diff < 0 ? 'text-red-600' : 'text-slate-400'} weight="bold" />
+                          <TrendIcon size={16} className={toneClass(diff)} weight="bold" />
                           <div>
                             <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
                             {diff !== 0 && (
-                              <p className={`text-fs-2 ${diff > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                              <p className={`text-fs-2 ${toneClass(diff)}`}>
                                 {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với trung bình
                               </p>
                             )}

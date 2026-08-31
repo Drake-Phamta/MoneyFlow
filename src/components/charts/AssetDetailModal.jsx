@@ -3,6 +3,7 @@ import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, Responsive
 import { Modal } from '../ui/index.jsx';
 import { formatVND, toLocalDateStr } from '../../utils/formatters';
 import { apiClient } from '../../utils/apiClient';
+import { toneClass } from '../ui/index.jsx';
 
 // Tùy chỉnh Tooltip hiển thị đầy đủ thông số đầu tư thực tế
 function AssetTooltip({ active, payload, label }) {
@@ -45,7 +46,7 @@ function AssetTooltip({ active, payload, label }) {
           </div>
           <div>
             <p className="text-fs-1 uppercase tracking-wider font-semibold text-slate-400">Lãi / Lỗ</p>
-            <p className={`font-bold font-mono ${isGain ? 'text-emerald-600' : 'text-red-600'}`}>
+            <p className={`font-bold font-mono ${toneClass(data.profit)}`}>
               {isGain ? '+' : ''}{formatVND(data.profit)}
               <span className="text-fs-3 block font-medium">({isGain ? '+' : ''}{data.profitPct.toFixed(2)}%)</span>
             </p>
@@ -265,10 +266,10 @@ export default function AssetDetailModal({ asset, onClose }) {
               <div>
                 <p className="text-fs-1 uppercase tracking-widest font-semibold text-slate-400 mb-1">Lãi / Lỗ đầu tư của bạn</p>
                 <div className="flex items-end gap-2">
-                  <p className={`text-3xl font-bold tracking-tight font-mono ${isOverallPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <p className={`text-3xl font-bold tracking-tight font-mono ${toneClass(currentProfit)}`}>
                     {isOverallPositive ? '+' : ''}{formatVND(currentProfit)}
                   </p>
-                  <p className={`text-sm font-medium mb-1 ${isOverallPositive ? 'text-emerald-600' : 'text-red-600'}`}>
+                  <p className={`text-sm font-medium mb-1 ${toneClass(currentProfit)}`}>
                     ({isOverallPositive ? '+' : ''}{currentProfitPct.toFixed(2)}%)
                   </p>
                 </div>

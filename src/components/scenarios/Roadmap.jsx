@@ -14,6 +14,7 @@ import { buildPhaseGuidance, PHASE_META } from '../../content/phases.js';
 import { PHASE_CHECKLISTS } from '../../content/checklists.js';
 import { money, num, date } from '../../content/render.js';
 import { EmptyState } from '../ui/index.jsx';
+import { toneClass } from '../ui/index.jsx';
 
 /**
  * Lộ trình — trả lời theo đúng thứ tự người dùng cần biết:
@@ -578,13 +579,7 @@ function PlanVsActual({ snap }) {
               {money(m.actual)} / {money(m.planned)}
             </span>
             <span
-              className={`text-fs-3 tabular shrink-0 ${
-                Math.abs(m.diff) < 1000
-                  ? 'text-slate-400'
-                  : m.diff > 0
-                    ? 'text-emerald-600'
-                    : 'text-amber-600'
-              }`}
+              className={`text-fs-3 tabular shrink-0 ${toneClass(m.diff, 1000)}`}
             >
               {Math.abs(m.diff) < 1000 ? 'đúng kế hoạch' : `${m.diff > 0 ? '+' : ''}${money(m.diff)}`}
             </span>

@@ -48,7 +48,6 @@ export default function NetWorthModal({ onClose }) {
   const first = data[0];
   const last = data[data.length - 1];
   const growth = first && last ? last.total - first.total : 0;
-  const estimated = data.filter((d) => d.estimated).length;
 
   return (
     <Modal
@@ -166,13 +165,6 @@ export default function NetWorthModal({ onClose }) {
             </table>
           </div>
 
-          {estimated > 0 && (
-            <p className="text-fs-2 text-slate-400 mt-3">
-              {estimated} mốc dựng lại từ giao dịch và giá đóng cửa của chính tháng đó, vì
-              app chưa chụp danh mục ở thời điểm ấy. Từ nay mỗi lần lưu một tháng là một
-              ảnh chụp được ghi lại.
-            </p>
-          )}
         </>
       )}
     </Modal>
