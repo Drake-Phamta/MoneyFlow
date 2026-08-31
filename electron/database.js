@@ -3035,6 +3035,27 @@ class FinancialDB {
     // Ghi chi nhiều hơn tiền mặt đang có thì nói ra, đừng kẹp về 0 rồi im lặng.
     const overspent = Math.max(0, spentFromAwaiting - baseAwaiting);
 
+    // Tiền đã chia cho Dự Phòng / Tiết kiệm nhưng CHƯA gửi vào sổ nào.
+    //
+    // Phía thị trường đã có `awaitingInvestment` đỡ đúng chuyện này: chia tiền
+    // cho danh mục xong mà chưa đặt lệnh mua thì nó vẫn là tiền mặt. Phía tiết
+    // kiệm thì không có gì cả — `toReserve` và `toSavings` bị trừ khỏi
+    // `unallocated` ngay lúc lưu tháng, còn `savings.balance` chỉ tăng khi
+    // người dùng tự tay bơm vốn vào một sổ. Giữa hai thời điểm đó, khoản tiền
+    // ấy không nằm ở đâu cả và biến mất khỏi Tổng tài sản.
+    //
+    // Ghi 10tr rồi chia 5tr cho Dự Phòng, chưa gửi sổ: Tổng tài sản hiện 5tr.
+    const depositedInto = (cat) =>
+      cat
+        ? active
+            .filter((a) => a.category_id === cat.id)
+            .reduce((s, a) => s + (Number(a.principal) || 0), 0)
+        : 0;
+    const savingsCat = categories.find((c) => c.name === SAVINGS_CAT);
+    const awaitingSavings =
+      Math.max(0, toReserve - depositedInto(reserveCat)) +
+      Math.max(0, toSavings - depositedInto(savingsCat));
+
     const cash = {
       unallocated,
       awaitingInvestment,
@@ -3042,7 +3063,8 @@ class FinancialDB {
       released: ledger.released,
       spent: ledger.spent,
       fromMarket: ledger.fromMarket,
-      total: unallocated + awaitingInvestment,
+      awaitingSavings,
+      total: unallocated + awaitingInvestment + awaitingSavings,
     };
 
     const netWorth = {

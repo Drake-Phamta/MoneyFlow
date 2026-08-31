@@ -221,6 +221,53 @@ async function run() {
       fs.rmSync(dir, { recursive: true, force: true });
     }
   );
+
+  await t(
+    'CT-46',
+    'Tiền đã chia cho Dự Phòng mà chưa gửi sổ không được biến mất khỏi tổng tài sản',
+    [],
+    () => {
+      // Phía thị trường có "chờ lệnh mua" (toMarket − deployed) đỡ đúng chuyện
+      // này: chia tiền cho danh mục xong mà chưa đặt lệnh thì nó vẫn là tiền
+      // mặt. Phía tiết kiệm từng không có gì — toReserve bị trừ khỏi tiền mặt
+      // ngay lúc lưu tháng, còn savings.balance chỉ tăng khi người dùng tự tay
+      // bơm vốn. Giữa hai thời điểm đó khoản tiền ấy không nằm ở đâu cả.
+      //
+      // Chạy trên DB mới toanh: fixture chung đã bơm dư vào sổ nên phép kẹp
+      // max(0, đã chia − đã gửi) che mất hiện tượng.
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mf-pending-'));
+      const dbPath = path.join(dir, 'p.sqlite');
+      const script = `
+        const M = require(${JSON.stringify(path.join(REPO_ROOT, 'electron/database.js'))});
+        const Cls = M.Database || M.default || M;
+        (async () => {
+          const db = new Cls(${JSON.stringify(dbPath)});
+          await db.init();
+          const m = db.query('SELECT id, month_index, month_label FROM monthly_entries ORDER BY month_index LIMIT 1')[0];
+          db.saveMonthlyEntry({
+            month_index: m.month_index, month_label: m.month_label,
+            income: 10000000, expense: 0, bonus: 0, status: 'confirmed',
+          });
+          const e = db.queryOne('SELECT id FROM monthly_entries WHERE month_index = ?', [m.month_index]);
+          const dp = db.queryOne("SELECT id FROM categories WHERE name LIKE '%Dự Phòng%'");
+          db.saveAllocations(e.id, [
+            { category_id: dp.id, planned_amount: 5000000, actual_amount: 5000000 },
+          ]);
+          const s = db.getFinancialSnapshot();
+          process.stdout.write(JSON.stringify({
+            net: s.netWorth.total, pending: s.cash.awaitingSavings,
+          }));
+        })();
+      `;
+      const out = execFileSync(process.execPath, ['-e', script], { encoding: 'utf8' });
+      const r = JSON.parse(out.slice(out.indexOf('{'), out.lastIndexOf('}') + 1));
+
+      eq(r.net, 10000000,
+        `ghi 10tr rồi chia 5tr cho Dự Phòng mà tổng tài sản là ${r.net} — phần chưa gửi sổ biến mất`);
+      eq(r.pending, 5000000, 'phần đã chia mà chưa gửi sổ phải hiện ở awaitingSavings');
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  );
 }
 
 module.exports = { run };

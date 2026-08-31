@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ComposedChart, Line, Area, ReferenceLine, Legend } from 'recharts';
 import { formatVND, formatCompact } from '../utils/formatters';
 import { apiClient } from '../utils/apiClient';
@@ -16,6 +16,7 @@ export default function CashFlowPage() {
   // dưới biểu đồ thì không có tham số này — đến để xem thì đừng bung form ra
   // che mất thứ họ muốn xem.
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const wantsEntry = searchParams.get('ghi') === '1';
 
   // `null` nghĩa là chưa quyết — để hiệu ứng bên dưới quyết theo dữ liệu, còn
@@ -384,23 +385,42 @@ export default function CashFlowPage() {
                   <span className="text-sm font-semibold text-slate-700">Tổng dự kiến</span>
                   <span className="text-lg font-bold text-primary-700">{formatVND(totalNet + avgMonthly * Math.max(0, totalMonths - filled.length))}</span>
                 </div>
-                <p className="text-fs-2 text-slate-400">Dựa trên trung bình {formatVND(avgMonthly)}/tháng · Kế hoạch {totalMonths} tháng</p>
+                {/* Nói thẳng con số này được cộng ra thế nào. Nó cộng phẳng, KHÔNG
+                    có lãi — trong khi Lộ trình chạy lãi kép đầy đủ. Hai trang cho
+                    hai con số khác nhau mà không chỗ nào nói ra là chuyện cũ. */}
+                <p className="text-fs-2 text-slate-400">
+                  Cộng thẳng {formatVND(avgMonthly)}/tháng cho {Math.max(0, totalMonths - filled.length)} tháng
+                  còn lại, chưa tính lãi.{' '}
+                  <button
+                    type="button"
+                    onClick={() => navigate('/scenarios')}
+                    className="text-primary-700 hover:underline"
+                  >
+                    Lộ trình tính cả lãi kép ›
+                  </button>
+                </p>
                 {filled.length >= 3 && (
                   <div className="mt-2 pt-2 border-t border-slate-100">
-                    <p className="text-xs text-slate-500 mb-1">Xu hướng 3 tháng gần nhất</p>
                     {(() => {
                       const recent3 = cashFlowData.slice(-3);
                       const recentAvg = recent3.reduce((s, d) => s + d.net, 0) / 3;
                       const diff = recentAvg - avgMonthly;
                       const TrendIcon = diff > 0 ? TrendUp : diff < 0 ? TrendDown : Minus;
                       return (
-                        <div className="flex items-center gap-2">
-                          <TrendIcon size={16} className={toneClass(diff)} weight="bold" />
-                          <div>
-                            <p className="text-xs font-semibold text-slate-700">{formatVND(recentAvg)}/tháng</p>
+                        <div className="flex items-start gap-2">
+                          <TrendIcon size={16} className={`${toneClass(diff)} mt-0.5 shrink-0`} weight="bold" />
+                          <div className="min-w-0">
+                            <p className="text-fs-3 text-slate-700">
+                              Ba tháng gần nhất để dành{' '}
+                              <strong className="tabular">{formatVND(recentAvg)}</strong>/tháng
+                            </p>
+                            {/* Chữ "trung bình" từng xuất hiện hai lần trên thẻ này với
+                                hai nghĩa, và câu so sánh không nói so với cái nào. */}
                             {diff !== 0 && (
-                              <p className={`text-fs-2 ${toneClass(diff)}`}>
-                                {diff > 0 ? '↑' : '↓'} {formatVND(Math.abs(diff))} so với trung bình
+                              <p className="text-fs-2 text-slate-500">
+                                {diff > 0 ? 'Cao hơn' : 'Thấp hơn'} mức{' '}
+                                <span className="tabular">{formatVND(avgMonthly)}</span> mà dự kiến ở trên đang dùng,{' '}
+                                <span className="tabular">{formatVND(Math.abs(diff))}</span> mỗi tháng
                               </p>
                             )}
                           </div>
