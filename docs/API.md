@@ -131,6 +131,40 @@ Tất cả methods có sẵn qua `apiClient.xxx.yyy()` — tự động chọn I
 |--------|-------------|------|-------|
 | `activity.get(limit)` | `activity:get` | `GET /api/activity?limit=` | Nhật ký hoạt động |
 
+## Snapshot
+
+Một lời gọi trả về mọi con số tài chính của app. Trước khi có nó, sáu màn hình
+tự cộng "tổng tài sản" theo sáu cách và ra sáu kết quả khác nhau.
+
+| Method | IPC Channel | REST | Mô tả |
+|--------|-------------|------|-------|
+| `snapshot.get()` | `snapshot:get` | `GET /api/snapshot` | Tổng tài sản, thanh khoản, tiền mặt, tiết kiệm, danh mục, giai đoạn, dòng tiền, kế hoạch |
+
+## Net Worth
+
+| Method | IPC Channel | REST | Mô tả |
+|--------|-------------|------|-------|
+| `networth.history()` | `networth:history` | `GET /api/networth/history` | Tổng tài sản theo từng tháng, tính xuôi thời gian từ bản ghi thật |
+
+## Price History
+
+| Method | IPC Channel | REST | Mô tả |
+|--------|-------------|------|-------|
+| `priceHistory.get(assetId, days)` | `priceHistory:get` | `GET /api/price-history/:assetId?days=` | Giá lịch sử một tài sản |
+| `priceHistory.fetch(assetId)` | `priceHistory:fetch` | `POST /api/price-history/:assetId/fetch` | Kéo giá lịch sử về |
+
+## Cash Ledger
+
+Sổ quỹ tiền mặt: tiền về từ rút sổ / đáo hạn / bán tài sản, và tiền rời khỏi
+tài sản khi tiêu.
+
+| Method | IPC Channel | REST | Mô tả |
+|--------|-------------|------|-------|
+| `cash.ledger()` | `cash:ledger` | `GET /api/cash/ledger` | Các lần tiền ra vào, mới nhất trước |
+| `cash.spend(amount, date, note)` | `cash:spend` | `POST /api/cash/spend` | Ghi một khoản đã tiêu |
+| `cash.updateMovement(id, patch)` | `cash:updateMovement` | `PUT /api/cash/ledger/:id` | Sửa một khoản đã tiêu. Chỉ dòng `source = 'spend'`; dòng khác là bóng của một bản ghi khác nên bị từ chối |
+| `cash.deleteMovement(id)` | `cash:deleteMovement` | `DELETE /api/cash/ledger/:id` | Xoá một dòng ghi nhầm |
+
 ## Data Management
 
 | Method | IPC Channel | REST | Mô tả |

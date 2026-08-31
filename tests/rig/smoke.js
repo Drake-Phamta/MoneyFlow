@@ -23,7 +23,7 @@ const { get } = require('./http');
 
   checkTripwire('cuối smoke');
   server.stop();
-  console.log('[SMOKE] ✅ Rig hoạt động, DB thật nguyên vẹn.');
+  console.log('[SMOKE] Rig hoạt động, DB thật nguyên vẹn.');
   process.exit(0);
 })().catch((e) => {
   console.error(e);

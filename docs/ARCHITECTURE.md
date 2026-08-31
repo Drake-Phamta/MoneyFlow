@@ -67,10 +67,21 @@ Khi thêm API mới, phải cập nhật **4 nơi**:
 | 1 | `electron/database.js` | `myNewMethod(data) { ... }` |
 | 2 | `electron/main.js` | `ipcMain.handle('mymodule:myMethod', ...)` |
 | 3 | `electron/preload.js` | `myMethod: (data) => ipcRenderer.invoke('mymodule:myMethod', data)` |
-| 4 | `server.js` | `app.post('/api/mymodule', (req, res) => { ... })` |
+| 4 | `electron/routes.js` | `app.post('/api/mymodule', (req, res) => { ... })` |
 | 5 | `src/utils/api.js` | `myMethod: (data) => post('/mymodule', data)` |
 
 Sau đó dùng `apiClient.myMethod(data)` trong component.
+
+Tuyến REST đăng ký ở `electron/routes.js` chứ không ở `server.js` — `server.js`
+chỉ dựng Express rồi gọi `setupRoutes()`, để bản web và bản Electron dùng chung
+đúng một bộ tuyến.
+
+Thiếu một lớp thì bản này chạy bản kia hỏng, và người dùng chỉ biết khi bấm
+vào. Hai bộ test `parity` (`npm run test:parity`) đọc cả bốn tệp rồi so danh
+sách, nên quên lớp nào là đỏ ngay.
+
+Giữ nguyên thụt lề 2 và 4 dấu cách ở `preload.js` và `src/utils/api.js`:
+`tests/rig/inventory.js` bóc tên nhóm và tên hàm theo thụt lề.
 
 ## Cron Jobs
 

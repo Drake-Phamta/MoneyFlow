@@ -16,7 +16,7 @@ Sử dụng **sql.js** (SQLite compiled to WASM). File: `data/financial.sqlite`.
 - `START_MONTH`, `START_YEAR` = tháng/năm hiện tại
 - `FI_MONTHLY_EXPENSE` = 4,000,000 (chi tiêu mục tiêu)
 - `DEFAULT_INFLOW` = 3,700,000
-- `SCHEMA_VERSION` = 4
+- `SCHEMA_VERSION` = 10
 
 ---
 
@@ -227,6 +227,48 @@ UNIQUE(asset_type_id, date)
 
 ---
 
+### `watchlist` — Mã đang theo dõi để bắn tỉa
+| Column | Type | Mô tả |
+|--------|------|-------|
+| id | INTEGER PK | |
+| asset_type_id | INTEGER FK | Trỏ tới `asset_types` |
+| peak_price | REAL | Giá đỉnh, dùng để đo mức giảm từ đỉnh |
+| note | TEXT | |
+
+### `discrepancy_logs` — Các lần điều chỉnh phân bổ
+| Column | Type | Mô tả |
+|--------|------|-------|
+| id | INTEGER PK | |
+| date | TEXT | |
+| month_index, month_label | INTEGER, TEXT | Tháng nhận khoản điều chỉnh |
+| amount | REAL | Số tiền bỏ thêm vào một danh mục |
+| reason | TEXT | Lý do người dùng tự ghi |
+| target_category_id | INTEGER FK | Danh mục nhận |
+
+Đây là sổ ghi các lần lệch kế hoạch, và là **nguồn duy nhất** để dựng cột
+"Chênh" trong thẻ Kế hoạch so với thực tế. Không đọc từ `allocations` được:
+lưu lại một tháng sẽ nuốt phần điều chỉnh vào chính `planned_amount`.
+
+### `cash_ledger` — Sổ quỹ tiền mặt
+| Column | Type | Mô tả |
+|--------|------|-------|
+| id | INTEGER PK | |
+| date | TEXT | |
+| direction | TEXT | `in` tiền về ngăn tiền mặt, `out` tiền rời khỏi tài sản |
+| source | TEXT | `savings_withdraw`, `savings_matured`, `asset_sale`, `spend`, `manual` |
+| amount | REAL | Luôn dương; chiều nằm ở `direction` |
+| ref_table, ref_id | TEXT, INTEGER | Bản ghi gốc, nếu dòng này là bóng của nó |
+| note | TEXT | |
+
+Trước khi có bảng này, app chỉ có **một cửa vào** (`monthly_entries`) và không
+có cửa ra: rút sổ tiết kiệm thì gốc giảm mà không cộng lại đâu, sổ đáo hạn thì
+rơi khỏi mọi tổng. Tiền bốc hơi khỏi tổng tài sản.
+
+Khoản chi lớn (mua nhà, mua xe) **cố ý** ghi ở đây chứ không ghi vào
+`monthly_entries.expense`: cột đó nuôi `expenseMean` và `contribution` trong
+`src/lib/projection.mjs`, một khoản 500 triệu ghi vào đấy sẽ kéo lệch trung
+bình của mọi tháng và làm hỏng cả lộ trình tự do tài chính.
+
 ## Relationships
 
 ```
@@ -249,3 +291,8 @@ asset_types ──1:N──→ portfolio_snapshots
 | V3 | `migrateToV3()` | Cập nhật phase_allocations + guidance |
 | V4 | `migrateToV4()` | Thêm savings_accounts + savings_transactions |
 | V5 | `migrateToV5()` | Nhất quán đơn vị "chỉ" cho tài sản Vàng và cập nhật kịch bản phase |
+| V6 | `migrateToV6()` | Watchlist và cảnh báo giá |
+| V7 | `migrateToV7()` | Ảnh chụp danh mục theo tháng |
+| V8 | `migrateToV8()` | Đổi tên Giai đoạn 4, bỏ cột guidance chép tay |
+| V9 | `migrateToV9()` | Màu danh mục theo bảng màu giấy |
+| V10 | `migrateToV10()` | Sổ quỹ tiền mặt (`cash_ledger`) |

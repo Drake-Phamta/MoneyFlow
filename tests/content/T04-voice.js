@@ -231,6 +231,43 @@ async function run() {
       );
     }
   );
+
+  await t(
+    'CT-38',
+    'Không emoji trang trí trong chữ hiển thị, tài liệu hay kết quả test',
+    [],
+    () => {
+      // Emoji là ký hiệu của người khác, không phải của app này: nó vẽ khác nhau
+      // trên từng máy, vỡ thành ô vuông khi xuất ra tệp log, và không đọc được
+      // bằng trình đọc màn hình.
+      //
+      // Ba chỗ được GIỮ vì ở đó emoji là DỮ LIỆU chứ không phải trang trí:
+      //   - src/utils/iconMap.jsx — bảng tra emoji → icon Phosphor. Emoji ở đây
+      //     là KHOÁ, không bao giờ hiện ra màn hình.
+      //   - cột `icon` mặc định của categories/asset_types — khoá tra vào bảng trên.
+      //   - tên trang tính Excel — hợp đồng với chính tệp Excel của người dùng,
+      //     đổi là hỏng nhập liệu.
+      const emoji = /[\u{1F000}-\u{1FAFF}\u{2705}\u{274C}\u{2728}\u{26A0}\u{1F389}]/u;
+      const allow = [
+        /icon TEXT DEFAULT/,
+        /data\.icon \|\|/,
+        /SheetNames\.includes/,
+        /sheet_to_json/,
+        /book_append_sheet/,
+      ];
+      const hits = [];
+      for (const b of bodies) {
+        if (b.file === 'src/utils/iconMap.jsx') continue;
+        const rows = b.code.split('\n');
+        for (let i = 0; i < rows.length; i++) {
+          if (!emoji.test(rows[i])) continue;
+          if (allow.some((re) => re.test(rows[i]))) continue;
+          hits.push(b.file + ':' + (i + 1) + ' ' + rows[i].trim().slice(0, 60));
+        }
+      }
+      ok(hits.length === 0, hits.length + ' chỗ còn emoji trang trí: ' + hits.slice(0, 5).join(' | '));
+    }
+  );
 }
 
 module.exports = { run };

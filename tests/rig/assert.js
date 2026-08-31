@@ -58,22 +58,22 @@ async function t(id, desc, covers, fn, opts = {}) {
     // Một KNOWN_FAIL mà lại pass nghĩa là lỗi đã được sửa → nhắc gỡ nhãn.
     if (rec.knownFail) {
       rec.status = 'fixed';
-      console.log(`  🎉 ${id}: ${desc}`);
+      console.log(`  đã sửa  ${id}: ${desc}`);
       console.log(`      (đã sửa — gỡ nhãn KNOWN_FAIL: ${rec.knownFail})`);
     } else {
-      console.log(`  ✅ ${id}: ${desc}`);
+      console.log(`  đạt     ${id}: ${desc}`);
     }
   } catch (e) {
     rec.error = e && e.message ? e.message : String(e);
     if (rec.knownFail) {
       rec.status = MODE === 'guard' ? 'fail' : 'known';
-      const icon = MODE === 'guard' ? '❌' : '🔎';
-      console.log(`  ${icon} ${id}: ${desc}`);
+      const tag = MODE === 'guard' ? 'HỎNG   ' : 'đã biết';
+      console.log(`  ${tag} ${id}: ${desc}`);
       console.log(`      phát hiện: ${rec.error}`);
       console.log(`      lỗi đã biết: ${rec.knownFail}`);
     } else {
       rec.status = 'fail';
-      console.log(`  ❌ ${id}: ${desc}`);
+      console.log(`  HỎNG    ${id}: ${desc}`);
       console.log(`      ${rec.error}`);
     }
   }
@@ -143,11 +143,11 @@ function summary() {
   console.log('\n' + '='.repeat(72));
   console.log(`KẾT QUẢ  (chế độ: ${MODE})`);
   console.log('='.repeat(72));
-  console.log(`  ✅ Đạt            ${counts.pass}`);
-  if (counts.fixed) console.log(`  🎉 Đã sửa         ${counts.fixed}  (gỡ nhãn KNOWN_FAIL được rồi)`);
-  if (counts.known) console.log(`  🔎 Phát hiện      ${counts.known}  (lỗi đã biết, đang chờ sửa)`);
-  console.log(`  ❌ Hỏng           ${counts.fail}`);
-  console.log(`  ── Tổng          ${counts.total}`);
+  console.log(`  Đạt            ${counts.pass}`);
+  if (counts.fixed) console.log(`  Đã sửa         ${counts.fixed}  (gỡ nhãn KNOWN_FAIL được rồi)`);
+  if (counts.known) console.log(`  Phát hiện      ${counts.known}  (lỗi đã biết, đang chờ sửa)`);
+  console.log(`  Hỏng           ${counts.fail}`);
+  console.log(`  ─ Tổng         ${counts.total}`);
   return counts;
 }
 

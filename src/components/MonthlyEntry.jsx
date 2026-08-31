@@ -10,12 +10,12 @@ import { useConfirm } from './ui/index.jsx';
 
 // ── Adjustment reasons ─────────────────────────────────────────────────────
 const ADJUST_REASONS = [
-  { key: 'market_dip', icon: '📈', label: 'Thị trường giảm, tăng mua CK' },
-  { key: 'emergency', icon: '🛡️', label: 'Chi phí đột xuất, tăng dự phòng' },
-  { key: 'gold_buy', icon: '🥇', label: 'Mua vàng đợt giảm giá' },
-  { key: 'sniper', icon: '🎯', label: 'Triển khai Bắn Tỉa' },
-  { key: 'bonus', icon: '💰', label: 'Thưởng/bonus lớn, phân bổ khác' },
-  { key: 'other', icon: '✏️', label: 'Lý do khác' },
+  { key: 'market_dip', icon: 'trend-up', label: 'Thị trường giảm, tăng mua CK' },
+  { key: 'emergency', icon: 'shield-check', label: 'Chi phí đột xuất, tăng dự phòng' },
+  { key: 'gold_buy', icon: 'gem', label: 'Mua vàng đợt giảm giá' },
+  { key: 'sniper', icon: 'crosshair', label: 'Triển khai Bắn Tỉa' },
+  { key: 'bonus', icon: 'money', label: 'Thưởng/bonus lớn, phân bổ khác' },
+  { key: 'other', icon: 'note-pencil', label: 'Lý do khác' },
 ];
 
 // ── Per-category metadata ──────────────────────────────────────────────────
@@ -459,7 +459,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
                               : 'bg-white/80 text-slate-600 hover:bg-amber-100/50'
                           }`}
                         >
-                          <span>{r.icon}</span>
+                          <AppIcon name={r.icon} size={14} />
                           <span className="truncate">{r.label}</span>
                         </button>
                       ))}
@@ -652,7 +652,7 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
             {allocs.length > 0 && (
               <div className="mb-6">
                 <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  ✅ Việc cần thực hiện tiếp theo
+                  Việc cần thực hiện tiếp theo
                 </p>
                 <div className="space-y-2">
                   {allocs.map(a => (

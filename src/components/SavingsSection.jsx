@@ -566,7 +566,7 @@ export default function SavingsSection() {
                 onClick={() => setShowGoldBuyModal(true)}
                 className="mt-3 w-full py-1.5 rounded-lg text-xs font-semibold bg-warning hover:bg-warning text-oncolor transition-colors"
               >
-                🥇 Ghi nhận mua 1 chỉ vàng SJC
+                Ghi nhận mua 1 chỉ vàng SJC
               </button>
             )}
             {!canBuyGold && goldBought > 0 && (
@@ -625,7 +625,7 @@ export default function SavingsSection() {
             {availableForDuPhong > 0 && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-700">🛡️ Dự Phòng: <strong>{formatVND(availableForDuPhong)}</strong> chưa gửi vào sổ</p>
+                  <p className="text-sm font-medium text-blue-700">Dự Phòng: <strong>{formatVND(availableForDuPhong)}</strong> chưa gửi vào sổ</p>
                   <p className="text-xs text-blue-400">Tạo sổ không kỳ hạn để giữ quỹ dự phòng</p>
                 </div>
                 <button onClick={() => {
@@ -638,7 +638,7 @@ export default function SavingsSection() {
             {availableForTKTP > 0 && (
               <div className="p-3 bg-violet-50 border border-violet-200 rounded-xl flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-violet-700">💰 Tiết kiệm & TP: <strong>{formatVND(availableForTKTP)}</strong> chưa gửi vào sổ</p>
+                  <p className="text-sm font-medium text-violet-700">Tiết kiệm & TP: <strong>{formatVND(availableForTKTP)}</strong> chưa gửi vào sổ</p>
                   <p className="text-xs text-violet-400">Tạo sổ kỳ hạn để sinh lời cao hơn</p>
                 </div>
                 <button onClick={() => {

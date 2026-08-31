@@ -152,15 +152,15 @@ function lintPorts() {
   // chưa test. Cộng lại vẫn phải đủ tổng, nếu không là ma trận đã lỗi thời.
   const testable = cov.total - cov.waived;
   const pct = testable ? ((cov.covered / testable) * 100).toFixed(1) : '0.0';
-  console.log(`  📊 Độ phủ         ${cov.covered}/${testable} (${pct}%) trên số tính năng test được`);
+  console.log(`  Độ phủ         ${cov.covered}/${testable} (${pct}%) trên số tính năng test được`);
   console.log(`     ${cov.waived} mục được miễn có lý do · tổng ${cov.total}`);
   if (cov.uncovered.length) {
-    console.log(`  ⚠️  Chưa phủ       ${cov.uncovered.length} tính năng`);
+    console.log(`  Chưa phủ       ${cov.uncovered.length} tính năng`);
   }
   console.log(`\n  Báo cáo: tests/reports/BAO-CAO-KIEM-TOAN.md`);
   console.log(`           tests/reports/coverage.md`);
   console.log(
-    `\n  🔒 DB thật: ${before.sha256 === after.sha256 ? 'NGUYÊN VẸN' : 'ĐÃ THAY ĐỔI (!!)'}\n`
+    `\n  DB thật: ${before.sha256 === after.sha256 ? 'NGUYÊN VẸN' : 'ĐÃ THAY ĐỔI (!!)'}\n`
   );
 
   server.stop();
