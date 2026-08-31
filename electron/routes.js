@@ -162,6 +162,23 @@ function setupRoutes(app, db, priceService, upload, opts = {}) {
   });
 
   // ===== ALLOCATIONS =====
+  // ── Sổ quỹ tiền mặt ────────────────────────────────────────────────────
+  app.get('/api/cash/ledger', (req, res) => {
+    try { res.json(db.getCashLedger()); }
+    catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
+  app.post('/api/cash/spend', (req, res) => {
+    try {
+      res.json(db.spendCash(req.body.amount, req.body.date, req.body.note));
+    } catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
+  app.delete('/api/cash/ledger/:id', (req, res) => {
+    try { res.json(db.deleteCashMovement(parseInt(req.params.id))); }
+    catch (e) { res.status(500).json({ error: errText(e) }); }
+  });
+
   app.get('/api/allocations/all', (req, res) => {
     try { res.json(db.getAllAllocations()); }
     catch (e) { res.status(500).json({ error: errText(e) }); }

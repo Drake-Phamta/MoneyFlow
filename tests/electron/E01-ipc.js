@@ -255,6 +255,40 @@ async function run() {
     );
 
     await t(
+      'E-08',
+      'Sổ quỹ tiền mặt đi được qua IPC, không chỉ qua REST',
+      ['ipc:cash:ledger', 'ipc:cash:spend', 'ipc:cash:deleteMovement',
+       'bridge:cash.ledger', 'bridge:cash.spend', 'bridge:cash.deleteMovement',
+       'client:cash.ledger', 'client:cash.spend', 'client:cash.deleteMovement'],
+      async () => {
+        const before = await api('snapshot.get');
+        const amount = 250000;
+
+        const r = await api('cash.spend', amount, '2026-08-30', 'Thử qua IPC');
+        ok(r && r.id, 'ghi khoản đã tiêu qua IPC phải trả về id');
+
+        const ledger = await api('cash.ledger');
+        ok(
+          ledger.some((x) => x.id === r.id && Math.abs(x.amount - amount) < TOL),
+          'sổ quỹ đọc qua IPC phải thấy dòng vừa ghi'
+        );
+
+        const after = await api('snapshot.get');
+        approx(
+          before.netWorth.total - after.netWorth.total,
+          amount,
+          TOL,
+          'khoản đã tiêu phải trừ thẳng vào tổng tài sản'
+        );
+
+        await api('cash.deleteMovement', r.id);
+        const back = await api('snapshot.get');
+        approx(back.netWorth.total, before.netWorth.total, TOL,
+          'xoá dòng ghi nhầm phải hoàn nguyên tổng tài sản');
+      }
+    );
+
+    await t(
       'E-07',
       'Giao diện thật mở được trong Electron, không lỗi JS',
       [],

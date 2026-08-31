@@ -40,6 +40,11 @@ contextBridge.exposeInMainWorld('api', {
     save: (data) => ipcRenderer.invoke('monthly:save', data),
     delete: (monthIndex) => ipcRenderer.invoke('monthly:delete', monthIndex),
   },
+  cash: {
+    ledger: () => ipcRenderer.invoke('cash:ledger'),
+    spend: (amount, date, note) => ipcRenderer.invoke('cash:spend', amount, date, note),
+    deleteMovement: (id) => ipcRenderer.invoke('cash:deleteMovement', id),
+  },
   allocations: {
     get: (entryId) => ipcRenderer.invoke('allocations:get', entryId),
     all: () => ipcRenderer.invoke('allocations:all'),

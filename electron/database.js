@@ -48,6 +48,7 @@ class FinancialDB {
     this.migrateToV7();
     this.migrateToV8();
     this.migrateToV9();
+    this.migrateToV10();
     this.seedDefaults();
     
     // Ensure category 2 is renamed to "Chứng Khoán" (from old "Đầu Tư" name)
@@ -327,6 +328,30 @@ class FinancialDB {
       )
     `);
 
+    // Sổ quỹ tiền mặt — mọi lần tiền đổi ngăn hoặc rời khỏi tài sản.
+    //
+    // Trước bảng này app chỉ có MỘT cửa vào (monthly_entries) và không có cửa
+    // ra: rút sổ tiết kiệm thì gốc giảm mà không cộng lại đâu, sổ đáo hạn thì
+    // rơi khỏi mọi tổng. Tiền bốc hơi khỏi tổng tài sản.
+    //
+    // Cố ý KHÔNG dùng monthly_entries.expense cho khoản chi lớn: mọi trung bình
+    // nuôi src/lib/projection.mjs đều lấy từ getCashflowStats(), vốn chỉ đọc
+    // monthly_entries. Một khoản mua nhà ghi vào đó sẽ kéo lệch expenseMean và
+    // làm hỏng cả lộ trình tự do tài chính.
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS cash_ledger (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        direction TEXT NOT NULL,
+        source TEXT NOT NULL,
+        amount REAL NOT NULL,
+        ref_table TEXT,
+        ref_id INTEGER,
+        note TEXT,
+        created_at TEXT DEFAULT (datetime('now'))
+      )
+    `);
+
     // Migration: add current_price if missing
     try {
       this.db.run('ALTER TABLE asset_types ADD COLUMN current_price REAL DEFAULT 0');
@@ -567,6 +592,16 @@ class FinancialDB {
    * Bộ mới lệch nhau cả về sắc lẫn độ sáng, nên phân biệt được kể cả khi in
    * đen trắng.
    */
+  migrateToV10() {
+    const version = this.getParam('SCHEMA_VERSION') || 1;
+    if (version >= 10) return;
+
+    // Bảng đã do createTables() dựng. Migration này chỉ để nâng số phiên bản,
+    // và là chỗ móc nếu sau này cần lấp sổ quỹ từ dữ liệu cũ.
+    this.run("INSERT OR REPLACE INTO parameters (key, value, description) VALUES ('SCHEMA_VERSION', 10, 'Database schema version')");
+    this.save();
+  }
+
   migrateToV9() {
     const version = this.getParam('SCHEMA_VERSION') || 1;
     if (version >= 9) return;
@@ -1494,6 +1529,70 @@ class FinancialDB {
     this.save();
   }
 
+  // ===== SỔ QUỸ TIỀN MẶT =====
+
+  /** Mọi dòng vào và ra của ngăn tiền mặt, mới nhất trước. */
+  getCashLedger() {
+    return this.query('SELECT * FROM cash_ledger ORDER BY date DESC, id DESC');
+  }
+
+  /** Tổng đã cộng vào, tổng đã tiêu ra, và phần đã rút khỏi ý định đầu tư. */
+  getCashLedgerTotals() {
+    const row = this.queryOne(`
+      SELECT
+        COALESCE(SUM(CASE WHEN direction = 'in'  THEN amount ELSE 0 END), 0) AS released,
+        COALESCE(SUM(CASE WHEN direction = 'out' THEN amount ELSE 0 END), 0) AS spent,
+        COALESCE(SUM(CASE WHEN source = 'asset_sale' THEN amount ELSE 0 END), 0) AS fromMarket
+      FROM cash_ledger
+    `);
+    return {
+      released: row?.released || 0,
+      spent: row?.spent || 0,
+      fromMarket: row?.fromMarket || 0,
+    };
+  }
+
+  addCashMovement({ date, direction, source, amount, ref_table, ref_id, note }) {
+    this.run(
+      `INSERT INTO cash_ledger (date, direction, source, amount, ref_table, ref_id, note)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [date || this._todayLocal(), direction, source, Math.abs(Number(amount) || 0),
+       ref_table || null, ref_id || null, note || '']
+    );
+    const id = this.lastId();
+    this.save();
+    return { id };
+  }
+
+  /**
+   * Ghi một khoản đã tiêu ra khỏi tài sản — mua nhà, mua xe, cưới hỏi.
+   *
+   * Cố ý KHÔNG ghi vào monthly_entries.expense: cột đó nuôi expenseMean và
+   * contribution trong src/lib/projection.mjs. Một khoản 500 triệu ghi vào đấy
+   * sẽ kéo lệch trung bình của mọi tháng và làm hỏng cả lộ trình.
+   */
+  spendCash(amount, date, note) {
+    const value = Math.abs(Number(amount) || 0);
+    if (value <= 0) throw new Error('so tien phai lon hon 0');
+    const when = date || this._todayLocal();
+    this.run(
+      `INSERT INTO cash_ledger (date, direction, source, amount, note)
+       VALUES (?, 'out', 'spend', ?, ?)`,
+      [when, value, note || '']
+    );
+    const id = this.lastId();
+    this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
+      [when, 'CASH_OUT', `${note || 'Đã tiêu'} → đã tiêu`, value]);
+    this.save();
+    return { id, amount: value };
+  }
+
+  deleteCashMovement(id) {
+    this.run('DELETE FROM cash_ledger WHERE id = ?', [id]);
+    this.save();
+    return true;
+  }
+
   getDiscrepancyLogs() {
     return this.query(`
       SELECT d.*, c.name as category_name
@@ -1605,8 +1704,25 @@ class FinancialDB {
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
       [data.date, data.type === 'BUY' ? 'BUY' : 'SELL',
        `${data.type === 'BUY' ? 'Mua' : 'Bán'} ${displayName} × ${data.quantity}`, data.total_amount]);
+
+    // Lấy id TRƯỚC save() — save() xuất lại cả tệp nên last_insert_rowid() mất.
+    const txnId = this.lastId();
+
+    // Bán mà nói rõ là rút ra dùng: tiền rời ô "chờ mua" sang ngăn tiền mặt.
+    // Đây là phép CHUYỂN NGĂN, không sinh thêm tiền — awaitingInvestment trừ đi
+    // đúng bằng phần unallocated cộng vào, nên thanh khoản không đổi. Cái đổi là
+    // app thôi coi khoản đó như phần còn thiếu của danh mục.
+    if (data.type === 'SELL' && data.proceeds === 'cash') {
+      const amount = Math.max(0, (Number(data.total_amount) || 0) - (Number(data.fee) || 0));
+      this.run(
+        `INSERT INTO cash_ledger (date, direction, source, amount, ref_table, ref_id, note)
+         VALUES (?, 'in', 'asset_sale', ?, 'transactions', ?, ?)`,
+        [data.date, amount, txnId, `Bán ${displayName}, rút ra dùng`]
+      );
+    }
+
     this.save();
-    return this.lastId();
+    return txnId;
   }
   deleteTransaction(id) {
     this.run('DELETE FROM transactions WHERE id = ?', [id]);
@@ -2138,6 +2254,19 @@ class FinancialDB {
       this.run('UPDATE savings_accounts SET principal = principal + ? WHERE id = ?', [amount, accountId]);
     } else if (type === 'withdraw') {
       this.run('UPDATE savings_accounts SET principal = MAX(0, principal - ?) WHERE id = ?', [amount, accountId]);
+      // Tiền rút ra phải về ngăn tiền mặt. Thiếu dòng này thì gốc giảm mà
+      // không cộng lại đâu — tổng tài sản tụt đúng bằng số vừa rút, như thể
+      // tiền bốc hơi.
+      const acct = this.queryOne('SELECT name FROM savings_accounts WHERE id = ?', [accountId]);
+      this.run(
+        `INSERT INTO cash_ledger (date, direction, source, amount, ref_table, ref_id, note)
+         VALUES (?, 'in', 'savings_withdraw', ?, 'savings_accounts', ?, ?)`,
+        [date || this._todayLocal(), Math.abs(Number(amount) || 0), accountId,
+         `Rút sổ ${acct?.name || ''}`.trim()]
+      );
+      this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
+        [date || this._todayLocal(), 'CASH_IN',
+         `Rút sổ ${acct?.name || ''}`.trim() + ' → Tiền mặt', Math.abs(Number(amount) || 0)]);
     }
     this.save();
     return this.lastId();
@@ -2416,7 +2545,12 @@ class FinancialDB {
 
   processMaturedAccounts() {
     const today = new Date().toISOString().split('T')[0];
-    const matured = this.query(`SELECT * FROM savings_accounts WHERE status = 'active' AND maturity_date IS NOT NULL AND maturity_date <= ?`, [today]);
+    // Phải lấy qua getSavingsAccounts() chứ không truy vấn thô: truy vấn thô
+    // không kèm `transactions`, mà calculateAccruedInterest cần mảng đó. Thiếu
+    // nó thì lãi tính ra 0 và toàn bộ phần lãi của sổ rơi mất khi tất toán.
+    const matured = this.getSavingsAccounts().filter(
+      (a) => a.status === 'active' && a.maturity_date && a.maturity_date <= today
+    );
     const results = [];
     for (const a of matured) {
       if (a.auto_renew) {
@@ -2430,14 +2564,25 @@ class FinancialDB {
         }
         results.push({ id: a.id, name: a.name, action: 'renewed', interest });
       } else {
-        // Mark as matured
+        // Tất toán: sổ rời khỏi mọi tổng tiết kiệm (bộ lọc status === 'active'),
+        // nên gốc và lãi phải chuyển sang ngăn tiền mặt, không thì tổng tài sản
+        // tụt đúng bằng cả sổ. Phải tính lãi TRƯỚC khi đổi status —
+        // calculateAccruedInterest trả 0 cho sổ không còn active.
         const interest = this.calculateAccruedInterest(a, a.transactions);
         if (interest > 0) {
           this.run(`INSERT INTO savings_transactions (savings_account_id, type, amount, date, note) VALUES (?, 'interest', ?, ?, ?)`,
             [a.id, interest, today, 'Tất toán']);
         }
+        const released = (Number(a.principal) || 0) + interest;
         this.run('UPDATE savings_accounts SET status = ? WHERE id = ?', ['matured', a.id]);
-        results.push({ id: a.id, name: a.name, action: 'matured', interest });
+        this.run(
+          `INSERT INTO cash_ledger (date, direction, source, amount, ref_table, ref_id, note)
+           VALUES (?, 'in', 'savings_matured', ?, 'savings_accounts', ?, ?)`,
+          [today, released, a.id, `Sổ ${a.name} đáo hạn`]
+        );
+        this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
+          [today, 'CASH_IN', `Sổ ${a.name} đáo hạn → Tiền mặt`, released]);
+        results.push({ id: a.id, name: a.name, action: 'matured', interest, released });
       }
     }
     if (results.length) this.save();
@@ -2747,9 +2892,36 @@ class FinancialDB {
 
     // ── Dòng tiền và tiền mặt ──────────────────────────────────────
     const cashflow = this.getCashflowStats();
-    const unallocated = Math.max(0, cashflow.totalInflow - allocTotal - cashflow.totalDeficit);
-    const awaitingInvestment = Math.max(0, toMarket - deployed);
-    const cash = { unallocated, awaitingInvestment, total: unallocated + awaitingInvestment };
+    // Sổ quỹ: tiền rút từ tiết kiệm hoặc từ sổ đáo hạn chảy VÀO ngăn tiền mặt,
+    // khoản đã tiêu chảy RA khỏi tài sản. `fromMarket` là phần tiền bán mà
+    // người dùng đã nói rõ là rút ra dùng — nó rời ô "chờ mua" chứ không phải
+    // sinh thêm tiền, nên trừ ở awaiting và cộng ở unallocated là một phép
+    // chuyển ngăn, tổng không đổi.
+    const ledger = this.getCashLedgerTotals();
+
+    // Hai ô gốc giữ NGUYÊN cách tính cũ, kể cả phép kẹp về 0. Đã phân bổ nhiều
+    // hơn thu nhập đã ghi là chuyện bình thường — người dùng bỏ thêm tiền túi
+    // vào một danh mục thì `allocTotal` vượt `totalInflow`. Bỏ phép kẹp đi là
+    // biến chuyện bình thường đó thành lời báo lỗi.
+    const baseUnallocated = Math.max(0, cashflow.totalInflow - allocTotal - cashflow.totalDeficit);
+    const baseAwaiting = Math.max(0, toMarket - deployed - ledger.fromMarket);
+
+    // Khoản đã tiêu rút từ tiền chưa phân bổ trước, hết mới đụng tới tiền đang
+    // chờ mua — đúng thứ tự một người tiêu tiền thật.
+    const spentFromAwaiting = Math.max(0, ledger.spent - (baseUnallocated + ledger.released));
+    const unallocated = Math.max(0, baseUnallocated + ledger.released - ledger.spent);
+    const awaitingInvestment = Math.max(0, baseAwaiting - spentFromAwaiting);
+    // Ghi chi nhiều hơn tiền mặt đang có thì nói ra, đừng kẹp về 0 rồi im lặng.
+    const overspent = Math.max(0, spentFromAwaiting - baseAwaiting);
+
+    const cash = {
+      unallocated,
+      awaitingInvestment,
+      overspent,
+      released: ledger.released,
+      spent: ledger.spent,
+      total: unallocated + awaitingInvestment,
+    };
 
     const netWorth = {
       cash: cash.total,

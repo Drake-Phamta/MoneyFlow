@@ -633,6 +633,177 @@ async function run() {
       approx(totalAfter, totalBefore, TOL, 'tổng tiền đã phân bổ của tháng không được đổi');
     }
   );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C30',
+    'Rút tiền từ sổ chỉ chuyển ngăn, không làm mất tiền',
+    ['rest:POST /api/savings/:accountId/transactions', 'rest:GET /api/cash/ledger'],
+    async () => {
+      await reset();
+      const accounts = await getOk('/api/savings');
+      const acc = accounts.find((a) => (a.principal || 0) > 1000000);
+      ok(acc, 'fixture không có sổ nào đủ tiền để rút');
+
+      const before = await getOk('/api/snapshot');
+      const amount = 1000000;
+
+      await post(`/api/savings/${acc.id}/transactions`, {
+        type: 'withdraw', amount, date: new Date().toISOString().slice(0, 10), note: 'C30',
+      });
+
+      const after = await getOk('/api/snapshot');
+
+      // Rút tiền ra khỏi sổ không làm bạn nghèo đi — tiền chỉ đổi ngăn.
+      approx(after.netWorth.total, before.netWorth.total, TOL,
+        `tổng tài sản tụt từ ${fmt(before.netWorth.total)} xuống ${fmt(after.netWorth.total)} ` +
+        `chỉ vì rút ${fmt(amount)} từ sổ — tiền bốc hơi`);
+
+      approx(before.savings.balance - after.savings.balance, amount, TOL,
+        'tiết kiệm phải giảm đúng bằng số đã rút');
+      approx(after.cash.total - before.cash.total, amount, TOL,
+        'tiền mặt phải tăng đúng bằng số đã rút');
+
+      const ledger = await getOk('/api/cash/ledger');
+      ok(ledger.some((r) => r.source === 'savings_withdraw' && Math.abs(r.amount - amount) < TOL),
+        'sổ quỹ không ghi lại lần rút này');
+    }
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C31',
+    'Sổ đáo hạn không tái tục thì gốc và lãi về tiền mặt, không biến mất',
+    ['rest:POST /api/savings/process-matured'],
+    async () => {
+      await reset();
+      // Fixture có sẵn vài sổ quá hạn tự tái tục. Chạy một lần cho chúng lắng
+      // xuống trước, để phép đo sau chỉ phản ánh đúng sổ mình vừa tạo.
+      await post('/api/savings/process-matured', {});
+
+      // Một sổ đã quá hạn và KHÔNG tái tục — nhánh mà tiền từng bốc hơi.
+      const created = await post('/api/savings', {
+        name: 'C31 sổ quá hạn', bank: 'TEST', type: 'term',
+        principal: 20000000, interest_rate: 6, term_months: 6,
+        start_date: '2020-01-01', maturity_date: '2020-07-01', auto_renew: 0,
+      });
+      ok(created.status < 300, 'không tạo được sổ thử');
+
+      const before = await getOk('/api/snapshot');
+      await post('/api/savings/process-matured', {});
+      const after = await getOk('/api/snapshot');
+
+      approx(after.netWorth.total, before.netWorth.total, TOL,
+        `tổng tài sản tụt từ ${fmt(before.netWorth.total)} xuống ${fmt(after.netWorth.total)} ` +
+        `khi một sổ đáo hạn — cả sổ rơi khỏi bảng cân đối`);
+
+      // Gốc CỘNG lãi, không phải riêng gốc: tất toán thì ngân hàng trả cả hai.
+      const ledger = await getOk('/api/cash/ledger');
+      const row = ledger.find((r) => r.source === 'savings_matured');
+      ok(row, 'sổ quỹ không ghi lại lần đáo hạn này');
+      ok(row.amount > 20000000,
+        `sổ quỹ chỉ ghi ${fmt(row.amount)} — phần lãi bị bỏ rơi khi tất toán`);
+      approx(after.cash.total - before.cash.total, row.amount, TOL,
+        'tiền mặt phải tăng đúng bằng số ghi trong sổ quỹ');
+      await reset();
+    }
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C32',
+    'Khoản đã tiêu trừ vào tài sản nhưng không bóp méo chi tiêu trung bình',
+    ['rest:POST /api/cash/spend'],
+    async () => {
+      await reset();
+      const before = await getOk('/api/snapshot');
+      const amount = 500000;
+
+      await post('/api/cash/spend', {
+        amount, date: new Date().toISOString().slice(0, 10), note: 'C32 mua đồ',
+      });
+
+      const after = await getOk('/api/snapshot');
+
+      approx(before.netWorth.total - after.netWorth.total, amount, TOL,
+        'tổng tài sản phải giảm đúng bằng khoản đã tiêu');
+
+      // Đây là lý do dùng bảng riêng thay vì monthly_entries.expense: mọi trung
+      // bình nuôi lộ trình đều lấy từ getCashflowStats().
+      approx(after.cashflow.expenseMean, before.cashflow.expenseMean, TOL,
+        `chi tiêu trung bình đổi từ ${fmt(before.cashflow.expenseMean)} sang ` +
+        `${fmt(after.cashflow.expenseMean)} — khoản chi lớn đang kéo lệch cả lộ trình`);
+      approx(after.cashflow.totalExpense, before.cashflow.totalExpense, TOL,
+        'tổng chi tiêu hàng tháng không được đổi');
+      await reset();
+    }
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C33',
+    'Bán rồi rút ra dùng: tiền đổi ngăn, thanh khoản giữ nguyên',
+    ['rest:POST /api/transactions'],
+    async () => {
+      await reset();
+      const assets = await getOk('/api/catalog?class=stock');
+      const asset = assets[0];
+      const today = new Date().toISOString().slice(0, 10);
+
+      await post('/api/transactions', {
+        date: today, asset_type_id: asset.id, type: 'BUY',
+        quantity: 100, price: 50000, total_amount: 5000000, note: 'C33 mua',
+      });
+
+      const before = await getOk('/api/snapshot');
+      await post('/api/transactions', {
+        date: today, asset_type_id: asset.id, type: 'SELL',
+        quantity: 40, price: 50000, total_amount: 2000000,
+        proceeds: 'cash', note: 'C33 bán rút ra dùng',
+      });
+      const after = await getOk('/api/snapshot');
+
+      // Bán là đổi cổ phiếu lấy tiền, nên tiền mặt PHẢI tăng và tổng tài sản
+      // giữ nguyên (bán đúng giá vốn). Cái mà "rút ra dùng" đổi là NGĂN chứa:
+      // tiền vào ô chưa phân bổ chứ không nằm ở ô chờ mua, nên app thôi coi
+      // khoản đó là phần còn thiếu của danh mục.
+      approx(after.cash.unallocated - before.cash.unallocated, 2000000, TOL,
+        'tiền bán rút ra dùng phải vào ô chưa phân bổ');
+      approx(after.cash.awaitingInvestment, before.cash.awaitingInvestment, TOL,
+        `ô "chờ lệnh mua" đổi từ ${fmt(before.cash.awaitingInvestment)} sang ` +
+        `${fmt(after.cash.awaitingInvestment)} — đã nói rút ra dùng thì nó phải đứng yên`);
+      await reset();
+    }
+  );
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C34',
+    'Tiêu quá số tiền mặt đang có thì phải nói ra, không kẹp về 0 rồi im lặng',
+    ['rest:POST /api/cash/spend', 'rest:DELETE /api/cash/ledger/:id'],
+    async () => {
+      await reset();
+      const before = await getOk('/api/snapshot');
+      const tooMuch = before.cash.total + 9000000;
+
+      const r = await post('/api/cash/spend', {
+        amount: tooMuch, date: new Date().toISOString().slice(0, 10), note: 'C34',
+      });
+
+      const after = await getOk('/api/snapshot');
+      approx(after.cash.overspent, 9000000, TOL,
+        `tiêu quá ${fmt(9000000)} mà overspent báo ${fmt(after.cash.overspent)}`);
+      eq(after.cash.total, 0, 'tiền mặt không được âm');
+
+      // Xoá được dòng ghi nhầm, và xoá xong mọi thứ trở lại như cũ.
+      await del(`/api/cash/ledger/${r.data.id}`);
+      const back = await getOk('/api/snapshot');
+      approx(back.cash.total, before.cash.total, TOL, 'xoá dòng ghi nhầm phải hoàn nguyên');
+      eq(back.cash.overspent, 0, 'hết tiêu quá thì overspent về 0');
+      await reset();
+    }
+  );
+
 }
 
 module.exports = { run };

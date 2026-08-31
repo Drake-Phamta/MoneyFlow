@@ -61,6 +61,11 @@ export const api = {
     save: (data) => post('/monthly', data),
     delete: (monthIndex) => del(`/monthly/${monthIndex}`),
   },
+  cash: {
+    ledger: () => get('/cash/ledger'),
+    spend: (amount, date, note) => post('/cash/spend', { amount, date, note }),
+    deleteMovement: (id) => del(`/cash/ledger/${id}`),
+  },
   allocations: {
     get: (entryId) => get(`/allocations/${entryId}`),
     all: () => get('/allocations/all'),

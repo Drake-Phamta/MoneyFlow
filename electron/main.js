@@ -127,6 +127,9 @@ ipcMain.handle('monthly:save', async (_, data) => { await ready(); db.saveMonthl
 ipcMain.handle('monthly:delete', async (_, monthIndex) => { await ready(); db.deleteMonthlyEntry(monthIndex); return true; });
 
 // Allocations
+ipcMain.handle('cash:ledger', async () => { await ready(); return db.getCashLedger(); });
+ipcMain.handle('cash:spend', async (_, amount, date, note) => { await ready(); return db.spendCash(amount, date, note); });
+ipcMain.handle('cash:deleteMovement', async (_, id) => { await ready(); return db.deleteCashMovement(id); });
 ipcMain.handle('allocations:get', async (_, entryId) => { await ready(); return db.getAllocations(entryId); });
 ipcMain.handle('networth:history', async () => { await ready(); return db.getNetWorthHistory(); });
 ipcMain.handle('portfolio:history', async () => { await ready(); return db.getPortfolioHistory(); });
