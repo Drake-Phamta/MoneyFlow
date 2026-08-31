@@ -25,6 +25,8 @@
     "test:electron": "node tests/run-all.js --only=electron",
     "test:content": "node tests/run-all.js --only=content",
     "test:projection": "node tests/run-all.js --only=projection",
+    "lint": "eslint .",
+    "icons": "python scripts/build-icons.py",
     "prestart": "vite build"
   },
   "browserslist": [
@@ -61,19 +63,18 @@
     "wait-on": "^7.2.0"
   },
   "build": {
-    "appId": "com.financial.command-center",
+    "appId": "com.moneyflow.app",
     "productName": "Money Flow",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
-      "electron/**/*",
-      "data/**/*"
+      "electron/**/*"
     ],
     "win": {
       "target": "nsis",
-      "icon": "icon.ico"
+      "icon": "build/icon.ico"
     }
   }
 }

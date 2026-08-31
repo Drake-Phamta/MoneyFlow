@@ -25,7 +25,7 @@ function createWindow() {
     },
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false },
     title: 'Money Flow',
-    icon: path.join(__dirname, '..', 'icon.ico'),
+    icon: path.join(__dirname, '..', 'build', 'icon.ico'),
   });
   // MF_ELECTRON_TEST: chạy trên bản đã dựng thay vì máy chủ Vite, để thử được
   // đường IPC mà không cần dựng thêm một tiến trình nữa.

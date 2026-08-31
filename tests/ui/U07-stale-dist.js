@@ -152,6 +152,60 @@ async function run() {
       );
     }
   );
+
+  await t(
+    'UI-S-05',
+    'Mọi đường dẫn logo đều trỏ tới tệp có thật',
+    [],
+    () => {
+      // Logo nằm ở bốn nơi độc lập: trang web, thanh bên, cửa sổ Electron và
+      // bộ cài. Đổi một chỗ mà quên ba chỗ kia thì tab trình duyệt đổi biểu
+      // tượng còn app trên máy thì không — và chẳng có gì báo.
+      const refs = [];
+      const html = fs.readFileSync(path.join(REPO_ROOT, 'index.html'), 'utf8');
+      for (const m of html.matchAll(/href="\/([^"?]+\.(?:png|ico))/g)) {
+        refs.push(['index.html', path.join('public', m[1])]);
+      }
+      const layout = fs.readFileSync(
+        path.join(REPO_ROOT, 'src/components/Layout.jsx'), 'utf8');
+      for (const m of layout.matchAll(/src="\/([^"?]+\.(?:png|ico))/g)) {
+        refs.push(['Layout.jsx', path.join('public', m[1])]);
+      }
+      const pkg = JSON.parse(
+        fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+      if (pkg.build && pkg.build.win && pkg.build.win.icon) {
+        refs.push(['package.json', pkg.build.win.icon]);
+      }
+      const main = fs.readFileSync(path.join(REPO_ROOT, 'electron/main.js'), 'utf8');
+      const mm = main.match(/icon:\s*path\.join\(__dirname,\s*'\.\.'((?:,\s*'[^']+')+)\)/);
+      if (mm) {
+        refs.push(['electron/main.js',
+          path.join(...mm[1].split(',').map((x) => x.trim().replace(/'/g, '')).filter(Boolean))]);
+      }
+
+      ok(refs.length >= 4, 'chỉ tìm thấy ' + refs.length + ' tham chiếu logo, chờ ít nhất 4');
+      const missing = refs
+        .filter(([, f]) => !fs.existsSync(path.join(REPO_ROOT, f)))
+        .map(([who, f]) => who + ' -> ' + f);
+      ok(missing.length === 0, 'trỏ vào tệp không tồn tại: ' + missing.join(', '));
+    }
+  );
+
+  await t(
+    'UI-S-06',
+    'Bộ cài không được đóng gói cơ sở dữ liệu thật',
+    [],
+    () => {
+      // Bản đóng gói đọc DB ở userData và tự tạo nếu chưa có, nên đưa data/
+      // vào bộ cài không giúp gì cả — nó chỉ phát tán sổ tiền của người dùng
+      // cho bất cứ ai cầm tệp cài đặt.
+      const pkg = JSON.parse(
+        fs.readFileSync(path.join(REPO_ROOT, 'package.json'), 'utf8'));
+      const files = (pkg.build && pkg.build.files) || [];
+      const leak = files.filter((f) => /(^|\/)data\//.test(f));
+      ok(leak.length === 0, 'build.files còn đóng gói: ' + leak.join(', '));
+    }
+  );
 }
 
 module.exports = { run };

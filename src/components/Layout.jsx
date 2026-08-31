@@ -64,7 +64,7 @@ export default function Layout({ children }) {
       >
         <div className={`${collapsed ? 'px-3' : 'p-5'} pb-4 border-b border-slate-100`}>
           <div className="flex items-center gap-3">
-            <img src="/icon.png" alt="" className="w-10 h-10 rounded-xl shadow-sm shrink-0" />
+            <img src="/icon.png" alt="" className="w-10 h-10 rounded-card shrink-0" />
             {!collapsed && (
               <div className="min-w-0">
                 <h1 className="text-base font-bold text-slate-800 tracking-tight">Money Flow</h1>
