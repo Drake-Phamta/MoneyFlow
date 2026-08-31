@@ -83,18 +83,34 @@ export default function SniperPlaybook({ embedded }) {
 
   useEffect(() => { if (showCatalog) loadCatalog(); }, [showCatalog, catalogFilter, catalogSearch]);
 
-  // Sniper levels
+  // Bậc Bắn Tỉa — dựng từ SNIPER_TIERS, nguồn duy nhất. Trước đây mảng này viết
+  // cứng ngưỡng "15-24 / 25-34" trong khi SNIPER_TIERS ghi "15–25 / 25–35" và
+  // getLevel() dùng >= 0.15 / 0.25 / 0.35: ba bộ số cho một quy tắc, và cả hai
+  // bảng hiển thị đều in sai so với thứ nút bấm thật sự làm.
+  const SKINS = [
+    { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', ring: 'ring-emerald-300' },
+    { bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', ring: 'ring-amber-300' },
+    { bg: 'bg-orange-50 border-orange-200', text: 'text-orange-700', ring: 'ring-orange-300' },
+    { bg: 'bg-red-50 border-red-200', text: 'text-red-700', ring: 'ring-red-300' },
+  ];
+  const pctOf = (r) => Math.round(r * 100);
   const levels = [
-    { label: 'Giữ nguyên', condition: 'Drawdown < 15%', pct: 0, color: 'emerald', bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-700', ring: 'ring-emerald-300' },
-    { label: 'Cấp 1', condition: 'Drawdown 15-24%', pct: 30, color: 'amber', bg: 'bg-amber-50 border-amber-200', text: 'text-amber-700', ring: 'ring-amber-300' },
-    { label: 'Cấp 2', condition: 'Drawdown 25-34%', pct: 30, color: 'orange', bg: 'bg-orange-50 border-orange-200', text: 'text-orange-700', ring: 'ring-orange-300' },
-    { label: 'Cấp 3', condition: 'Drawdown ≥ 35%', pct: 40, color: 'red', bg: 'bg-red-50 border-red-200', text: 'text-red-700', ring: 'ring-red-300' },
+    { label: 'Giữ nguyên', condition: `Giảm dưới ${pctOf(SNIPER_TIERS[0].from)}%`, pct: 0, ...SKINS[0] },
+    ...SNIPER_TIERS.map((t, i) => ({
+      label: `Cấp ${t.level}`,
+      condition: t.to
+        ? `Giảm ${pctOf(t.from)}% – ${pctOf(t.to)}%`
+        : `Giảm trên ${pctOf(t.from)}%`,
+      pct: pctOf(t.deploy),
+      ...SKINS[i + 1],
+    })),
   ];
 
+  // Chạm đúng mốc thì tính bậc trên — đi từ bậc cao xuống nên `>=` là đủ.
   function getLevel(dd) {
-    if (dd >= 0.35) return 3;
-    if (dd >= 0.25) return 2;
-    if (dd >= 0.15) return 1;
+    for (let i = SNIPER_TIERS.length - 1; i >= 0; i--) {
+      if (dd >= SNIPER_TIERS[i].from) return i + 1;
+    }
     return 0;
   }
 
@@ -105,7 +121,7 @@ export default function SniperPlaybook({ embedded }) {
     const dd = w.peak_price > 0 ? (w.peak_price - w.current_price) / w.peak_price : 0;
     const levelIdx = getLevel(dd);
     return { ...w, drawdown: dd, levelIdx, level: levels[levelIdx] };
-  }).filter(o => o.drawdown >= 0.15).sort((a, b) => b.drawdown - a.drawdown);
+  }).filter(o => o.drawdown >= SNIPER_TIERS[0].from).sort((a, b) => b.drawdown - a.drawdown);
 
   const bestOpp = opportunities[0] || null;
   const suggested = bestOpp ? Math.round(available * (bestOpp.level.pct / 100)) : 0;
@@ -165,10 +181,10 @@ export default function SniperPlaybook({ embedded }) {
     if (!deployForm.quantity || !deployForm.price || !deployForm.asset_type_id) return;
     const price = parseNumberInput(deployForm.price);
     const total = Number(deployForm.quantity || 0) * price;
-    if (total > available) { await notify({ message: 'Vượt quá số tiền khả dụng!' }); return; }
+    if (total > available) { await notify({ message: `Kho đạn chỉ còn ${formatVND(available)}.` }); return; }
 
     const opp = bestOpp;
-    const note = `[Bắn Tỉa] ${deployForm.note || ''} | ${opp?.ticker || opp?.name || ''} sụt giảm: ${((opp?.drawdown || 0) * 100).toFixed(1)}% | Cấp: ${opp?.level.label || ''}`;
+    const note = `[Bắn Tỉa] ${deployForm.note || ''} | ${opp?.ticker || opp?.name || ''} giảm từ đỉnh: ${((opp?.drawdown || 0) * 100).toFixed(1)}% | Cấp: ${opp?.level.label || ''}`;
 
     await apiClient.transactions.add({
       date: deployForm.date,
@@ -212,11 +228,11 @@ export default function SniperPlaybook({ embedded }) {
       <div className="flex items-center justify-between">
         {!embedded ? (
           <div>
-            <h1 className="page-title">Sniper Playbook</h1>
-            <p className="page-subtitle">Theo dõi tài sản — bắn tỉa khi có cơ hội</p>
+            <h1 className="page-title">Bắn Tỉa</h1>
+            <p className="page-subtitle">Để dành sẵn một khoản, chờ mã bạn theo dõi giảm sâu mới mua</p>
           </div>
         ) : (
-          <p className="text-sm text-slate-500">Theo dõi tài sản — bắn tỉa khi có cơ hội</p>
+          <p className="text-sm text-slate-500">Để dành sẵn một khoản, chờ mã bạn theo dõi giảm sâu mới mua</p>
         )}
         <div className="flex items-center gap-2">
           {unreadAlerts.length > 0 && (
@@ -260,7 +276,7 @@ export default function SniperPlaybook({ embedded }) {
         <div className="card">
           <p className="text-xs text-slate-400 mb-1">Tổng phân bổ</p>
           <p className="text-2xl font-bold text-slate-800">{formatVND(sniperAllocated)}</p>
-          <p className="text-fs-2 text-slate-400 mt-1">Từ phân bổ hàng tháng → Bắn Tỉa</p>
+          <p className="text-fs-2 text-slate-400 mt-1">Trích từ phân bổ hàng tháng</p>
         </div>
         <div className="card">
           <p className="text-xs text-slate-400 mb-1">Đã triển khai</p>
@@ -270,7 +286,7 @@ export default function SniperPlaybook({ embedded }) {
         <div className="card bg-primary-50 border-primary-200">
           <p className="text-xs text-primary-600 mb-1">Khả dụng</p>
           <p className="text-2xl font-bold text-primary-700">{formatVND(available)}</p>
-          <p className="text-fs-2 text-primary-400 mt-1">Sẵn sàng bắn tỉa</p>
+          <p className="text-fs-2 text-primary-400 mt-1">Chưa dùng tới</p>
         </div>
       </div>
 
@@ -296,7 +312,7 @@ export default function SniperPlaybook({ embedded }) {
               const dd = w.peak_price > 0 ? (w.peak_price - w.current_price) / w.peak_price : 0;
               const levelIdx = getLevel(dd);
               const level = levels[levelIdx];
-              const isHot = dd >= 0.15;
+              const isHot = dd >= SNIPER_TIERS[0].from;
 
               return (
                 <div key={w.id} className={`flex items-center gap-6 px-4 py-3 rounded-xl border transition ${isHot ? level.bg + ' ring-1 ' + level.ring : 'border-slate-100 hover:border-slate-200 bg-white'}`}>
@@ -335,7 +351,7 @@ export default function SniperPlaybook({ embedded }) {
                     <p className={`text-xl font-bold leading-none ${isHot ? 'text-red-600' : 'text-slate-200'}`}>
                       {(dd * 100).toFixed(1)}%
                     </p>
-                    <p className="text-fs-2 text-slate-400 mt-0.5">sụt giảm</p>
+                    <p className="text-fs-2 text-slate-400 mt-0.5">so với đỉnh</p>
                   </div>
 
                   {/* Remove */}
@@ -415,13 +431,14 @@ export default function SniperPlaybook({ embedded }) {
         <div className={`card ${bestOpp.level.bg} border-2`}>
           <div className="flex items-center justify-between mb-3">
             <div>
-              <h3 className="text-sm font-bold text-amber-800">Cơ hội bắn tỉa!</h3>
-              <p className="text-xs text-amber-600">
-                {bestOpp.ticker || bestOpp.name} giảm {(bestOpp.drawdown * 100).toFixed(1)}% — {bestOpp.level.label} — nên triển khai {formatVND(suggested)}
+              <h3 className="text-fs-4 font-semibold text-amber-800">Đã tới ngưỡng bắn</h3>
+              <p className="text-fs-2 text-amber-700">
+                {bestOpp.ticker || bestOpp.name} giảm {(bestOpp.drawdown * 100).toFixed(1)}% so với đỉnh — {bestOpp.level.label}.{}
+                Theo quy tắc bạn đặt, bậc này bắn {formatVND(suggested)}.
               </p>
             </div>
             <button onClick={() => setShowDeploy(!showDeploy)} className="btn-primary text-sm">
-              {showDeploy ? 'Đóng' : 'Triển khai ngay'}
+              {showDeploy ? 'Đóng' : 'Ghi lệnh mua'}
             </button>
           </div>
 
@@ -486,24 +503,38 @@ export default function SniperPlaybook({ embedded }) {
 
       {!bestOpp && watchlist.length > 0 && (
         <div className="card bg-emerald-50 border-emerald-200">
-          <p className="text-sm text-emerald-700">Chưa có tài sản nào giảm ≥15%. Tiếp tục tích lũy kho đạn.</p>
+          <p className="text-fs-3 text-emerald-700">Chưa mã nào giảm tới {pctOf(SNIPER_TIERS[0].from)}% so với đỉnh. Kho đạn nằm chờ.</p>
         </div>
       )}
 
-      {/* Bộ quy tắc */}
+      {/* Bộ quy tắc — một thẻ duy nhất. Trước đây cùng nội dung này nằm ở hai
+          thẻ ("Bộ quy tắc" và "Bắn bao nhiêu khi thị trường sập") với hai bộ
+          ngưỡng khác nhau. */}
       <div className="card">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Bộ quy tắc</h3>
+        <h3 className="text-fs-4 font-semibold text-slate-700 mb-1">Mã nào giảm bao nhiêu thì bắn bao nhiêu</h3>
+        <p className="text-fs-2 text-slate-400 mb-3">
+          Đo trên từng mã bạn theo dõi, so với đỉnh của chính mã đó.
+          Kho đạn còn {formatVND(available)}.
+        </p>
         <div className="space-y-1.5">
           {levels.map((l, i) => (
-            <div key={i} className={`flex items-center justify-between px-3 py-2 rounded-lg border text-xs ${l.bg}`}>
-              <div className="flex items-center gap-2">
-                <span className={`font-bold ${l.text}`}>{l.label}</span>
-                <span className="text-slate-500">{l.condition}</span>
-              </div>
-              <span className="font-medium text-slate-600">{l.pct}% kho đạn</span>
+            <div key={i} className={`flex items-baseline justify-between gap-3 px-3 py-2 rounded-lg border text-fs-3 ${l.bg}`}>
+              <span className="flex items-baseline gap-2 min-w-0">
+                <span className={`font-semibold whitespace-nowrap ${l.text}`}>{l.label}</span>
+                <span className="text-slate-500 whitespace-nowrap">{l.condition}</span>
+              </span>
+              <span className="font-medium text-slate-600 tabular whitespace-nowrap">
+                {l.pct === 0
+                  ? 'Không làm gì'
+                  : `Bắn ${l.pct}% kho đạn — ${formatVND(Math.round(available * l.pct / 100))}`}
+              </span>
             </div>
           ))}
         </div>
+        <p className="text-fs-2 text-slate-400 mt-3">
+          Chạm đúng mốc thì tính bậc trên. Giảm dưới {pctOf(SNIPER_TIERS[0].from)}% là
+          chuyện thường của thị trường, không phải cơ hội.
+        </p>
       </div>
 
       {/* Lịch sử */}
@@ -550,30 +581,6 @@ export default function SniperPlaybook({ embedded }) {
             </table>
           </div>
         )}
-      </div>
-
-      {/* Bậc triển khai — cùng bộ số mà nút bấm thật sự dùng */}
-      <div className="card">
-        <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
-          Bắn bao nhiêu khi thị trường sập
-        </h3>
-        <div className="space-y-1.5">
-          {SNIPER_TIERS.map(t => (
-            <div key={t.level} className="flex items-baseline gap-3 text-sm">
-              <span className="w-24 shrink-0 font-medium text-slate-700">
-                {t.to
-                  ? `Giảm ${Math.round(t.from * 100)}–${Math.round(t.to * 100)}%`
-                  : `Giảm trên ${Math.round(t.from * 100)}%`}
-              </span>
-              <span className="text-slate-500">
-                bắn {Math.round(t.deploy * 100)}% số đạn — {formatVND(Math.round(available * t.deploy))}
-              </span>
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-slate-400 mt-3">
-          Giữ nguyên khi giảm dưới {Math.round(SNIPER_TIERS[0].from * 100)}%. Đợt giảm nông là chuyện thường của thị trường.
-        </p>
       </div>
 
       {/* Toast notification */}

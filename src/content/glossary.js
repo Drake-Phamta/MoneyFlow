@@ -92,12 +92,13 @@ export const TERMS = {
     hint: 'Mức chi bạn muốn duy trì khi tự do tài chính, không phải mức đang chi.',
   },
   sniperAvailable: {
-    label: 'Đạn còn lại',
-    hint: 'Tiền mặt đang chờ thị trường sập.',
+    label: 'Kho đạn',
+    hint: 'Tiền đã dành riêng cho Bắn Tỉa mà chưa mua gì.',
     formula: 'Đã chia cho Bắn Tỉa − đã bắn',
   },
   drawdown: {
     label: 'Mức giảm từ đỉnh',
+    hint: 'Đo trên từng mã, so với đỉnh của chính mã đó — không phải chỉ số thị trường.',
     formula: '(Giá đỉnh − giá hiện tại) ÷ giá đỉnh',
   },
 };
