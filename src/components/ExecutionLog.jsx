@@ -32,6 +32,7 @@ export default function ExecutionLog({ embedded }) {
     price: '',
     note: '',
     strategy: '',
+    proceeds: 'reinvest',
   });
 
   useEffect(() => {
@@ -117,9 +118,10 @@ export default function ExecutionLog({ embedded }) {
         total_amount: total,
         note: form.note,
         strategy: form.strategy || '',
+        proceeds: form.type === 'SELL' ? form.proceeds : undefined,
       });
       const firstSpecific = catalogItems.find(c => c.asset_class === parentAsset?.asset_class);
-      setForm({ date: todayLocal(), asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '', strategy: '' });
+      setForm({ date: todayLocal(), asset_type_id: firstSpecific?.id?.toString() || parentAssets[0]?.id?.toString() || '', asset_name: '', type: 'BUY', quantity: '', price: '', note: '', strategy: '', proceeds: 'reinvest' });
       setShowForm(false);
       setTransactions(await apiClient.transactions.get());
     } catch (err) {
@@ -432,10 +434,21 @@ export default function ExecutionLog({ embedded }) {
               </div>
             </div>
             {totalAmount > 0 && (
-              <div className="bg-primary-50 rounded-xl px-4 py-2 flex justify-between">
-                <span className="text-sm text-primary-600">Thành tiền</span>
-                <span className="font-bold text-primary-700">{formatVND(totalAmount)}</span>
+              <div className="bg-primary-50 rounded-card px-4 py-2 flex justify-between">
+                <span className="text-fs-4 text-primary-600">Thành tiền</span>
+                <span className="font-bold text-primary-700 tabular">{formatVND(totalAmount)}</span>
               </div>
+            )}
+            {form.type === 'SELL' && (
+              <label className="flex items-center gap-2 text-fs-3 text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.proceeds === 'cash'}
+                  onChange={e => setForm({ ...form, proceeds: e.target.checked ? 'cash' : 'reinvest' })}
+                  className="accent-primary-600"
+                />
+                Rút tiền bán ra dùng, không mua lại
+              </label>
             )}
             <div className="flex justify-end gap-2">
               <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">Hủy</button>

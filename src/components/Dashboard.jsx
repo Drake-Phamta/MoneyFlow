@@ -8,6 +8,7 @@ import { apiClient } from '../utils/apiClient';
 import AllocationPie from './charts/AllocationPie';
 import AssetDetailModal from './charts/AssetDetailModal';
 import NetWorthModal from './charts/NetWorthModal';
+import CashLedgerModal from './charts/CashLedgerModal';
 import CustomTooltip from '../utils/CustomTooltip';
 import { ArrowClockwise, Trash, CheckCircle, XCircle, Bell } from '../utils/iconMap';
 import { useConfirm, EmptyState, Skeleton, GainLoss, toneClass } from './ui/index.jsx';
@@ -59,6 +60,7 @@ export default function Dashboard() {
   const [priceValue, setPriceValue] = useState('');
   const [selectedAssetForModal, setSelectedAssetForModal] = useState(null);
   const [showNetWorthModal, setShowNetWorthModal] = useState(false);
+  const [showCashLedger, setShowCashLedger] = useState(false);
   const [alertCount, setAlertCount] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
@@ -72,7 +74,11 @@ export default function Dashboard() {
   const [expandedCategory, setExpandedCategory] = useState(null);
 
   useEffect(() => {
-    loadData();
+    // Sổ đáo hạn thì tiền đã là của bạn rồi — không bắt bấm thêm nút nào để
+    // "nhận về". Chạy trước khi nạp số liệu, nên mở app đúng ngày đáo hạn là
+    // thấy ngay Tiết kiệm giảm, Tiền mặt tăng, và một dòng trong nhật ký.
+    apiClient.savings.processMatured().catch(() => {}).finally(loadData);
+
     const lastRefreshTime = localStorage.getItem('lastPriceRefresh');
     const oneHour = 60 * 60 * 1000;
     if (!lastRefreshTime || (Date.now() - parseInt(lastRefreshTime)) > oneHour) {
@@ -467,9 +473,23 @@ export default function Dashboard() {
             <span className="text-fs-2 text-slate-400 mt-1.5 block">Bấm để xem đã đi thế nào</span>
           </button>
 
+          {/* Tiền mặt bấm được: mở sổ quỹ ra là thấy tiền vào từ đâu, đi đâu.
+              Hai ngăn kia đã có trang riêng của chúng. */}
           <dl className="grid grid-cols-3 gap-3 mt-6 pt-5 border-t border-slate-200">
+            <div>
+              <dt className="text-fs-2 text-slate-400">Tiền mặt</dt>
+              <dd className="mt-0.5">
+                <button
+                  type="button"
+                  onClick={() => setShowCashLedger(true)}
+                  data-testid="cash-pot"
+                  className="text-fs-4 font-semibold text-slate-800 tabular hover:text-primary-700 underline decoration-slate-300 underline-offset-4 transition"
+                >
+                  {formatVND(totalCashOnHand)}
+                </button>
+              </dd>
+            </div>
             {[
-              ['Tiền mặt', totalCashOnHand],
               ['Đầu tư', totalCurrentValue],
               ['Tiết kiệm', totalSavingsBalance],
             ].map(([label, value]) => (
@@ -741,6 +761,16 @@ export default function Dashboard() {
             {activity.map(a => (
               <div key={a.id} className="flex items-baseline gap-3 py-2.5 group">
                 <span className="text-fs-2 text-slate-400 w-24 shrink-0 tabular">{formatRelativeTime(a.date)}</span>
+                {/* Cùng mũi tên với sổ quỹ tiền mặt — một ngữ pháp thị giác cho
+                    mọi lần tiền đổi ngăn, dù đọc ở đâu. */}
+                {(a.type === 'CASH_IN' || a.type === 'CASH_OUT') && (
+                  <span
+                    aria-hidden="true"
+                    className={`w-3 shrink-0 ${a.type === 'CASH_IN' ? 'text-emerald-600' : 'text-amber-700'}`}
+                  >
+                    {a.type === 'CASH_IN' ? '←' : '→'}
+                  </span>
+                )}
                 <span className="flex-1 text-fs-3 text-slate-700 min-w-0">{a.description}</span>
                 {a.amount > 0 && <span className="text-fs-3 text-slate-600 tabular shrink-0">{formatVND(a.amount)}</span>}
                 <button
@@ -769,6 +799,13 @@ export default function Dashboard() {
         <AssetDetailModal asset={selectedAssetForModal} onClose={() => setSelectedAssetForModal(null)} />
       )}
       {showNetWorthModal && <NetWorthModal onClose={() => setShowNetWorthModal(false)} />}
+
+      <CashLedgerModal
+        open={showCashLedger}
+        onClose={() => setShowCashLedger(false)}
+        snap={snap}
+        onChanged={loadData}
+      />
     </div>
   );
 }

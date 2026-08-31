@@ -22,6 +22,8 @@ export default function SavingsSection() {
   const [editForm, setEditForm] = useState({});
   const [depositingId, setDepositingId] = useState(null);
   const [depositForm, setDepositForm] = useState({ amount: '', date: todayLocal(), note: '' });
+  // Bơm vào và rút ra là cùng một việc, ngược chiều — dùng chung một khuôn form.
+  const [moveMode, setMoveMode] = useState('deposit');
   const [categories, setCategories] = useState([]);
   const [sjcPrice, setSjcPrice] = useState(SJC_FALLBACK_PRICE);
   const [sjcAssetId, setSjcAssetId] = useState(null);
@@ -229,6 +231,26 @@ export default function SavingsSection() {
   async function handleDeposit(id) {
     const amount = parseNumberInput(depositForm.amount);
     if (!amount || amount <= 0) return;
+
+    if (moveMode === 'withdraw') {
+      const acc = savingsAccounts.find((a) => a.id === id);
+      const principal = acc?.principal || 0;
+      if (amount > principal) {
+        await notify({ message: `Sổ này chỉ còn ${formatVND(principal)}.` });
+        return;
+      }
+      try {
+        await apiClient.savings.addTransaction(
+          id, 'withdraw', amount, depositForm.date, depositForm.note || 'Rút tiền'
+        );
+        setDepositingId(null);
+        setDepositForm({ amount: '', date: todayLocal(), note: '' });
+        loadData();
+      } catch (err) {
+        await notify({ message: 'Lỗi: ' + err.message });
+      }
+      return;
+    }
 
     // Find the account to check its category
     const acc = savingsAccounts.find(a => a.id === id);
@@ -859,10 +881,30 @@ export default function SavingsSection() {
                     return (
                       <tr key={a.id} className="bg-blue-50">
                         <td colSpan={11}>
-                          <div className="p-3">
-                            <p className="text-sm font-medium text-slate-700 mb-2">Bơm vốn vào "{a.name}"</p>
-                            {/* Show correct available amount based on account category */}
-                            {(() => {
+                          <div className="p-3 max-w-3xl">
+                            <p className="text-fs-4 font-medium text-slate-700 mb-2">
+                              {moveMode === 'withdraw' ? 'Rút tiền từ' : 'Bơm vốn vào'} "{a.name}"
+                            </p>
+                            {/* Rút: cho thấy ngay sổ còn lại bao nhiêu và tiền mặt lên
+                                bao nhiêu. Hai mũi tên nói hết, không cần câu giải thích. */}
+                            {moveMode === 'withdraw' ? (() => {
+                              const principal = a.principal || 0;
+                              const typed = parseNumberInput(depositForm.amount) || 0;
+                              const left = Math.max(0, principal - Math.min(typed, principal));
+                              return (
+                                <div className="text-fs-2 mb-3 p-2 rounded-lg bg-amber-50 text-amber-800 tabular">
+                                  <div className="flex items-baseline justify-between">
+                                    <span>Sổ này còn</span>
+                                    <strong>{formatVND(principal)}</strong>
+                                  </div>
+                                  {typed > 0 && (
+                                    <div className="flex items-baseline justify-between mt-1 pt-1 border-t border-amber-200">
+                                      <span>Rút xong sổ còn {formatVND(left)}, tiền mặt +{formatVND(Math.min(typed, principal))}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })() : (() => {
                               const isDP   = a.category_name?.includes('Dự Phòng');
                               const isTKTP = a.category_name?.includes('Tiết kiệm');
                               const avail  = isDP ? availableForDuPhong : isTKTP ? availableForTKTP : availableForSavings;
@@ -871,7 +913,7 @@ export default function SavingsSection() {
                                 ? (isDP ? 'bg-blue-50 text-blue-700' : isTKTP ? 'bg-violet-50 text-violet-700' : 'bg-slate-50 text-slate-600')
                                 : 'bg-amber-50 text-amber-600';
                               return (
-                                <div className={`text-xs mb-3 p-2 rounded-lg ${cls}`}>
+                                <div className={`text-fs-2 mb-3 p-2 rounded-lg ${cls}`}>
                                   {avail > 0
                                     ? <>Quỹ {label}: còn <strong>{formatVND(avail)}</strong> có thể bơm vào sổ này</>
                                     : 'Đã phân bổ hết — có thể bơm thêm từ nguồn khác'}
@@ -880,7 +922,7 @@ export default function SavingsSection() {
                             })()}
                             <div className="grid grid-cols-3 gap-3">
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Số tiền bơm</label>
+                                <label className="text-fs-2 text-slate-500 mb-1 block">{moveMode === 'withdraw' ? 'Số tiền rút' : 'Số tiền bơm'}</label>
                                 {(() => {
                                   const isDP   = a.category_name?.includes('Dự Phòng');
                                   const isTKTP = a.category_name?.includes('Tiết kiệm');
@@ -889,22 +931,22 @@ export default function SavingsSection() {
                                     <input type="text" inputMode="numeric"
                                       value={depositForm.amount ? formatNumberInput(depositForm.amount) : ''}
                                       onChange={e => setDepositForm({ ...depositForm, amount: e.target.value.replace(/\D/g, '') })}
-                                      placeholder={avail > 0 ? formatVND(avail) : 'Nhập số tiền'}
+                                      placeholder={moveMode === 'withdraw' ? formatVND(a.principal || 0) : (avail > 0 ? formatVND(avail) : 'Nhập số tiền')}
                                       className="input text-sm" />
                                   );
                                 })()}
                               </div>
                               <div>
-                                <label className="text-xs text-slate-500 mb-1 block">Ngày bơm</label>
+                                <label className="text-fs-2 text-slate-500 mb-1 block">{moveMode === 'withdraw' ? 'Ngày rút' : 'Ngày bơm'}</label>
                                 <input type="date" value={depositForm.date} onChange={e => setDepositForm({ ...depositForm, date: e.target.value })} className="input text-sm" />
                               </div>
                               <div>
                                 <label className="text-xs text-slate-500 mb-1 block">Ghi chú</label>
-                                <input type="text" value={depositForm.note} onChange={e => setDepositForm({ ...depositForm, note: e.target.value })} placeholder="Bơm vốn" className="input text-sm" />
+                                <input type="text" value={depositForm.note} onChange={e => setDepositForm({ ...depositForm, note: e.target.value })} placeholder={moveMode === 'withdraw' ? 'Rút tiền' : 'Bơm vốn'} className="input text-sm" />
                               </div>
                             </div>
                             <div className="flex gap-2 mt-3">
-                              <button onClick={() => handleDeposit(a.id)} className="btn-primary text-sm" disabled={!depositForm.amount}>Xác nhận bơm</button>
+                              <button onClick={() => handleDeposit(a.id)} className="btn-primary text-sm" disabled={!depositForm.amount}>{moveMode === 'withdraw' ? 'Xác nhận rút' : 'Xác nhận bơm'}</button>
                               <button onClick={() => { setDepositingId(null); setDepositForm({ amount: '', date: todayLocal(), note: '' }); }} className="btn-ghost text-sm">Hủy</button>
                             </div>
                           </div>
@@ -951,7 +993,8 @@ export default function SavingsSection() {
                       <td className="py-3 px-3">
                         <div className="flex items-center justify-center gap-1">
                           <button onClick={() => startEdit(a)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-primary-600 hover:bg-primary-50 transition">Sửa</button>
-                          <button onClick={() => { setDepositingId(a.id); setEditingId(null); }} className="text-xs px-2 py-1 rounded text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
+                          <button onClick={() => { setDepositingId(a.id); setMoveMode('deposit'); setEditingId(null); }} className="text-fs-2 px-2 py-1 rounded text-blue-600 hover:text-blue-700 hover:bg-blue-50 transition font-medium">Bơm vốn</button>
+                          <button onClick={() => { setDepositingId(a.id); setMoveMode('withdraw'); setEditingId(null); }} className="text-fs-2 px-2 py-1 rounded text-amber-700 hover:text-amber-800 hover:bg-amber-50 transition font-medium">Rút tiền</button>
                           <button onClick={() => handleDeleteSavings(a.id)} className="text-xs px-2 py-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition">Xóa</button>
                         </div>
                       </td>

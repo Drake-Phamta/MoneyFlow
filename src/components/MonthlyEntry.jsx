@@ -84,6 +84,8 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
   }
 
   const totalInflow = Math.max(0, parseNumberInput(income) - parseNumberInput(expense) + parseNumberInput(bonus));
+  // Tháng tiêu nhiều hơn kiếm: phần thiếu lấy từ tiền đang có.
+  const deficit = Math.max(0, parseNumberInput(expense) - parseNumberInput(income) - parseNumberInput(bonus));
   const allocsInitialized = useRef(false);
 
   // Số tiền nhàn rỗi mà mảng allocs hiện tại đang tương ứng.
@@ -275,7 +277,11 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
 
   async function handleSave() {
     const target = editMode ? editMonth : nextMonth;
-    if (!target || totalInflow <= 0) return;
+    // Tháng chi vượt thu vẫn phải ghi được. Backend đã xử lý phần thiếu hụt từ
+    // lâu (getCashflowStats tính totalDeficit, có test C7b); trước đây chỉ giao
+    // diện chặn — và chặn im lặng: bấm Lưu không có gì xảy ra, không báo lỗi.
+    if (!target) return;
+    if (totalInflow <= 0 && deficit <= 0) return;
 
     try {
       const finalNote = buildFinalNote();
@@ -390,13 +396,26 @@ export default function MonthlyEntry({ onSaved, onComplete }) {
               <input type="text" value={note} onChange={e => setNote(e.target.value)} placeholder="VD: Tháng này dư ra được 1tr850..." className="input" />
             </div>
             {totalInflow > 0 && (
-              <div className="bg-primary-50 border border-primary-100 rounded-xl p-4">
-                <p className="text-xs font-medium text-primary-600">Tiền nhàn rỗi</p>
-                <p className="text-3xl font-bold text-primary-700">{formatVND(totalInflow)}</p>
+              <div className="bg-primary-50 border border-primary-100 rounded-card p-4">
+                <p className="text-fs-2 font-medium text-primary-600">Tiền nhàn rỗi</p>
+                <p className="text-3xl font-bold text-primary-700 tabular">{formatVND(totalInflow)}</p>
+              </div>
+            )}
+            {deficit > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-card p-4">
+                <p className="text-fs-2 font-medium text-amber-700">Tháng này chi vượt thu</p>
+                <p className="text-3xl font-bold text-amber-800 tabular">−{formatVND(deficit)}</p>
+                <p className="text-fs-2 text-amber-700 mt-1">
+                  Không có gì để phân bổ. Phần thiếu trừ vào tiền đang có.
+                </p>
               </div>
             )}
             <div className="flex justify-end">
-              <button onClick={() => setStep(2)} disabled={totalInflow <= 0} className="btn-primary-lg">Tiếp theo →</button>
+              {deficit > 0 ? (
+                <button onClick={handleSave} className="btn-primary-lg">Lưu tháng</button>
+              ) : (
+                <button onClick={() => setStep(2)} disabled={totalInflow <= 0} className="btn-primary-lg">Tiếp theo →</button>
+              )}
             </div>
           </div>
         )}

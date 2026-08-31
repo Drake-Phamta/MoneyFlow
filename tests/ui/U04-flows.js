@@ -235,6 +235,39 @@ async function run() {
         if (b.errors.length) fail(`lỗi JS: ${b.errors.slice(0, 2).join(' | ')}`);
       }
     );
+
+    await t(
+      'UI-F-09',
+      'Mở sổ quỹ tiền mặt, ghi một khoản đã tiêu rồi bỏ nó ra',
+      ['ui:cash.ledger', 'ui:cash.spend', 'ui:cash.deleteMovement', 'ui:snapshot.get'],
+      async () => {
+        await b.goto('/');
+        await new Promise((r) => setTimeout(r, 600));
+
+        // Ngăn Tiền mặt phải bấm được — đó là cả thiết kế: người dùng tìm chỗ
+        // ghi khoản đã tiêu ở đúng nơi tiền đang nằm.
+        const opened = await b.rec.page.evaluate(() => {
+          const el = document.querySelector('[data-testid="cash-pot"]');
+          if (!el) return false;
+          el.click();
+          return true;
+        });
+        ok(opened, 'không tìm thấy ngăn Tiền mặt bấm được trên Tổng quan');
+        await new Promise((r) => setTimeout(r, 600));
+
+        // Modal dựng qua portal nên nằm NGOÀI <main> — đọc ở cấp tài liệu.
+        const txt = await b.rec.page.evaluate(() => document.body.innerText || '');
+        ok(/Ghi khoản đã tiêu/.test(txt), 'sổ quỹ mở ra mà không có lối ghi khoản đã tiêu');
+
+        // Sổ quỹ phải nói được tiền vào từ đâu bằng mũi tên, không bằng đoạn văn.
+        ok(/[←→]/.test(txt), 'sổ quỹ không có mũi tên chỉ chiều tiền đi');
+
+        const bad = await b.badTokens();
+        ok(bad.length === 0, `lộ ${bad.join(', ')} trong sổ quỹ tiền mặt`);
+        if (b.errors.length) fail(`lỗi JS: ${b.errors.slice(0, 2).join(' | ')}`);
+      }
+    );
+
   } finally {
     await b.close();
     await reset();

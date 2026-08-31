@@ -804,6 +804,50 @@ async function run() {
     }
   );
 
+
+  // ─────────────────────────────────────────────────────────────
+  await t(
+    'C35',
+    'Sổ quỹ tiền mặt phải cộng đúng ra số còn lại',
+    ['rest:GET /api/snapshot'],
+    async () => {
+      await reset();
+      // Sổ quỹ hiện lên màn hình dưới dạng các dòng ← → rồi một dòng "còn lại".
+      // Nếu chúng không cộng đúng thì người đọc thôi tin cả màn hình — nên
+      // đẳng thức này phải đúng ở mọi trạng thái, kể cả sau khi rút và tiêu.
+      const check = async (khi) => {
+        const s = await getOk('/api/snapshot');
+        const vao =
+          (s.cashflow.totalInflow || 0) + (s.cash.released || 0);
+        const ra =
+          (s.allocations.toReserve || 0) + (s.allocations.toSavings || 0) +
+          (s.portfolio.invested || 0) + (s.cash.fromMarket || 0) +
+          (s.cashflow.totalDeficit || 0) + (s.cash.spent || 0);
+        approx(vao - ra, s.cash.total, TOL,
+          `${khi}: các dòng sổ quỹ cộng ra ${fmt(vao - ra)} nhưng ô tiền mặt ghi ` +
+          `${fmt(s.cash.total)} — sổ quỹ tự mâu thuẫn`);
+      };
+
+      await check('lúc đầu');
+
+      const accounts = await getOk('/api/savings');
+      const acc = accounts.find((a) => (a.principal || 0) > 2000000);
+      if (acc) {
+        await post(`/api/savings/${acc.id}/transactions`, {
+          type: 'withdraw', amount: 2000000,
+          date: new Date().toISOString().slice(0, 10), note: 'C35',
+        });
+        await check('sau khi rút sổ');
+      }
+
+      await post('/api/cash/spend', {
+        amount: 300000, date: new Date().toISOString().slice(0, 10), note: 'C35 tiêu',
+      });
+      await check('sau khi ghi khoản đã tiêu');
+      await reset();
+    }
+  );
+
 }
 
 module.exports = { run };

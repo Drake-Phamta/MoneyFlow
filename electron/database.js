@@ -1582,7 +1582,7 @@ class FinancialDB {
     );
     const id = this.lastId();
     this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
-      [when, 'CASH_OUT', `${note || 'Đã tiêu'} → đã tiêu`, value]);
+      [when, 'CASH_OUT', note || 'Đã tiêu', value]);
     this.save();
     return { id, amount: value };
   }
@@ -2266,7 +2266,7 @@ class FinancialDB {
       );
       this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
         [date || this._todayLocal(), 'CASH_IN',
-         `Rút sổ ${acct?.name || ''}`.trim() + ' → Tiền mặt', Math.abs(Number(amount) || 0)]);
+         `Rút sổ ${acct?.name || ''}`.trim(), Math.abs(Number(amount) || 0)]);
     }
     this.save();
     return this.lastId();
@@ -2581,7 +2581,7 @@ class FinancialDB {
           [today, released, a.id, `Sổ ${a.name} đáo hạn`]
         );
         this.run('INSERT INTO activity_log (date, type, description, amount) VALUES (?, ?, ?, ?)',
-          [today, 'CASH_IN', `Sổ ${a.name} đáo hạn → Tiền mặt`, released]);
+          [today, 'CASH_IN', `Sổ ${a.name} đáo hạn`, released]);
         results.push({ id: a.id, name: a.name, action: 'matured', interest, released });
       }
     }
@@ -2920,6 +2920,7 @@ class FinancialDB {
       overspent,
       released: ledger.released,
       spent: ledger.spent,
+      fromMarket: ledger.fromMarket,
       total: unallocated + awaitingInvestment,
     };
 
